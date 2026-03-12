@@ -1,8 +1,18 @@
 {
   "functions": {
-    "pages/api/chat.js":    { "maxDuration": 30 },
-    "pages/api/leads.js":   { "maxDuration": 30 },
-    "pages/api/audit.js":   { "maxDuration": 30 },
-    "pages/api/webhook.js": { "maxDuration": 30 }
-  }
+    "pages/api/chat.js":     { "maxDuration": 30 },
+    "pages/api/leads.js":    { "maxDuration": 30 },
+    "pages/api/audit.js":    { "maxDuration": 30 },
+    "pages/api/webhook.js":  { "maxDuration": 30 }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin",  "value": "https://products.devcabin.tech" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type" }
+      ]
+    }
+  ]
 }
