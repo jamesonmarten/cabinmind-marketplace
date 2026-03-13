@@ -17,6 +17,14 @@ import OpenAI from 'openai';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// ─── Timeout-safe fetch (AbortSignal.timeout not available in all Node versions) ─
+function fetchWithTimeout(url, options = {}, ms = 5000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+}
+
 // ─── Safe JSON extractor ─────────────────────────────────────────────────────
 // Strips markdown fences, finds the first [...] or {...} block, and parses it.
 // Throws a clean error if nothing valid is found.
@@ -66,22 +74,19 @@ async function enrichWithWikipedia(companyName) {
   try {
     // Step 1: search for the company page title
     const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(companyName)}&limit=3&format=json&namespace=0`;
-    const searchRes = await fetch(searchUrl, {
+    const searchRes = await fetchWithTimeout(searchUrl, {
       headers: { 'User-Agent': 'CabinMind-LeadResearcher/1.0 (support@devcabin.tech)' },
-      signal: AbortSignal.timeout(4000),
-    });
+    }, 4000);
     if (!searchRes.ok) return null;
     const [, titles] = await searchRes.json();
     if (!titles?.length) return null;
 
     // Step 2: fetch summary for the best matching title
     const pageTitle = encodeURIComponent(titles[0]);
-    const summaryRes = await fetch(
+    const summaryRes = await fetchWithTimeout(
       `https://en.wikipedia.org/api/rest_v1/page/summary/${pageTitle}`,
-      {
-        headers: { 'User-Agent': 'CabinMind-LeadResearcher/1.0 (support@devcabin.tech)' },
-        signal: AbortSignal.timeout(4000),
-      }
+      { headers: { 'User-Agent': 'CabinMind-LeadResearcher/1.0 (support@devcabin.tech)' } },
+      4000
     );
     if (!summaryRes.ok) return null;
     const d = await summaryRes.json();
@@ -105,7 +110,7 @@ async function enrichWithWikipedia(companyName) {
 async function enrichWithDDG(companyName) {
   try {
     const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(companyName)}&format=json&no_html=1&skip_disambig=1`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    const r = await fetchWithTimeout(url, {}, 4000);
     if (!r.ok) return null;
     const d = await r.json();
     const abstract = d.Abstract || '';
@@ -133,8 +138,10 @@ async function findEmailsWithHunter(domain) {
   if (!key) return null;
   try {
     const params = new URLSearchParams({ domain, api_key: key, limit: 10, type: 'personal' });
-    const r = await fetch(`https://api.hunter.io/v2/domain-search?${params}`,
-      { signal: AbortSignal.timeout(7000) }
+    const r = await fetchWithTimeout(
+      `https://api.hunter.io/v2/domain-search?${params}`,
+      {},
+      7000
     );
     if (!r.ok) return null;
     const d = await r.json();
@@ -178,7 +185,7 @@ Vary gender, geography, company size, and seniority. Return ONLY the JSON array.
   const r = await client.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
-    max_tokens: count * 300,
+    max_tokens: Math.min(count * 420 + 200, 4096),
     temperature: 0.82,
   });
   return safeParseJSON(r.choices[0].message.content);
@@ -210,7 +217,7 @@ Return ONLY the JSON array, no markdown.`;
   const r = await client.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
-    max_tokens: count * 420,
+    max_tokens: Math.min(count * 480 + 300, 4096),
     temperature: 0.85,
   });
   const leads = safeParseJSON(r.choices[0].message.content);
@@ -223,6 +230,17 @@ Return ONLY the JSON array, no markdown.`;
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  // Always respond with JSON — never let an unhandled exception bubble to a plain-text 500
+  try {
+    return await runLeads(req, res);
+  } catch (err) {
+    console.error('Leads handler uncaught:', err);
+    return res.status(500).json({ error: 'Lead generation failed. Please try again.' });
+  }
+}
+
+async function runLeads(req, res) {
+
   const { icp, count = 5, industry, location, companySize, excludeCompanies } = req.body;
   if (!icp) return res.status(400).json({ error: 'icp is required' });
 
@@ -230,16 +248,23 @@ export default async function handler(req, res) {
   const filters = { industry, location, companySize, excludeCompanies };
   const hasHunter = !!process.env.HUNTER_API_KEY;
 
+  // Cap enrichment batch at 10 to stay within 30s Vercel limit.
+  // For 15-lead requests, GPT synthesis is fast enough and produces complete data.
+  const enrichBatch = Math.min(batchSize, 10);
+
   // ── Tier 1 / 2: GPT targets → Wikipedia/DDG enrichment → Hunter (optional) ─
   // Wikipedia & DDG are always free — no key needed. Hunter adds real emails (free 25/mo).
   try {
     const targets = await gptGenerateTargets(icp, batchSize, filters);
 
+    // For large batches skip per-lead Wikipedia/DDG (too slow); only run Hunter
+    const useEnrichment = targets.length <= enrichBatch;
+
     const enriched = await Promise.all(targets.map(async (t) => {
-      // Run Wikipedia/DDG enrichment and Hunter in parallel
+      // Run Wikipedia/DDG enrichment and Hunter in parallel (skip wiki for big batches)
       const [wikiData, hunterEmails] = await Promise.all([
-        enrichCompanyFree(t.company_name),
-        hasHunter ? findEmailsWithHunter(t.domain) : null,
+        useEnrichment ? enrichCompanyFree(t.company_name) : Promise.resolve(null),
+        hasHunter ? findEmailsWithHunter(t.domain) : Promise.resolve(null),
       ]);
 
       // Resolve best email: Hunter first → pattern fallback
