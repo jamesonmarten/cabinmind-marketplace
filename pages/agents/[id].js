@@ -135,8 +135,12 @@ function ReceptionistChat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: next }),
       });
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('timeout');
+      }
       const data = await res.json();
-      const reply = data.reply || data.error;
+      const reply = data.reply || data.error || '⚠️ No response.';
       setMessages([...next, { role: 'assistant', content: reply }]);
       if (reply.toLowerCase().includes('reach out') || reply.toLowerCase().includes("noted your")) {
         setLeadCaptured(true);
@@ -311,8 +315,15 @@ function AuditDemo() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: target }),
       });
-      const data = await res.json();
       clearInterval(iv);
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        setErrorMsg('Audit timed out — please try again.');
+        setStage('error');
+        return;
+      }
+      const data = await res.json();
 
       if (!res.ok) {
         setErrorMsg(data.error || 'Audit failed. Please try a different URL.');
@@ -937,9 +948,15 @@ function LeadDemo() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ icp }),
       });
-      const data = await res.json();
       clearInterval(msgIv);
+      // Guard against non-JSON responses (e.g. Vercel HTML error pages on timeout)
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Lead generation timed out — please try again.');
+      }
+      const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to generate leads');
+      if (!Array.isArray(data.leads)) throw new Error('Unexpected response — please try again.');
       setLeads(data.leads);
       let i = 0;
       const drip = setInterval(() => {
