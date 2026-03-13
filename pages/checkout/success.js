@@ -21,9 +21,9 @@ const AGENT_ICONS = {
 };
 
 const NEXT_STEPS = [
-  { icon: '📧', title: 'Check your email', desc: 'A receipt and setup instructions are on their way to your inbox.' },
-  { icon: '⚙️', title: 'Configure your agent', desc: 'Follow the setup guide to connect your tools and go live.' },
-  { icon: '🚀', title: 'Go live', desc: 'Your agent will start working within minutes of setup.' },
+  { icon: '📧', title: 'Check your email', desc: 'Your welcome email contains a personal dashboard link — bookmark it!' },
+  { icon: '🚀', title: 'Open your dashboard', desc: 'Click the link in your email to access your full agent dashboard right now.' },
+  { icon: '⚙️', title: 'Configure & go live', desc: 'Follow the in-dashboard setup guide to connect your tools and go live in minutes.' },
 ];
 
 export default function CheckoutSuccess() {
@@ -101,12 +101,14 @@ export default function CheckoutSuccess() {
             >
               {customerEmail ? (
                 <p className="text-gray-400 text-base">
-                  A confirmation email with setup instructions is on its way to{' '}
+                  Your personal dashboard link is on its way to{' '}
                   <span className="text-white font-semibold">{customerEmail}</span>.
+                  <br />
+                  <span className="text-gray-500 text-sm">It may take a minute — check your spam folder too.</span>
                 </p>
               ) : (
                 <p className="text-gray-400 text-base">
-                  Your subscription is live. Here&apos;s what happens next:
+                  Your subscription is live. Check your email for your personal dashboard link.
                 </p>
               )}
             </motion.div>
@@ -161,6 +163,18 @@ export default function CheckoutSuccess() {
               Back to Home
             </Link>
           </motion.div>
+
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2 }}
+            className="mt-8 text-gray-500 text-sm"
+          >
+            Questions? Email us at{' '}
+            <a href="mailto:support@devcabin.tech" className="text-brand-400 hover:underline">
+              support@devcabin.tech
+            </a>
+          </motion.p>
         </div>
       </div>
 

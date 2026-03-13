@@ -242,8 +242,29 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-8 text-center text-gray-600 text-sm">
-        © {new Date().getFullYear()} Dev Cabin Technologies · CabinMind
+      <footer className="border-t border-white/5 py-12 px-4">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Brand */}
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-brand-400 to-purple-500 flex items-center justify-center">
+              <span className="text-white font-bold text-xs">CM</span>
+            </div>
+            <span className="text-white font-semibold">Cabin<span className="gradient-text">Mind</span></span>
+          </div>
+
+          {/* Links */}
+          <nav className="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
+            <Link href="/agents"          className="hover:text-white transition-colors">Marketplace</Link>
+            <Link href="/pricing"         className="hover:text-white transition-colors">Pricing</Link>
+            <Link href="/agents/builder"  className="hover:text-white transition-colors">Build an Agent</Link>
+            <a href="mailto:support@devcabin.tech" className="hover:text-white transition-colors">Support</a>
+          </nav>
+
+          {/* Copyright */}
+          <p className="text-gray-600 text-xs">
+            © {new Date().getFullYear()} Dev Cabin Technologies
+          </p>
+        </div>
       </footer>
     </Layout>
   );

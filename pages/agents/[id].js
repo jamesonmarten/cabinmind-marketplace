@@ -265,6 +265,7 @@ function AuditDemo() {
   const [results, setResults] = useState(null);
   const [trafficGain, setTrafficGain] = useState(0);
   const [auditedUrl, setAuditedUrl] = useState('');
+  const [auditSource, setAuditSource] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [scanStep, setScanStep] = useState(0);
 
@@ -325,6 +326,7 @@ function AuditDemo() {
       setResults(data.results);
       setTrafficGain(data.trafficGain);
       setAuditedUrl(data.audited);
+      setAuditSource(data.source || '');
       setTimeout(() => setStage('done'), 400);
     } catch (err) {
       clearInterval(iv);
@@ -500,9 +502,19 @@ function AuditDemo() {
               </div>
             )}
 
-            <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-xs text-green-300 flex items-center justify-between gap-2">
-              <span>✅ Real Lighthouse data · Fix items above · Full PDF report on deploy</span>
-              <span className="font-bold text-green-400 flex-shrink-0">Live scores</span>
+            <div className={`mt-4 p-3 rounded-xl text-xs flex items-center justify-between gap-2 ${
+              auditSource === 'ai'
+                ? 'bg-purple-500/10 border border-purple-500/20 text-purple-300'
+                : 'bg-green-500/10 border border-green-500/20 text-green-300'
+            }`}>
+              <span>
+                {auditSource === 'ai'
+                  ? '🤖 AI-generated analysis (PageSpeed quota reached) · Fix items above'
+                  : '✅ Real Lighthouse data · Fix items above · Full PDF report on deploy'}
+              </span>
+              <span className={`font-bold flex-shrink-0 ${auditSource === 'ai' ? 'text-purple-400' : 'text-green-400'}`}>
+                {auditSource === 'ai' ? 'AI audit' : 'Live scores'}
+              </span>
             </div>
           </motion.div>
         )}
@@ -511,7 +523,7 @@ function AuditDemo() {
           <div className="text-center py-8 text-gray-500 text-sm">
             <div className="text-3xl mb-3">🔍</div>
             <div>Enter any public website URL above and click <span className="text-white font-medium">Audit Now</span></div>
-            <div className="text-xs text-gray-600 mt-1">Uses real Google PageSpeed Insights · Takes 10–20s</div>
+            <div className="text-xs text-gray-600 mt-1">Google PageSpeed Insights · AI fallback if quota reached · Takes 10–20s</div>
           </div>
         )}
       </div>

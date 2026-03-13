@@ -1,0 +1,149 @@
+/* CabinMind AI Agents — WordPress plugin stylesheet v1.1.0 */
+
+.cabinmind-grid {
+  display: grid;
+  gap: 24px;
+  margin: 24px 0;
+}
+.cabinmind-cols-1 { grid-template-columns: 1fr; }
+.cabinmind-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.cabinmind-cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+@media (max-width: 900px) {
+  .cabinmind-cols-3 { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .cabinmind-cols-2,
+  .cabinmind-cols-3 { grid-template-columns: 1fr; }
+}
+
+.cabinmind-loading,
+.cabinmind-error {
+  color: #6b7280;
+  font-size: 14px;
+  padding: 16px 0;
+}
+.cabinmind-error a { color: #7c3aed; }
+
+/* Card */
+.cabinmind-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow 0.2s, transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+.cabinmind-card:hover {
+  box-shadow: 0 8px 24px rgba(109,40,217,.12);
+  transform: translateY(-2px);
+}
+
+.cabinmind-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cabinmind-icon { font-size: 32px; line-height: 1; }
+
+.cabinmind-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #7c3aed;
+  background: #ede9fe;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+}
+
+.cabinmind-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.cabinmind-desc {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.cabinmind-features {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cabinmind-features li {
+  font-size: 13px;
+  color: #374151;
+}
+
+.cabinmind-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cabinmind-price {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+}
+.cabinmind-price small {
+  font-size: 13px;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-left: 2px;
+}
+
+.cabinmind-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cabinmind-btn-primary,
+.cabinmind-btn-secondary {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: opacity 0.15s, transform 0.15s;
+  white-space: nowrap;
+}
+.cabinmind-btn-primary {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(109,40,217,.3);
+}
+.cabinmind-btn-primary:hover {
+  opacity: 0.9;
+  transform: scale(1.03);
+}
+.cabinmind-btn-secondary {
+  border: 1px solid #e5e7eb;
+  color: #374151 !important;
+  background: transparent;
+}
+.cabinmind-btn-secondary:hover {
+  border-color: #7c3aed;
+  color: #7c3aed !important;
+}

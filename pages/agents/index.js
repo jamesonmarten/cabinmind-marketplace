@@ -8,6 +8,7 @@ const CATEGORIES = ['All', 'Customer Support', 'Marketing', 'Content', 'Sales'];
 export default function AgentsPage() {
   const [agents, setAgents] = useState([]);
   const [filter, setFilter] = useState('All');
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,7 +17,13 @@ export default function AgentsPage() {
       .then((d) => { setAgents(d); setLoading(false); });
   }, []);
 
-  const filtered = filter === 'All' ? agents : agents.filter((a) => a.category === filter);
+  const filtered = agents
+    .filter((a) => filter === 'All' || a.category === filter)
+    .filter((a) =>
+      search.trim() === '' ||
+      a.name.toLowerCase().includes(search.toLowerCase()) ||
+      a.description.toLowerCase().includes(search.toLowerCase())
+    );
 
   return (
     <Layout title="Agent Marketplace – CabinMind">
@@ -38,22 +45,36 @@ export default function AgentsPage() {
         </motion.div>
       </div>
 
-      {/* Category filters */}
+      {/* Category filters + search */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-        <div className="flex flex-wrap gap-2 mb-10">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setFilter(cat)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
-                filter === cat
-                  ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white border-transparent shadow-lg shadow-brand-500/30'
-                  : 'glass border-white/10 text-gray-400 hover:text-white hover:border-white/20'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+        <div className="flex flex-col sm:flex-row gap-4 mb-8 items-start sm:items-center">
+          {/* Search */}
+          <div className="relative flex-1 max-w-sm">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">🔍</span>
+            <input
+              type="text"
+              placeholder="Search agents…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 rounded-full glass border border-white/10 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-brand-400/50 bg-transparent"
+            />
+          </div>
+          {/* Category chips */}
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setFilter(cat)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all border ${
+                  filter === cat
+                    ? 'bg-gradient-to-r from-brand-500 to-purple-600 text-white border-transparent shadow-lg shadow-brand-500/30'
+                    : 'glass border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
@@ -72,7 +93,7 @@ export default function AgentsPage() {
 
         {!loading && filtered.length === 0 && (
           <div className="text-center py-24 text-gray-500">
-            No agents in this category yet.
+            {search ? `No agents match "${search}".` : 'No agents in this category yet.'}
           </div>
         )}
       </div>

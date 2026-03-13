@@ -15,6 +15,7 @@ export default function Header() {
 
   const navLinks = [
     { href: '/agents', label: 'Marketplace' },
+    { href: '/pricing', label: 'Pricing' },
     { href: '/agents/builder', label: 'Build an Agent' },
   ];
 

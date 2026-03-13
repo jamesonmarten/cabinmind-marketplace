@@ -1,11 +1,12 @@
 import { useState } from 'react';
 
 export function useCheckout() {
+  // loading is either false or the agentId currently being checked out
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  async function startCheckout(agentId) {
-    setLoading(true);
+  async function handleCheckout(agentId) {
+    setLoading(agentId);
     setError(null);
     try {
       const res = await fetch('/api/checkout', {
@@ -15,7 +16,6 @@ export function useCheckout() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Checkout failed');
-      // Redirect to Stripe Checkout
       window.location.href = data.url;
     } catch (err) {
       setError(err.message);
@@ -23,5 +23,6 @@ export function useCheckout() {
     }
   }
 
-  return { startCheckout, loading, error };
+  // startCheckout is an alias for backwards compatibility
+  return { handleCheckout, startCheckout: handleCheckout, loading, error };
 }

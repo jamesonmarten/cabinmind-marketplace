@@ -24,7 +24,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid agent ID' });
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3002';
+  // Strip any trailing slash and quotes so Stripe never sees a malformed URL
+  const rawBase = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3002';
+  const baseUrl = rawBase.replace(/\/+$/, '').replace(/^["']|["']$/g, '').trim();
+
+  if (!baseUrl.startsWith('http')) {
+    return res.status(500).json({ error: `Bad BASE_URL config: "${baseUrl}"` });
+  }
+
+  const successUrl = `${baseUrl}/checkout/success?agent=${agentId}&session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl  = `${baseUrl}/agents/${agentId}?cancelled=true`;
+  console.log('[checkout] baseUrl:', baseUrl);
+  console.log('[checkout] successUrl:', successUrl);
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -47,8 +58,8 @@ export default async function handler(req, res) {
       ],
       // Pass agentId so the webhook knows which product was purchased
       metadata: { agentId },
-      success_url: `${baseUrl}/checkout/success?agent=${agentId}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${baseUrl}/agents/${agentId}?cancelled=true`,
+      success_url: successUrl,
+      cancel_url:  cancelUrl,
       allow_promotion_codes: true,
       billing_address_collection: 'required',
     });

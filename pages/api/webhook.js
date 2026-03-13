@@ -13,6 +13,8 @@
 
 import Stripe from 'stripe';
 import { Resend } from 'resend';
+import { v4 as uuidv4 } from 'uuid';
+import { saveToken } from '../../lib/tokenStore';
 
 export const config = { api: { bodyParser: false } };
 
@@ -20,11 +22,11 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const AGENT_META = {
-  receptionist:      { name: 'AI Receptionist',    icon: '🤖', price: '$39/mo', setupUrl: 'https://cabinmind.com/setup/receptionist' },
-  'website-audit':   { name: 'AI Website Auditor',  icon: '📈', price: '$19/mo', setupUrl: 'https://cabinmind.com/setup/website-audit' },
-  'blog-writer':     { name: 'AI Blog Writer',       icon: '✍️', price: '$29/mo', setupUrl: 'https://cabinmind.com/setup/blog-writer' },
-  'sales-assistant': { name: 'AI Sales Assistant',   icon: '💼', price: '$49/mo', setupUrl: 'https://cabinmind.com/setup/sales-assistant' },
-  'lead-researcher': { name: 'AI Lead Researcher',   icon: '🔎', price: '$59/mo', setupUrl: 'https://cabinmind.com/setup/lead-researcher' },
+  receptionist:      { name: 'AI Receptionist',    icon: '🤖', price: '$39/mo', setupUrl: 'https://products.devcabin.tech/agents/receptionist' },
+  'website-audit':   { name: 'AI Website Auditor',  icon: '📈', price: '$19/mo', setupUrl: 'https://products.devcabin.tech/agents/website-audit' },
+  'blog-writer':     { name: 'AI Blog Writer',       icon: '✍️', price: '$29/mo', setupUrl: 'https://products.devcabin.tech/agents/blog-writer' },
+  'sales-assistant': { name: 'AI Sales Assistant',   icon: '💼', price: '$49/mo', setupUrl: 'https://products.devcabin.tech/agents/sales-assistant' },
+  'lead-researcher': { name: 'AI Lead Researcher',   icon: '🔎', price: '$59/mo', setupUrl: 'https://products.devcabin.tech/agents/lead-researcher' },
 };
 
 /** Read the raw body from the request stream */
@@ -38,8 +40,8 @@ async function getRawBody(req) {
 }
 
 /** Send a beautiful HTML confirmation email via Resend */
-async function sendConfirmationEmail({ toEmail, toName, agentId, sessionId }) {
-  const agent = AGENT_META[agentId] || { name: 'Your CabinMind Agent', icon: '⚡', price: '', setupUrl: 'https://cabinmind.com' };
+async function sendConfirmationEmail({ toEmail, toName, agentId, sessionId, dashboardUrl }) {
+  const agent = AGENT_META[agentId] || { name: 'Your CabinMind Agent', icon: '⚡', price: '', setupUrl: 'https://products.devcabin.tech' };
   const firstName = toName?.split(' ')[0] || 'there';
 
   const html = `
@@ -112,13 +114,14 @@ async function sendConfirmationEmail({ toEmail, toName, agentId, sessionId }) {
 
           <!-- CTA button -->
           <div style="text-align:center;margin-bottom:28px;">
-            <a href="${agent.setupUrl}" style="display:inline-block;background:linear-gradient(135deg,#6d28d9,#4f46e5);color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:10px;letter-spacing:0.2px;">
-              Activate Your Agent →
+            <a href="${dashboardUrl}" style="display:inline-block;background:linear-gradient(135deg,#6d28d9,#4f46e5);color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:10px;letter-spacing:0.2px;">
+              Open Your Dashboard →
             </a>
           </div>
+          <p style="margin:0 0 12px;color:#475569;font-size:12px;text-align:center;">Or copy this link: <a href="${dashboardUrl}" style="color:#a78bfa;word-break:break-all;">${dashboardUrl}</a></p>
 
           <p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">
-            Questions? Reply to this email or reach us at <a href="mailto:support@cabinmind.com" style="color:#a78bfa;">support@cabinmind.com</a>. We typically respond within a few hours.
+            Questions? Reply to this email or reach us at <a href="mailto:support@devcabin.tech" style="color:#a78bfa;">support@devcabin.tech</a>. We typically respond within a few hours.
           </p>
         </td></tr>
 
@@ -126,8 +129,8 @@ async function sendConfirmationEmail({ toEmail, toName, agentId, sessionId }) {
         <tr><td style="background:#0d0d14;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;border-top:1px solid rgba(255,255,255,0.06);">
           <p style="margin:0 0 6px;color:#334155;font-size:12px;">Dev Cabin Technologies · CabinMind AI Agents</p>
           <p style="margin:0;color:#1e293b;font-size:11px;">
-            You're receiving this because you subscribed at cabinmind.com.
-            <a href="https://cabinmind.com/unsubscribe" style="color:#334155;">Unsubscribe</a>
+            You're receiving this because you subscribed at products.devcabin.tech.
+            <a href="https://products.devcabin.tech/unsubscribe" style="color:#334155;">Unsubscribe</a>
           </p>
         </td></tr>
 
@@ -138,21 +141,27 @@ async function sendConfirmationEmail({ toEmail, toName, agentId, sessionId }) {
 </html>`;
 
   const fromAddress = process.env.RESEND_FROM_EMAIL || 'CabinMind <onboarding@resend.dev>';
-  await resend.emails.send({
+  console.log(`[webhook] Sending confirmation email from="${fromAddress}" to="${toEmail}"`);
+  const result = await resend.emails.send({
     from: fromAddress,
     to: toEmail,
     subject: `🎉 Your ${agent.name} is ready — here's how to get started`,
     html,
   });
+  if (result.error) {
+    throw new Error(`Resend error: ${JSON.stringify(result.error)}`);
+  }
+  console.log(`[webhook] Confirmation email sent — id=${result.data?.id}`);
 }
 
 /** Send an internal alert to yourself when a sale comes in */
-async function sendInternalAlert({ toEmail, toName, agentId, amountTotal, sessionId }) {
+async function sendInternalAlert({ toEmail, toName, agentId, amountTotal, sessionId, dashboardUrl }) {
   const agent = AGENT_META[agentId] || { name: agentId, price: '' };
-  const notifyEmail = process.env.NOTIFY_EMAIL || 'hello@cabinmind.com';
-
+  const notifyEmail = process.env.NOTIFY_EMAIL || 'hello@devcabin.tech';
   const fromAddress = process.env.RESEND_FROM_EMAIL || 'CabinMind <onboarding@resend.dev>';
-  await resend.emails.send({
+
+  console.log(`[webhook] Sending internal alert from="${fromAddress}" to="${notifyEmail}"`);
+  const result = await resend.emails.send({
     from: fromAddress,
     to: notifyEmail,
     subject: `💰 New subscription: ${agent.name} — ${toName || toEmail}`,
@@ -162,8 +171,13 @@ async function sendInternalAlert({ toEmail, toName, agentId, amountTotal, sessio
              <li>Customer: ${toName || '—'} &lt;${toEmail}&gt;</li>
              <li>Amount: $${((amountTotal || 0) / 100).toFixed(2)}</li>
              <li>Session: ${sessionId}</li>
+             <li>Dashboard: <a href="${dashboardUrl}">${dashboardUrl}</a></li>
            </ul>`,
   });
+  if (result.error) {
+    throw new Error(`Resend error: ${JSON.stringify(result.error)}`);
+  }
+  console.log(`[webhook] Internal alert sent — id=${result.data?.id}`);
 }
 
 export default async function handler(req, res) {
@@ -201,6 +215,34 @@ export default async function handler(req, res) {
 
       console.log(`[webhook] ✅ checkout.session.completed — ${customerEmail} — ${agentId}`);
 
+      // Generate a unique dashboard token for this customer
+      const dashboardToken = uuidv4();
+      const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'https://products.devcabin.tech')
+        .replace(/\/+$/, '').replace(/^["']|["']$/g, '').trim();
+      const dashboardUrl = `${baseUrl}/dashboard/${dashboardToken}`;
+
+      // Persist the token so /api/dashboard/session can validate it
+      if (customerEmail) {
+        saveToken(dashboardToken, {
+          agentId,
+          customerEmail,
+          customerName,
+          sessionId: session.id,
+        });
+      }
+
+      // Also store dashboardToken in Stripe session metadata as fallback (for Vercel /tmp cold starts)
+      // We do this by tagging the customer object
+      if (session.customer) {
+        try {
+          await stripe.customers.update(session.customer, {
+            metadata: { dashboardToken, agentId },
+          });
+        } catch (e) {
+          console.warn('[webhook] Could not update Stripe customer metadata:', e.message);
+        }
+      }
+
       if (customerEmail) {
         // Send confirmation email to the customer
         await sendConfirmationEmail({
@@ -208,6 +250,7 @@ export default async function handler(req, res) {
           toName:    customerName,
           agentId,
           sessionId: session.id,
+          dashboardUrl,
         }).catch(err => console.error('[webhook] Failed to send confirmation email:', err.message));
 
         // Notify yourself of the sale
@@ -217,6 +260,7 @@ export default async function handler(req, res) {
           agentId,
           amountTotal,
           sessionId: session.id,
+          dashboardUrl,
         }).catch(err => console.error('[webhook] Failed to send internal alert:', err.message));
       } else {
         console.warn('[webhook] No customer email found on session — skipping emails');
@@ -226,7 +270,42 @@ export default async function handler(req, res) {
     if (event.type === 'customer.subscription.deleted') {
       const sub = event.data.object;
       console.log(`[webhook] ❌ Subscription cancelled: ${sub.id}`);
-      // TODO: revoke access / update database
+
+      // Try to get customer email from Stripe
+      try {
+        const customer = await stripe.customers.retrieve(sub.customer);
+        const toEmail = customer.email;
+        const toName  = customer.name || '';
+        // Find the agentId from subscription metadata or items
+        const agentId = sub.metadata?.agentId || '';
+        const agent   = AGENT_META[agentId] || { name: 'your CabinMind Agent', icon: '⚡' };
+        const firstName = toName.split(' ')[0] || 'there';
+        const fromAddress = process.env.RESEND_FROM_EMAIL || 'CabinMind <onboarding@resend.dev>';
+
+        if (toEmail) {
+          await resend.emails.send({
+            from: fromAddress,
+            to: toEmail,
+            subject: `Your CabinMind subscription has been cancelled`,
+            html: `
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0f;padding:40px 20px;">
+  <div style="max-width:560px;margin:0 auto;background:#111118;border-radius:16px;padding:36px 40px;border:1px solid rgba(255,255,255,0.08);">
+    <div style="font-size:40px;margin-bottom:16px;">${agent.icon}</div>
+    <h2 style="color:#e2e8f0;margin:0 0 12px;">Subscription Cancelled</h2>
+    <p style="color:#94a3b8;line-height:1.7;">Hey ${firstName}, your <strong style="color:#a78bfa;">${agent.name}</strong> subscription has been cancelled and won't renew.</p>
+    <p style="color:#94a3b8;line-height:1.7;">If you cancelled by mistake or want to re-subscribe, you can do so anytime from the marketplace.</p>
+    <div style="text-align:center;margin:28px 0;">
+      <a href="https://products.devcabin.tech/agents" style="display:inline-block;background:linear-gradient(135deg,#6d28d9,#4f46e5);color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:10px;">Re-subscribe →</a>
+    </div>
+    <p style="color:#475569;font-size:13px;">Questions? Email us at <a href="mailto:support@devcabin.tech" style="color:#a78bfa;">support@devcabin.tech</a></p>
+  </div>
+</body>`,
+          });
+          console.log(`[webhook] Cancellation email sent to ${toEmail}`);
+        }
+      } catch (err) {
+        console.error('[webhook] Failed to send cancellation email:', err.message);
+      }
     }
   } catch (err) {
     console.error('[webhook] Handler error:', err);
