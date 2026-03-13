@@ -17,6 +17,28 @@ import OpenAI from 'openai';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// ─── Safe JSON extractor ─────────────────────────────────────────────────────
+// Strips markdown fences, finds the first [...] or {...} block, and parses it.
+// Throws a clean error if nothing valid is found.
+function safeParseJSON(raw) {
+  // Strip markdown fences
+  let s = raw.trim()
+    .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+
+  // If it doesn't start with [ or {, try extracting the first JSON block
+  if (s[0] !== '[' && s[0] !== '{') {
+    const arrMatch = s.match(/(\[[\s\S]*\])/);
+    const objMatch = s.match(/(\{[\s\S]*\})/);
+    s = (arrMatch?.[1] || objMatch?.[1] || s).trim();
+  }
+
+  try {
+    return JSON.parse(s);
+  } catch {
+    throw new Error(`GPT returned non-JSON response: ${s.slice(0, 120)}`);
+  }
+}
+
 // ─── Email helpers ────────────────────────────────────────────────────────────
 
 function pickEmailPattern(firstName, lastName, domain) {
@@ -159,9 +181,7 @@ Vary gender, geography, company size, and seniority. Return ONLY the JSON array.
     max_tokens: count * 300,
     temperature: 0.82,
   });
-  const raw = r.choices[0].message.content.trim()
-    .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-  return JSON.parse(raw);
+  return safeParseJSON(r.choices[0].message.content);
 }
 
 // ─── GPT: full synthesis fallback (Tier 3) ───────────────────────────────────
@@ -193,9 +213,7 @@ Return ONLY the JSON array, no markdown.`;
     max_tokens: count * 420,
     temperature: 0.85,
   });
-  const raw = r.choices[0].message.content.trim()
-    .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-  const leads = JSON.parse(raw);
+  const leads = safeParseJSON(r.choices[0].message.content);
   if (!Array.isArray(leads)) throw new Error('Not an array');
   return leads;
 }

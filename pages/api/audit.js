@@ -207,9 +207,15 @@ Rules:
       temperature: 0.6,
     });
 
-    const raw = completion.choices[0].message.content.trim()
+    let s = completion.choices[0].message.content.trim()
       .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-    const data = JSON.parse(raw);
+    // If GPT prefixed with prose, extract the first { block
+    if (s[0] !== '{') {
+      const m = s.match(/(\{[\s\S]*\})/);
+      if (m) s = m[1];
+      else throw new Error('GPT returned non-JSON: ' + s.slice(0, 80));
+    }
+    const data = JSON.parse(s);
 
     const { scores, issues } = data;
 
