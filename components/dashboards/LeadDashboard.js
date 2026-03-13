@@ -140,8 +140,8 @@ function CopyBtn({ value, label }) {
 function DataSourceBadge({ source }) {
   if (!source) return null;
   const map = {
-    'hunter+clearbit':   { label: '🟢 Verified', cls: 'text-green-400 bg-green-500/10 border-green-500/20', tip: 'Email verified via Hunter.io + Clearbit company data' },
-    'clearbit+pattern':  { label: '🔵 Enriched', cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20', tip: 'Real company data from Clearbit, email pattern generated' },
+    'hunter+wikipedia':  { label: '🟢 Verified', cls: 'text-green-400 bg-green-500/10 border-green-500/20', tip: 'Email found via Hunter.io + company description from Wikipedia' },
+    'wikipedia+pattern': { label: '🔵 Enriched', cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20', tip: 'Company description from Wikipedia, email pattern generated from name + domain' },
     'pattern':           { label: '🟡 Pattern', cls: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20', tip: 'Email generated from name + domain pattern' },
     'ai-synthesised':    { label: '🤖 AI Profile', cls: 'text-purple-400 bg-purple-500/10 border-purple-500/20', tip: 'AI-generated profile — verify before outreach' },
   };
@@ -703,8 +703,8 @@ export default function LeadDashboard({ session }) {
   const filteredSaved = savedFilter === 'All' ? savedLeads : savedLeads.filter(l => (l._status || 'New') === savedFilter);
 
   const tierLabel = lastSources
-    ? lastSources.tier === 1 ? '🟢 Tier 1 — Hunter + Clearbit verified'
-    : lastSources.tier === 2 ? '🔵 Tier 2 — Clearbit enriched + email patterns'
+    ? lastSources.tier === 1 ? '🟢 Tier 1 — Hunter verified emails + Wikipedia company data'
+    : lastSources.tier === 2 ? '🔵 Tier 2 — Wikipedia company data + email pattern generation'
     : '🤖 Tier 3 — AI profile synthesis'
     : null;
 
@@ -867,8 +867,8 @@ export default function LeadDashboard({ session }) {
                 <span>{tierLabel}</span>
                 <span className="text-gray-600">·</span>
                 <span className="text-gray-500">
-                  {lastSources?.tier === 1 ? 'Emails verified via Hunter.io + company data from Clearbit'
-                   : lastSources?.tier === 2 ? 'Company data from Clearbit + email patterns generated from name + domain'
+                  {lastSources?.tier === 1 ? 'Real emails found via Hunter.io + company info from Wikipedia (free)'
+                   : lastSources?.tier === 2 ? 'Company info from Wikipedia (free) + email patterns generated from name + domain'
                    : 'AI-synthesised profiles — verify contact details before outreach'}
                 </span>
               </div>

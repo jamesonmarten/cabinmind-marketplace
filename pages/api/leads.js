@@ -1,20 +1,23 @@
 /**
  * /api/leads — Real B2B Lead Generation Pipeline
  *
- * 3-tier enrichment:
- *   Tier 1: GPT generates targets → Clearbit enriches company → Hunter finds real emails
- *   Tier 2: GPT generates targets → Clearbit enriches company → email pattern generation
- *   Tier 3: Full GPT synthesis (always succeeds — no external deps)
+ * Enrichment tiers (all degrade gracefully):
+ *   Tier 1: GPT targets → Wikipedia/DDG company description (FREE, no key) → Hunter real emails
+ *   Tier 2: GPT targets → Wikipedia/DDG company description (FREE, no key) → email patterns
+ *   Tier 3: Full GPT synthesis — always works, no external deps
  *
- * Optional env vars (degrades gracefully without them):
- *   CLEARBIT_API_KEY  — free @ clearbit.com, 20k calls/mo
- *   HUNTER_API_KEY    — hunter.io, $34/mo for 500 searches/mo
+ * Free env vars (optional — sign up takes 2 min, no card needed):
+ *   HUNTER_API_KEY — 25 free domain searches/mo @ hunter.io/users/sign_up
+ *
+ * NOTE: Clearbit was acquired by HubSpot (Jan 2024) and no longer has a free tier.
+ *       We use Wikipedia REST API + DuckDuckGo Instant Answers instead — both
+ *       completely free, no key, no rate limits for reasonable use.
  */
 import OpenAI from 'openai';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ─── Email helpers ───────────────────────────────────────────────────────────
+// ─── Email helpers ────────────────────────────────────────────────────────────
 
 function pickEmailPattern(firstName, lastName, domain) {
   const f = firstName.toLowerCase().replace(/[^a-z]/g, '');
@@ -34,33 +37,71 @@ function allEmailPatterns(firstName, lastName, domain) {
   ];
 }
 
-// ─── Clearbit company enrichment (free tier — 20k/mo) ────────────────────────
+// ─── Wikipedia REST API — free, no key, no rate limits ───────────────────────
+// Looks up a company name and returns a plain-English description + metadata.
 
-async function enrichWithClearbit(domain) {
-  const key = process.env.CLEARBIT_API_KEY;
-  if (!key) return null;
+async function enrichWithWikipedia(companyName) {
   try {
-    const r = await fetch(
-      `https://company.clearbit.com/v2/companies/find?domain=${encodeURIComponent(domain)}`,
-      { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(5000) }
+    // Step 1: search for the company page title
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(companyName)}&limit=3&format=json&namespace=0`;
+    const searchRes = await fetch(searchUrl, {
+      headers: { 'User-Agent': 'CabinMind-LeadResearcher/1.0 (support@devcabin.tech)' },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!searchRes.ok) return null;
+    const [, titles] = await searchRes.json();
+    if (!titles?.length) return null;
+
+    // Step 2: fetch summary for the best matching title
+    const pageTitle = encodeURIComponent(titles[0]);
+    const summaryRes = await fetch(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${pageTitle}`,
+      {
+        headers: { 'User-Agent': 'CabinMind-LeadResearcher/1.0 (support@devcabin.tech)' },
+        signal: AbortSignal.timeout(4000),
+      }
     );
-    if (!r.ok) return null;
-    const d = await r.json();
+    if (!summaryRes.ok) return null;
+    const d = await summaryRes.json();
+
+    // Only use if it looks like a company/org result
+    const desc = (d.description || '').toLowerCase();
+    const isCompany = ['company', 'corporation', 'software', 'startup', 'firm', 'platform',
+      'service', 'technology', 'saas', 'inc', 'ltd', 'llc'].some(w => desc.includes(w));
+    if (!isCompany) return null;
+
     return {
-      domain: d.domain || domain,
-      name: d.name,
-      industry: d.category?.industry || d.category?.subIndustry || null,
-      employees: d.metrics?.employees || null,
-      employeesRange: d.metrics?.employeesRange || null,
-      raised: d.metrics?.raised ? `$${(d.metrics.raised / 1e6).toFixed(1)}M raised` : null,
-      location: d.geo?.city && d.geo?.country ? `${d.geo.city}, ${d.geo.country}` : null,
-      description: d.description || null,
-      tech: d.tech?.slice(0, 7).join(', ') || null,
-      linkedinUrl: d.linkedin?.handle ? `https://linkedin.com/company/${d.linkedin.handle}` : null,
-      foundedYear: d.foundedYear || null,
-      tags: d.tags?.slice(0, 4) || [],
+      description: d.extract ? d.extract.split('. ').slice(0, 2).join('. ') + '.' : null,
+      wikiTitle: d.title || null,
+      wikiDescription: d.description || null,
     };
   } catch { return null; }
+}
+
+// ─── DuckDuckGo Instant Answers — free fallback for company descriptions ─────
+
+async function enrichWithDDG(companyName) {
+  try {
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(companyName)}&format=json&no_html=1&skip_disambig=1`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!r.ok) return null;
+    const d = await r.json();
+    const abstract = d.Abstract || '';
+    if (!abstract) return null;
+    return {
+      description: abstract.slice(0, 300),
+      wikiTitle: d.Heading || companyName,
+      wikiDescription: d.AbstractSource === 'Wikipedia' ? abstract.split('. ')[0] : null,
+    };
+  } catch { return null; }
+}
+
+// ─── Combined free company enrichment (Wikipedia → DDG fallback) ─────────────
+
+async function enrichCompanyFree(companyName) {
+  const wiki = await enrichWithWikipedia(companyName);
+  if (wiki?.description) return wiki;
+  return enrichWithDDG(companyName);
 }
 
 // ─── Hunter.io domain-search (finds real emails) ─────────────────────────────
@@ -169,84 +210,78 @@ export default async function handler(req, res) {
 
   const batchSize = Math.min(Math.max(parseInt(count) || 5, 3), 15);
   const filters = { industry, location, companySize, excludeCompanies };
-  const hasClearbit = !!process.env.CLEARBIT_API_KEY;
-  const hasHunter   = !!process.env.HUNTER_API_KEY;
+  const hasHunter = !!process.env.HUNTER_API_KEY;
 
-  // ── Tier 1 / 2: Real company pipeline (Clearbit ± Hunter) ─────────────────
-  if (hasClearbit || hasHunter) {
-    try {
-      const targets = await gptGenerateTargets(icp, batchSize, filters);
+  // ── Tier 1 / 2: GPT targets → Wikipedia/DDG enrichment → Hunter (optional) ─
+  // Wikipedia & DDG are always free — no key needed. Hunter adds real emails (free 25/mo).
+  try {
+    const targets = await gptGenerateTargets(icp, batchSize, filters);
 
-      const enriched = await Promise.all(targets.map(async (t) => {
-        const [cbData, hunterEmails] = await Promise.all([
-          hasClearbit ? enrichWithClearbit(t.domain) : null,
-          hasHunter   ? findEmailsWithHunter(t.domain) : null,
-        ]);
+    const enriched = await Promise.all(targets.map(async (t) => {
+      // Run Wikipedia/DDG enrichment and Hunter in parallel
+      const [wikiData, hunterEmails] = await Promise.all([
+        enrichCompanyFree(t.company_name),
+        hasHunter ? findEmailsWithHunter(t.domain) : null,
+      ]);
 
-        // Resolve best email
-        let email = null;
-        let emailVerified = false;
-        let emailSource = 'pattern';
-        let firstName = t.contact_first_name;
-        let lastName  = t.contact_last_name;
+      // Resolve best email: Hunter first → pattern fallback
+      let email = null;
+      let emailVerified = false;
+      let emailSource = 'pattern';
+      let firstName = t.contact_first_name;
+      let lastName  = t.contact_last_name;
 
-        if (hunterEmails?.length) {
-          const best = hunterEmails.find(e =>
-            e.position?.toLowerCase().includes(t.contact_title.toLowerCase().split(' ')[0])
-          ) || hunterEmails[0];
-          email = best.value;
-          emailVerified = best.verification?.status === 'valid';
-          emailSource = 'hunter';
-          if (best.first_name) firstName = best.first_name;
-          if (best.last_name)  lastName  = best.last_name;
-        } else {
-          const domain = cbData?.domain || t.domain;
-          email = pickEmailPattern(firstName, lastName, domain);
-        }
+      if (hunterEmails?.length) {
+        const best = hunterEmails.find(e =>
+          e.position?.toLowerCase().includes(t.contact_title.toLowerCase().split(' ')[0])
+        ) || hunterEmails[0];
+        email = best.value;
+        emailVerified = best.verification?.status === 'valid';
+        emailSource = 'hunter';
+        if (best.first_name) firstName = best.first_name;
+        if (best.last_name)  lastName  = best.last_name;
+      } else {
+        email = pickEmailPattern(firstName, lastName, t.domain);
+      }
 
-        const domain = cbData?.domain || t.domain;
-        const size = cbData?.employeesRange
-          ? `${cbData.employeesRange} employees`
-          : cbData?.employees ? `~${cbData.employees} employees` : '—';
+      return {
+        name:            `${firstName} ${lastName}`,
+        title:           t.contact_title,
+        company:         t.company_name,
+        domain:          t.domain,
+        industry:        '',
+        size:            '—',
+        location:        t.contact_location || '',
+        score:           t.score,
+        score_reason:    t.icp_fit_reason,
+        tech:            t.tech_stack_hint || '',
+        signal:          t.buying_signal,
+        pain_points:     t.pain_points,
+        budget_range:    t.budget_range,
+        email,
+        email_verified:  emailVerified,
+        email_source:    emailSource,
+        phone:           null,
+        linkedin_search: `${firstName} ${lastName} ${t.contact_title} ${t.company_name} site:linkedin.com`,
+        why_now:         t.buying_signal,
+        company_description: wikiData?.description || null,
+        company_wiki:    wikiData?.wikiTitle || null,
+        company_raised:  null,
+        company_linkedin: null,
+        company_founded: null,
+        all_email_patterns: allEmailPatterns(firstName, lastName, t.domain),
+        data_source: emailSource === 'hunter' ? 'hunter+wikipedia' : 'wikipedia+pattern',
+      };
+    }));
 
-        return {
-          name:            `${firstName} ${lastName}`,
-          title:           t.contact_title,
-          company:         cbData?.name || t.company_name,
-          domain,
-          industry:        cbData?.industry || '',
-          size,
-          location:        cbData?.location || t.contact_location || '',
-          score:           t.score,
-          score_reason:    t.icp_fit_reason,
-          tech:            cbData?.tech || t.tech_stack_hint || '',
-          signal:          t.buying_signal,
-          pain_points:     t.pain_points,
-          budget_range:    t.budget_range,
-          email,
-          email_verified:  emailVerified,
-          email_source:    emailSource,
-          phone:           null,
-          linkedin_search: `${firstName} ${lastName} ${t.contact_title} ${cbData?.name || t.company_name} site:linkedin.com`,
-          why_now:         t.buying_signal,
-          company_description: cbData?.description || null,
-          company_raised:  cbData?.raised || null,
-          company_linkedin: cbData?.linkedinUrl || null,
-          company_founded: cbData?.foundedYear || null,
-          all_email_patterns: allEmailPatterns(firstName, lastName, domain),
-          data_source: emailSource === 'hunter' ? 'hunter+clearbit' : hasClearbit ? 'clearbit+pattern' : 'pattern',
-        };
-      }));
-
-      return res.status(200).json({
-        leads: enriched,
-        count: enriched.length,
-        sources: { clearbit: hasClearbit, hunter: hasHunter, tier: hasHunter ? 1 : 2 },
-      });
-    } catch (err) {
-      console.error('Enrichment pipeline error, falling back:', err.message);
-      // fall through to Tier 3
-    }
+    return res.status(200).json({
+      leads: enriched,
+      count: enriched.length,
+      sources: { wikipedia: true, hunter: hasHunter, tier: hasHunter ? 1 : 2 },
+    });
+  } catch (err) {
+    console.error('Enrichment pipeline error, falling back to GPT synthesis:', err.message);
+    // fall through to Tier 3
   }
 
   // ── Tier 3: Full GPT synthesis (always works) ──────────────────────────────
