@@ -152,7 +152,8 @@ async function generateLeads(icp, filters, batchNum) {
     throw new Error('No AI provider configured — set GROQ_API_KEY or OPENAI_API_KEY');
   }
 
-  // Normalise each lead
+  // Normalise each lead — stamp a stable _id (name|company slug) so the
+  // dashboard never needs to compute identity from the email (which can collide).
   return raw.slice(0, 5).map(l => {
     const nameParts = (l.name || '').split(' ');
     const first = nameParts[0] || '';
@@ -162,8 +163,10 @@ async function generateLeads(icp, filters, batchNum) {
     const patterns = Array.isArray(l.all_email_patterns) && l.all_email_patterns.length
       ? l.all_email_patterns
       : allPatterns(first, last, domain);
+    const _id = `${l.name}|${l.company}`.toLowerCase().replace(/[^a-z0-9|]/g, '');
 
     return {
+      _id,
       name:               l.name            || '',
       title:              l.title           || '',
       company:            l.company         || '',
