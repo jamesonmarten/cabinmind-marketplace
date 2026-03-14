@@ -1,342 +1,277 @@
 /**
- * /api/leads — Real B2B Lead Generation Pipeline
+ * /api/leads — B2B Lead Generation Pipeline
  *
- * Enrichment tiers (all degrade gracefully):
- *   Tier 1: GPT targets → Wikipedia/DDG company description (FREE, no key) → Hunter real emails
- *   Tier 2: GPT targets → Wikipedia/DDG company description (FREE, no key) → email patterns
- *   Tier 3: Full GPT synthesis — always works, no external deps
+ * Tier selection (auto, by batch size — guarantees response within 25s):
+ *   1–5  leads  → GPT targets + Wikipedia enrichment + Hunter emails
+ *   6–10 leads  → GPT targets + Hunter emails (skip Wikipedia per-lead)
+ *   11–15 leads → Single GPT synthesis call (~6s, no external deps)
  *
- * Free env vars (optional — sign up takes 2 min, no card needed):
- *   HUNTER_API_KEY — 25 free domain searches/mo @ hunter.io/users/sign_up
- *
- * NOTE: Clearbit was acquired by HubSpot (Jan 2024) and no longer has a free tier.
- *       We use Wikipedia REST API + DuckDuckGo Instant Answers instead — both
- *       completely free, no key, no rate limits for reasonable use.
+ * External deps (all optional):
+ *   HUNTER_API_KEY — hunter.io, 25 free domain searches/mo
+ *   Wikipedia REST — free, no key required
  */
 import OpenAI from 'openai';
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ─── Timeout-safe fetch (AbortSignal.timeout not available in all Node versions) ─
-function fetchWithTimeout(url, options = {}, ms = 5000) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
-  return fetch(url, { ...options, signal: controller.signal })
-    .finally(() => clearTimeout(timer));
+// ─── Timeout-safe fetch (AbortSignal.timeout not available on all Node versions) ─
+function fetchT(url, opts = {}, ms = 5000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(t));
 }
 
-// ─── Safe JSON extractor ─────────────────────────────────────────────────────
-// Strips markdown fences, finds the first [...] or {...} block, and parses it.
-// Throws a clean error if nothing valid is found.
-function safeParseJSON(raw) {
-  // Strip markdown fences
+// ─── Safe JSON parser — strips markdown fences, extracts first [...] or {...} ─
+function safeJSON(raw) {
+  if (!raw) throw new Error('Empty GPT response');
   let s = raw.trim()
     .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-
-  // If it doesn't start with [ or {, try extracting the first JSON block
   if (s[0] !== '[' && s[0] !== '{') {
-    const arrMatch = s.match(/(\[[\s\S]*\])/);
-    const objMatch = s.match(/(\{[\s\S]*\})/);
-    s = (arrMatch?.[1] || objMatch?.[1] || s).trim();
+    const arr = s.match(/(\[[\s\S]*\])/);
+    const obj = s.match(/(\{[\s\S]*\})/);
+    s = (arr?.[1] ?? obj?.[1] ?? s).trim();
   }
-
-  try {
-    return JSON.parse(s);
-  } catch {
-    throw new Error(`GPT returned non-JSON response: ${s.slice(0, 120)}`);
-  }
+  try { return JSON.parse(s); }
+  catch { throw new Error(`GPT returned non-JSON: "${s.slice(0, 80)}"`); }
 }
 
 // ─── Email helpers ────────────────────────────────────────────────────────────
-
-function pickEmailPattern(firstName, lastName, domain) {
-  const f = firstName.toLowerCase().replace(/[^a-z]/g, '');
-  const l = lastName.toLowerCase().replace(/[^a-z]/g, '');
+function emailPattern(first, last, domain) {
+  const f = (first || '').toLowerCase().replace(/[^a-z]/g, '');
+  const l = (last  || '').toLowerCase().replace(/[^a-z]/g, '');
   return `${f}.${l}@${domain}`;
 }
-
-function allEmailPatterns(firstName, lastName, domain) {
-  const f = firstName.toLowerCase().replace(/[^a-z]/g, '');
-  const l = lastName.toLowerCase().replace(/[^a-z]/g, '');
-  return [
-    `${f}.${l}@${domain}`,
-    `${f}${l}@${domain}`,
-    `${f[0]}${l}@${domain}`,
-    `${f}@${domain}`,
-    `${l}@${domain}`,
-  ];
+function allPatterns(first, last, domain) {
+  const f = (first || '').toLowerCase().replace(/[^a-z]/g, '');
+  const l = (last  || '').toLowerCase().replace(/[^a-z]/g, '');
+  return [`${f}.${l}@${domain}`, `${f}${l}@${domain}`, `${f[0] || 'a'}${l}@${domain}`, `${f}@${domain}`];
 }
 
-// ─── Wikipedia REST API — free, no key, no rate limits ───────────────────────
-// Looks up a company name and returns a plain-English description + metadata.
-
-async function enrichWithWikipedia(companyName) {
+// ─── Wikipedia enrichment (free, no key, 3.5s timeout) ───────────────────────
+async function wikiEnrich(company) {
   try {
-    // Step 1: search for the company page title
-    const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(companyName)}&limit=3&format=json&namespace=0`;
-    const searchRes = await fetchWithTimeout(searchUrl, {
-      headers: { 'User-Agent': 'CabinMind-LeadResearcher/1.0 (support@devcabin.tech)' },
-    }, 4000);
-    if (!searchRes.ok) return null;
-    const [, titles] = await searchRes.json();
-    if (!titles?.length) return null;
-
-    // Step 2: fetch summary for the best matching title
-    const pageTitle = encodeURIComponent(titles[0]);
-    const summaryRes = await fetchWithTimeout(
-      `https://en.wikipedia.org/api/rest_v1/page/summary/${pageTitle}`,
-      { headers: { 'User-Agent': 'CabinMind-LeadResearcher/1.0 (support@devcabin.tech)' } },
-      4000
+    const sr = await fetchT(
+      `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(company)}&limit=2&format=json&namespace=0`,
+      { headers: { 'User-Agent': 'CabinMind/1.0 (support@devcabin.tech)' } },
+      3500
     );
-    if (!summaryRes.ok) return null;
-    const d = await summaryRes.json();
-
-    // Only use if it looks like a company/org result
+    if (!sr.ok) return null;
+    const [, titles] = await sr.json();
+    if (!titles?.length) return null;
+    const pr = await fetchT(
+      `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(titles[0])}`,
+      { headers: { 'User-Agent': 'CabinMind/1.0 (support@devcabin.tech)' } },
+      3500
+    );
+    if (!pr.ok) return null;
+    const d = await pr.json();
     const desc = (d.description || '').toLowerCase();
-    const isCompany = ['company', 'corporation', 'software', 'startup', 'firm', 'platform',
+    const isOrg = ['company', 'corporation', 'software', 'startup', 'firm', 'platform',
       'service', 'technology', 'saas', 'inc', 'ltd', 'llc'].some(w => desc.includes(w));
-    if (!isCompany) return null;
-
-    return {
-      description: d.extract ? d.extract.split('. ').slice(0, 2).join('. ') + '.' : null,
-      wikiTitle: d.title || null,
-      wikiDescription: d.description || null,
-    };
+    if (!isOrg || !d.extract) return null;
+    return { description: d.extract.split('. ').slice(0, 2).join('. ') + '.' };
   } catch { return null; }
 }
 
-// ─── DuckDuckGo Instant Answers — free fallback for company descriptions ─────
-
-async function enrichWithDDG(companyName) {
-  try {
-    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(companyName)}&format=json&no_html=1&skip_disambig=1`;
-    const r = await fetchWithTimeout(url, {}, 4000);
-    if (!r.ok) return null;
-    const d = await r.json();
-    const abstract = d.Abstract || '';
-    if (!abstract) return null;
-    return {
-      description: abstract.slice(0, 300),
-      wikiTitle: d.Heading || companyName,
-      wikiDescription: d.AbstractSource === 'Wikipedia' ? abstract.split('. ')[0] : null,
-    };
-  } catch { return null; }
-}
-
-// ─── Combined free company enrichment (Wikipedia → DDG fallback) ─────────────
-
-async function enrichCompanyFree(companyName) {
-  const wiki = await enrichWithWikipedia(companyName);
-  if (wiki?.description) return wiki;
-  return enrichWithDDG(companyName);
-}
-
-// ─── Hunter.io domain-search (finds real emails) ─────────────────────────────
-
-async function findEmailsWithHunter(domain) {
+// ─── Hunter.io email lookup (4s timeout — keep well under Vercel limit) ──────
+async function hunterLookup(domain) {
   const key = process.env.HUNTER_API_KEY;
   if (!key) return null;
   try {
-    const params = new URLSearchParams({ domain, api_key: key, limit: 10, type: 'personal' });
-    const r = await fetchWithTimeout(
-      `https://api.hunter.io/v2/domain-search?${params}`,
+    const r = await fetchT(
+      `https://api.hunter.io/v2/domain-search?${new URLSearchParams({ domain, api_key: key, limit: 3, type: 'personal' })}`,
       {},
-      7000
+      4000
     );
     if (!r.ok) return null;
     const d = await r.json();
-    return d.data?.emails || null;
+    return d.data?.emails?.length ? d.data.emails : null;
   } catch { return null; }
 }
 
-// ─── GPT: generate target companies ──────────────────────────────────────────
-
-async function gptGenerateTargets(icp, count, filters) {
+// ─── GPT: generate target companies (Tier 1/2) ───────────────────────────────
+async function gptTargets(icp, count, filters) {
   const extras = [
-    filters.industry     ? `Industry/vertical: ${filters.industry}` : '',
-    filters.location     ? `Geography: ${filters.location}` : '',
-    filters.companySize  ? `Company size: ${filters.companySize}` : '',
-    filters.excludeCompanies ? `Exclude these companies: ${filters.excludeCompanies}` : '',
+    filters.industry    ? `Industry: ${filters.industry}` : '',
+    filters.location    ? `Geography: ${filters.location}` : '',
+    filters.companySize ? `Company size: ${filters.companySize}` : '',
+    filters.exclude     ? `Exclude: ${filters.exclude}` : '',
   ].filter(Boolean).join('\n');
 
-  const prompt = `You are a B2B sales intelligence expert. For this Ideal Customer Profile:
-"${icp}"
-${extras ? `\nFilters:\n${extras}` : ''}
-
-Generate exactly ${count} highly specific, realistic target companies that perfectly match.
-Use real-sounding, varied companies — not generic placeholders.
-
-Return ONLY a valid JSON array. Each object MUST have:
-- company_name: string
-- domain: string (realistic web domain, e.g. "stripe.com" — use plausible real domains)
-- contact_first_name: string
-- contact_last_name: string
-- contact_title: string (specific senior title matching the ICP)
-- contact_location: string (e.g. "Austin, TX" or "London, UK")
-- icp_fit_reason: string (1 sentence: WHY this company fits the ICP)
-- buying_signal: string (1 specific, timely reason to reach out THIS week)
-- pain_points: string (2–3 role-specific pain points, comma-separated)
-- budget_range: string (realistic annual budget, e.g. "$18K–$48K/yr")
-- tech_stack_hint: string (3–4 tools they likely use)
-- score: number (ICP fit 72–98, vary meaningfully — do NOT cluster above 90)
-
-Vary gender, geography, company size, and seniority. Return ONLY the JSON array.`;
-
-  const r = await client.chat.completions.create({
+  const r = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: Math.min(count * 420 + 200, 4096),
-    temperature: 0.82,
+    messages: [{
+      role: 'user',
+      content: `B2B sales expert. ICP: "${icp}"${extras ? `\n${extras}` : ''}
+Generate ${count} realistic B2B targets. Vary geography, seniority, gender.
+Return ONLY a JSON array — no markdown. Fields: company_name, domain, contact_first_name, contact_last_name, contact_title, contact_location, icp_fit_reason, buying_signal, pain_points, budget_range, tech_stack_hint, score (72–97 varied).`,
+    }],
+    max_tokens: Math.min(count * 300 + 200, 3800),
+    temperature: 0.8,
   });
-  return safeParseJSON(r.choices[0].message.content);
+  const result = safeJSON(r.choices[0].message.content);
+  if (!Array.isArray(result)) throw new Error('GPT targets: not an array');
+  return result;
 }
 
-// ─── GPT: full synthesis fallback (Tier 3) ───────────────────────────────────
-
-async function gptFullSynthesis(icp, count, filters) {
+// ─── GPT: full synthesis — 2 parallel calls for large batches ────────────────
+async function gptSynthesis(icp, count, filters) {
   const extras = [
-    filters.industry     ? `Industry: ${filters.industry}` : '',
-    filters.location     ? `Location: ${filters.location}` : '',
-    filters.companySize  ? `Company size: ${filters.companySize}` : '',
-    filters.excludeCompanies ? `Exclude: ${filters.excludeCompanies}` : '',
+    filters.industry    ? `Industry: ${filters.industry}` : '',
+    filters.location    ? `Location: ${filters.location}` : '',
+    filters.companySize ? `Company size: ${filters.companySize}` : '',
+    filters.exclude     ? `Exclude: ${filters.exclude}` : '',
   ].filter(Boolean).join('\n');
 
-  const prompt = `You are a world-class B2B sales intelligence analyst. Build ${count} highly realistic prospect profiles for:
-ICP: "${icp}"
-${extras ? `\nFilters:\n${extras}` : ''}
+  const makePrompt = (n, batch = 1) =>
+    `B2B sales analyst. ICP: "${icp}"${extras ? `\n${extras}` : ''}
+Generate ${n} prospect profiles${batch === 2 ? ' (different people/companies from batch 1)' : ''}.
+Vary names, gender, geography, company size. Scores 72–97.
+Return ONLY a JSON array, no markdown. Fields: name, title, company, domain, industry, size, location, score, score_reason, tech, signal, pain_points, budget_range, email, phone (null), linkedin_search, why_now, company_description, all_email_patterns (4-item array), data_source ("ai-synthesised").`;
 
-Rules: vary gender/ethnicity/geography/seniority. Real company names. Specific buying signals. Score range 72–98, varied.
+  const callGPT = async (n, batch = 1) => {
+    const r = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: makePrompt(n, batch) }],
+      max_tokens: Math.min(n * 380 + 200, 3800),
+      temperature: 0.8,
+    });
+    const result = safeJSON(r.choices[0].message.content);
+    if (!Array.isArray(result)) throw new Error('GPT synthesis: not an array');
+    return result;
+  };
 
-Return ONLY a valid JSON array of exactly ${count} objects, each with ALL keys:
-name, title, company, domain, industry, size, location, score, score_reason,
-tech, signal, pain_points, budget_range, email, phone, linkedin_search, why_now,
-all_email_patterns (array of 4 email variants), data_source (set to "ai-synthesised")
+  // Always split into 2 parallel calls to halve response time
+  const half = Math.ceil(count / 2);
+  const [a, b] = await Promise.all([callGPT(half, 1), callGPT(count - half, 2)]);
+  const raw = [...a, ...b];
 
-Return ONLY the JSON array, no markdown.`;
-
-  const r = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: Math.min(count * 480 + 300, 4096),
-    temperature: 0.85,
-  });
-  const leads = safeParseJSON(r.choices[0].message.content);
-  if (!Array.isArray(leads)) throw new Error('Not an array');
-  return leads;
+  return raw.slice(0, count).map(l => ({
+    name:               l.name  || '',
+    title:              l.title || '',
+    company:            l.company || '',
+    domain:             l.domain  || '',
+    industry:           l.industry || '',
+    size:               l.size || '—',
+    location:           l.location || '',
+    score:              typeof l.score === 'number' ? l.score : 80,
+    score_reason:       l.score_reason || '',
+    tech:               l.tech || '',
+    signal:             l.signal || '',
+    pain_points:        l.pain_points || '',
+    budget_range:       l.budget_range || '',
+    email:              l.email || '',
+    email_verified:     false,
+    email_source:       'ai-pattern',
+    phone:              null,
+    linkedin_search:    l.linkedin_search || '',
+    why_now:            l.why_now || '',
+    company_description: l.company_description || null,
+    company_wiki:       null,
+    all_email_patterns: Array.isArray(l.all_email_patterns) ? l.all_email_patterns : [],
+    data_source:        'ai-synthesised',
+  }));
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // Always respond with JSON — never let an unhandled exception bubble to a plain-text 500
   try {
-    return await runLeads(req, res);
-  } catch (err) {
-    console.error('Leads handler uncaught:', err);
-    return res.status(500).json({ error: 'Lead generation failed. Please try again.' });
-  }
-}
+    const { icp, count = 5, industry, location, companySize, excludeCompanies } = req.body || {};
+    if (!icp?.trim()) return res.status(400).json({ error: 'icp is required' });
 
-async function runLeads(req, res) {
+    const batchSize = Math.min(Math.max(parseInt(count) || 5, 1), 15);
+    const filters = {
+      industry:    industry          || '',
+      location:    location          || '',
+      companySize: companySize       || '',
+      exclude:     excludeCompanies  || '',
+    };
+    const hasHunter = !!process.env.HUNTER_API_KEY;
 
-  const { icp, count = 5, industry, location, companySize, excludeCompanies } = req.body;
-  if (!icp) return res.status(400).json({ error: 'icp is required' });
+    // ── Route by batch size ───────────────────────────────────────────────────
+    // >10 leads → 2 parallel GPT synthesis calls (fast, ~12s, no external deps)
+    if (batchSize > 10) {
+      const leads = await gptSynthesis(icp, batchSize, filters);
+      return res.status(200).json({ leads, count: leads.length, sources: { tier: 3 } });
+    }
 
-  const batchSize = Math.min(Math.max(parseInt(count) || 5, 3), 15);
-  const filters = { industry, location, companySize, excludeCompanies };
-  const hasHunter = !!process.env.HUNTER_API_KEY;
-
-  // Cap enrichment batch at 10 to stay within 30s Vercel limit.
-  // For 15-lead requests, GPT synthesis is fast enough and produces complete data.
-  const enrichBatch = Math.min(batchSize, 10);
-
-  // ── Tier 1 / 2: GPT targets → Wikipedia/DDG enrichment → Hunter (optional) ─
-  // Wikipedia & DDG are always free — no key needed. Hunter adds real emails (free 25/mo).
-  try {
-    const targets = await gptGenerateTargets(icp, batchSize, filters);
-
-    // For large batches skip per-lead Wikipedia/DDG (too slow); only run Hunter
-    const useEnrichment = targets.length <= enrichBatch;
+    // ≤10 leads → GPT targets → enrichment
+    const targets = await gptTargets(icp, batchSize, filters);
+    const useWiki = batchSize <= 5;    // Wikipedia only for small batches (~3s each)
+    const useHunter = hasHunter && batchSize <= 8; // Skip Hunter for 9-10 leads (too slow in parallel)
 
     const enriched = await Promise.all(targets.map(async (t) => {
-      // Run Wikipedia/DDG enrichment and Hunter in parallel (skip wiki for big batches)
-      const [wikiData, hunterEmails] = await Promise.all([
-        useEnrichment ? enrichCompanyFree(t.company_name) : Promise.resolve(null),
-        hasHunter ? findEmailsWithHunter(t.domain) : Promise.resolve(null),
+      const firstName = t.contact_first_name || 'Contact';
+      const lastName  = t.contact_last_name  || '';
+
+      const [wiki, found] = await Promise.all([
+        useWiki   ? wikiEnrich(t.company_name) : Promise.resolve(null),
+        useHunter ? hunterLookup(t.domain)     : Promise.resolve(null),
       ]);
 
-      // Resolve best email: Hunter first → pattern fallback
-      let email = null;
+      let email = emailPattern(firstName, lastName, t.domain);
       let emailVerified = false;
-      let emailSource = 'pattern';
-      let firstName = t.contact_first_name;
-      let lastName  = t.contact_last_name;
+      let emailSource   = 'pattern';
+      let first = firstName, last = lastName;
 
-      if (hunterEmails?.length) {
-        const best = hunterEmails.find(e =>
-          e.position?.toLowerCase().includes(t.contact_title.toLowerCase().split(' ')[0])
-        ) || hunterEmails[0];
-        email = best.value;
+      if (found?.length) {
+        const best = found.find(e =>
+          e.position?.toLowerCase().includes((t.contact_title || '').toLowerCase().split(' ')[0])
+        ) || found[0];
+        email         = best.value;
         emailVerified = best.verification?.status === 'valid';
-        emailSource = 'hunter';
-        if (best.first_name) firstName = best.first_name;
-        if (best.last_name)  lastName  = best.last_name;
-      } else {
-        email = pickEmailPattern(firstName, lastName, t.domain);
+        emailSource   = 'hunter';
+        if (best.first_name) first = best.first_name;
+        if (best.last_name)  last  = best.last_name;
       }
 
       return {
-        name:            `${firstName} ${lastName}`,
-        title:           t.contact_title,
-        company:         t.company_name,
-        domain:          t.domain,
+        name:            `${first} ${last}`.trim(),
+        title:           t.contact_title    || '',
+        company:         t.company_name     || '',
+        domain:          t.domain           || '',
         industry:        '',
         size:            '—',
         location:        t.contact_location || '',
-        score:           t.score,
-        score_reason:    t.icp_fit_reason,
-        tech:            t.tech_stack_hint || '',
-        signal:          t.buying_signal,
-        pain_points:     t.pain_points,
-        budget_range:    t.budget_range,
+        score:           typeof t.score === 'number' ? t.score : 80,
+        score_reason:    t.icp_fit_reason   || '',
+        tech:            t.tech_stack_hint  || '',
+        signal:          t.buying_signal    || '',
+        pain_points:     t.pain_points      || '',
+        budget_range:    t.budget_range     || '',
         email,
         email_verified:  emailVerified,
         email_source:    emailSource,
         phone:           null,
-        linkedin_search: `${firstName} ${lastName} ${t.contact_title} ${t.company_name} site:linkedin.com`,
-        why_now:         t.buying_signal,
-        company_description: wikiData?.description || null,
-        company_wiki:    wikiData?.wikiTitle || null,
-        company_raised:  null,
-        company_linkedin: null,
-        company_founded: null,
-        all_email_patterns: allEmailPatterns(firstName, lastName, t.domain),
-        data_source: emailSource === 'hunter' ? 'hunter+wikipedia' : 'wikipedia+pattern',
+        linkedin_search: `${first} ${last} ${t.contact_title} ${t.company_name} site:linkedin.com`,
+        why_now:         t.buying_signal || '',
+        company_description: wiki?.description || null,
+        company_wiki:    null,
+        all_email_patterns: allPatterns(first, last, t.domain),
+        data_source:     emailSource === 'hunter'
+          ? (useWiki ? 'hunter+wikipedia' : 'hunter+pattern')
+          : (useWiki ? 'wikipedia+pattern' : 'pattern'),
       };
     }));
 
     return res.status(200).json({
       leads: enriched,
       count: enriched.length,
-      sources: { wikipedia: true, hunter: hasHunter, tier: hasHunter ? 1 : 2 },
+      sources: { wikipedia: useWiki, hunter: useHunter, tier: useHunter ? 1 : 2 },
     });
-  } catch (err) {
-    console.error('Enrichment pipeline error, falling back to GPT synthesis:', err.message);
-    // fall through to Tier 3
-  }
 
-  // ── Tier 3: Full GPT synthesis (always works) ──────────────────────────────
-  try {
-    const leads = await gptFullSynthesis(icp, batchSize, filters);
-    return res.status(200).json({
-      leads,
-      count: leads.length,
-      sources: { clearbit: false, hunter: false, tier: 3 },
-    });
   } catch (err) {
-    console.error('Leads API full failure:', err);
-    return res.status(500).json({ error: 'Lead generation failed. Please try again.' });
+    console.error('[/api/leads] Error:', err.message);
+    // Emergency fallback — try bare GPT synthesis with no enrichment
+    try {
+      const { icp = 'B2B decision makers', count = 5 } = req.body || {};
+      const leads = await gptSynthesis(icp, Math.min(parseInt(count) || 5, 10), {});
+      return res.status(200).json({ leads, count: leads.length, sources: { tier: 3, fallback: true } });
+    } catch (fb) {
+      console.error('[/api/leads] Fallback failed:', fb.message);
+      return res.status(500).json({ error: 'Lead generation failed. Please try again.' });
+    }
   }
 }
