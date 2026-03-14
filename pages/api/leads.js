@@ -184,7 +184,7 @@ async function generateLeads(icp, filters, batchNum) {
       email_verified:     false,
       email_source:       'pattern',
       phone:              null,
-      linkedin_search:    `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${l.name} ${l.title || ''} ${l.company}`.trim())}`,
+      linkedin_search:    `https://www.google.com/search?q=${encodeURIComponent(`"${l.name}" "${l.company}" site:linkedin.com/in`)}`,
       why_now:            l.signal          || '',
       company_description: l.company_description || null,
       company_wiki:       null,

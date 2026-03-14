@@ -359,23 +359,29 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
               {/* Email patterns */}
               <EmailPatternsPanel patterns={lead.all_email_patterns} email={lead.email} />
 
-              {/* LinkedIn — always build URLs from name/company, never trust lead.linkedin_search
-                   (old localStorage records may contain a Google site: query string) */}
+              {/* LinkedIn — Google site:linkedin.com is the only reliable way to find
+                   a real profile without being logged in to LinkedIn */}
               {(lead.name || lead.company) && (() => {
-                const personUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${lead.name} ${lead.title} ${lead.company}`.trim())}`;
-                const companyUrl = `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent((lead.company || '').trim())}`;
+                // Google site:linkedin.com/in/ — finds the person's actual profile page
+                const personGoogle = `https://www.google.com/search?q=${encodeURIComponent(`"${lead.name}" "${lead.company}" site:linkedin.com/in`)}`;
+                // Google site:linkedin.com/company/ — finds the company page
+                const companyGoogle = `https://www.google.com/search?q=${encodeURIComponent(`"${lead.company}" site:linkedin.com/company`)}`;
                 return (
-                  <div className="flex gap-2 flex-wrap">
-                    <a href={personUrl}
-                      target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                      className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition-all">
-                      🔗 Search on LinkedIn
-                    </a>
-                    <a href={companyUrl}
-                      target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                      className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600/20 transition-all">
-                      🏢 Company Page
-                    </a>
+                  <div className="space-y-2">
+                    <div className="text-xs text-gray-500 font-medium">🔗 Find on LinkedIn (via Google)</div>
+                    <div className="flex gap-2 flex-wrap">
+                      <a href={personGoogle}
+                        target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                        className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition-all font-medium">
+                        👤 Find {lead.name.split(' ')[0]}'s Profile
+                      </a>
+                      <a href={companyGoogle}
+                        target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                        className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600/20 transition-all font-medium">
+                        🏢 Find {lead.company} Page
+                      </a>
+                    </div>
+                    <p className="text-xs text-gray-600">Google indexes LinkedIn — click the first result to open their real profile.</p>
                   </div>
                 );
               })()}
