@@ -228,6 +228,8 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
   const [expanded, setExpanded] = useState(false);
   const [note, setNote] = useState(lead._notes || '');
   const s = SCORE_STYLE(lead.score);
+  // Stable identity key — never use email (duplicates possible from AI generation)
+  const id = lead._id || `${lead.name}|${lead.company}`.toLowerCase().replace(/[^a-z0-9|]/g, '');
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -262,9 +264,9 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 ml-1">
-          <StatusDropdown status={lead._status || 'New'} onChange={(s) => onStatusChange(lead.email, s)} />
+          <StatusDropdown status={lead._status || 'New'} onChange={(s) => onStatusChange(id, s)} />
           {onRemove && (
-            <button onClick={(e) => { e.stopPropagation(); onRemove(lead.email); }}
+            <button onClick={(e) => { e.stopPropagation(); onRemove(id); }}
               className="text-gray-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 text-xs">✕</button>
           )}
           <span className="text-gray-700 text-xs">{expanded ? '▲' : '▼'}</span>
@@ -358,19 +360,26 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
               <EmailPatternsPanel patterns={lead.all_email_patterns} email={lead.email} />
 
               {/* LinkedIn */}
-              {lead.linkedin_search && (
-                <a href={`https://www.google.com/search?q=${encodeURIComponent(lead.linkedin_search)}`}
-                  target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                  className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition-all w-fit">
-                  🔗 Find on LinkedIn
-                </a>
+              {(lead.name || lead.company) && (
+                <div className="flex gap-2 flex-wrap">
+                  <a href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${lead.name} ${lead.company}`)}`}
+                    target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                    className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition-all">
+                    🔗 Search on LinkedIn
+                  </a>
+                  <a href={`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(lead.company)}`}
+                    target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                    className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600/20 transition-all">
+                    🏢 Company Page
+                  </a>
+                </div>
               )}
 
               {/* Notes */}
               <div>
                 <label className="text-gray-500 text-xs block mb-1">📝 Notes (saved automatically)</label>
                 <textarea value={note}
-                  onChange={e => { setNote(e.target.value); onNoteChange(lead.email, e.target.value); }}
+                  onChange={e => { setNote(e.target.value); onNoteChange(id, e.target.value); }}
                   onClick={e => e.stopPropagation()}
                   rows={2} placeholder="Add context, call notes, next steps…"
                   className="w-full bg-black/20 border border-white/10 rounded-xl px-3 py-2 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-purple-500/40 resize-none" />
@@ -625,8 +634,9 @@ export default function LeadDashboard({ session }) {
   const abortRef = useRef(false);
 
   // Pipeline (localStorage-persisted)
+  // savedIds = Set of _id slugs (name|company), NOT emails — emails can collide across leads
   const [savedLeads, setSavedLeads] = useState([]);
-  const [savedEmails, setSavedEmails] = useState(new Set());
+  const [savedIds, setSavedEmails] = useState(new Set()); // alias kept as setSavedEmails internally
 
   // UI
   const [tab, setTab] = useState('generate');
@@ -640,8 +650,13 @@ export default function LeadDashboard({ session }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw);
-        setSavedLeads(saved);
-        setSavedEmails(new Set(saved.map(l => l.email)));
+        // Backfill _id for any leads saved before this version
+        const hydrated = saved.map(l => ({
+          ...l,
+          _id: l._id || `${l.name}|${l.company}`.toLowerCase().replace(/[^a-z0-9|]/g, ''),
+        }));
+        setSavedLeads(hydrated);
+        setSavedEmails(new Set(hydrated.map(l => l._id)));
       }
       const stats = localStorage.getItem(STATS_KEY);
       if (stats) setSessionStats(JSON.parse(stats));
@@ -650,7 +665,7 @@ export default function LeadDashboard({ session }) {
 
   const persistSaved = useCallback((list) => {
     setSavedLeads(list);
-    setSavedEmails(new Set(list.map(l => l.email)));
+    setSavedEmails(new Set(list.map(l => l._id || `${l.name}|${l.company}`.toLowerCase().replace(/[^a-z0-9|]/g, ''))));
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch {}
   }, []);
 
@@ -700,7 +715,12 @@ export default function LeadDashboard({ session }) {
         totalMs += elapsed;
         if (data.provider) detectedProvider = data.provider;
 
-        const chunk = (data.leads || []).map(l => ({ ...l, _status: 'New', _notes: '' }));
+        const chunk = (data.leads || []).map(l => ({
+          ...l,
+          _id: `${l.name}|${l.company}`.toLowerCase().replace(/[^a-z0-9|]/g, ''),
+          _status: 'New',
+          _notes: '',
+        }));
         allLeads = [...allLeads, ...chunk];
         setLeads([...allLeads]);
         setLastSources(data.sources);
@@ -743,23 +763,55 @@ export default function LeadDashboard({ session }) {
   };
 
   // ── Pipeline actions ──────────────────────────────────────────────────────
-  const saveLead = (lead) => {
-    if (savedEmails.has(lead.email)) return;
-    persistSaved([...savedLeads, { ...lead, _status: statuses[lead.email] || 'New', _notes: notes[lead.email] || '' }]);
-  };
-  const saveAll = () => leads.forEach(saveLead);
-  const removeSaved = (email) => persistSaved(savedLeads.filter(l => l.email !== email));
+  // All identity operations use lead._id (name|company slug) — never email,
+  // because Groq can generate duplicate email patterns across different people.
 
-  const updateStatus = (email, status) => {
-    setStatuses(s => ({ ...s, [email]: status }));
-    setLeads(ls => ls.map(l => l.email === email ? { ...l, _status: status } : l));
-    const updated = savedLeads.map(l => l.email === email ? { ...l, _status: status } : l);
+  const leadId = (lead) =>
+    lead._id || `${lead.name}|${lead.company}`.toLowerCase().replace(/[^a-z0-9|]/g, '');
+
+  const saveLead = (lead) => {
+    const id = leadId(lead);
+    setSavedLeads(prev => {
+      const existingIds = new Set(prev.map(leadId));
+      if (existingIds.has(id)) return prev;
+      const next = [...prev, { ...lead, _id: id, _status: statuses[id] || 'New', _notes: notes[id] || '' }];
+      setSavedEmails(new Set(next.map(l => leadId(l))));
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  // saveAll: build the full merged list in one pass — avoids stale closure bug
+  // where forEach + saveLead each see the same old savedLeads snapshot
+  const saveAll = () => {
+    setSavedLeads(prev => {
+      const existingIds = new Set(prev.map(leadId));
+      const newLeads = leads
+        .filter(l => !existingIds.has(leadId(l)))
+        .map(l => {
+          const id = leadId(l);
+          return { ...l, _id: id, _status: statuses[id] || 'New', _notes: notes[id] || '' };
+        });
+      if (!newLeads.length) return prev;
+      const next = [...prev, ...newLeads];
+      setSavedEmails(new Set(next.map(l => leadId(l))));
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+
+  const removeSaved = (id) => persistSaved(savedLeads.filter(l => leadId(l) !== id));
+
+  const updateStatus = (id, status) => {
+    setStatuses(s => ({ ...s, [id]: status }));
+    setLeads(ls => ls.map(l => leadId(l) === id ? { ...l, _status: status } : l));
+    const updated = savedLeads.map(l => leadId(l) === id ? { ...l, _status: status } : l);
     persistSaved(updated);
   };
 
-  const updateNote = (email, note) => {
-    setNotes(n => ({ ...n, [email]: note }));
-    const updated = savedLeads.map(l => l.email === email ? { ...l, _notes: note } : l);
+  const updateNote = (id, note) => {
+    setNotes(n => ({ ...n, [id]: note }));
+    const updated = savedLeads.map(l => leadId(l) === id ? { ...l, _notes: note } : l);
     persistSaved(updated);
   };
 
@@ -1054,16 +1106,19 @@ export default function LeadDashboard({ session }) {
                     </span>
                   )}
                 </div>
-                {leads.map((lead, i) => (
-                  <LeadCard
-                    key={lead.email + i}
-                    lead={{ ...lead, _status: statuses[lead.email] || lead._status || 'New', _notes: notes[lead.email] || '' }}
-                    onSave={saveLead}
-                    saved={savedEmails.has(lead.email)}
-                    onStatusChange={updateStatus}
-                    onNoteChange={updateNote}
-                  />
-                ))}
+                {leads.map((lead, i) => {
+                  const lid = lead._id || `${lead.name}|${lead.company}`.toLowerCase().replace(/[^a-z0-9|]/g, '');
+                  return (
+                    <LeadCard
+                      key={`${lid}-${i}`}
+                      lead={{ ...lead, _id: lid, _status: statuses[lid] || lead._status || 'New', _notes: notes[lid] || '' }}
+                      onSave={saveLead}
+                      saved={savedIds.has(lid)}
+                      onStatusChange={updateStatus}
+                      onNoteChange={updateNote}
+                    />
+                  );
+                })}
               </div>
             )}
           </motion.div>
@@ -1118,17 +1173,20 @@ export default function LeadDashboard({ session }) {
                 </div>
 
                 {/* Lead cards */}
-                {filteredSaved.map((lead, i) => (
-                  <LeadCard
-                    key={lead.email + i}
-                    lead={lead}
-                    onSave={() => {}}
-                    saved={true}
-                    onStatusChange={updateStatus}
-                    onNoteChange={updateNote}
-                    onRemove={removeSaved}
-                  />
-                ))}
+                {filteredSaved.map((lead, i) => {
+                  const lid = lead._id || `${lead.name}|${lead.company}`.toLowerCase().replace(/[^a-z0-9|]/g, '');
+                  return (
+                    <LeadCard
+                      key={`${lid}-${i}`}
+                      lead={{ ...lead, _id: lid }}
+                      onSave={() => {}}
+                      saved={true}
+                      onStatusChange={updateStatus}
+                      onNoteChange={updateNote}
+                      onRemove={removeSaved}
+                    />
+                  );
+                })}
               </>
             )}
           </motion.div>
