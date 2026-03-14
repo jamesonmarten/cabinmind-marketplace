@@ -359,21 +359,26 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
               {/* Email patterns */}
               <EmailPatternsPanel patterns={lead.all_email_patterns} email={lead.email} />
 
-              {/* LinkedIn */}
-              {(lead.name || lead.company) && (
-                <div className="flex gap-2 flex-wrap">
-                  <a href={`https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${lead.name} ${lead.company}`)}`}
-                    target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                    className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition-all">
-                    🔗 Search on LinkedIn
-                  </a>
-                  <a href={`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(lead.company)}`}
-                    target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                    className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600/20 transition-all">
-                    🏢 Company Page
-                  </a>
-                </div>
-              )}
+              {/* LinkedIn — always build URLs from name/company, never trust lead.linkedin_search
+                   (old localStorage records may contain a Google site: query string) */}
+              {(lead.name || lead.company) && (() => {
+                const personUrl = `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${lead.name} ${lead.title} ${lead.company}`.trim())}`;
+                const companyUrl = `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent((lead.company || '').trim())}`;
+                return (
+                  <div className="flex gap-2 flex-wrap">
+                    <a href={personUrl}
+                      target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                      className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition-all">
+                      🔗 Search on LinkedIn
+                    </a>
+                    <a href={companyUrl}
+                      target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                      className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600/20 transition-all">
+                      🏢 Company Page
+                    </a>
+                  </div>
+                );
+              })()}
 
               {/* Notes */}
               <div>
@@ -763,9 +768,8 @@ export default function LeadDashboard({ session }) {
   };
 
   // ── Pipeline actions ──────────────────────────────────────────────────────
-  // All identity operations use lead._id (name|company slug) — never email,
-  // because Groq can generate duplicate email patterns across different people.
-
+  // All identity operations use lead._id (name|company slug) stamped by the API.
+  // The fallback recomputes it client-side for old localStorage records only.
   const leadId = (lead) =>
     lead._id || `${lead.name}|${lead.company}`.toLowerCase().replace(/[^a-z0-9|]/g, '');
 
