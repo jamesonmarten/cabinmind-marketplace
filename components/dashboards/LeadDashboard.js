@@ -359,29 +359,36 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
               {/* Email patterns */}
               <EmailPatternsPanel patterns={lead.all_email_patterns} email={lead.email} />
 
-              {/* LinkedIn — Google site:linkedin.com is the only reliable way to find
-                   a real profile without being logged in to LinkedIn */}
+              {/* Research links — no quotes around name so fictional people still surface similar real profiles */}
               {(lead.name || lead.company) && (() => {
-                // Google site:linkedin.com/in/ — finds the person's actual profile page
-                const personGoogle = `https://www.google.com/search?q=${encodeURIComponent(`"${lead.name}" "${lead.company}" site:linkedin.com/in`)}`;
-                // Google site:linkedin.com/company/ — finds the company page
+                const firstName = (lead.name || '').split(' ')[0];
+                // Unquoted name + title + company + "linkedin" finds similar real people even for fictional names
+                const personGoogle  = `https://www.google.com/search?q=${encodeURIComponent(`${lead.name} ${lead.title} ${lead.company} linkedin`)}`;
+                // Quoted company name for the company page — company names are specific enough
                 const companyGoogle = `https://www.google.com/search?q=${encodeURIComponent(`"${lead.company}" site:linkedin.com/company`)}`;
+                // Plain web search for the company itself
+                const companyWeb    = `https://www.google.com/search?q=${encodeURIComponent(`${lead.company} ${lead.industry || ''} B2B`.trim())}`;
                 return (
                   <div className="space-y-2">
-                    <div className="text-xs text-gray-500 font-medium">🔗 Find on LinkedIn (via Google)</div>
+                    <div className="text-xs text-gray-500 font-medium">🔍 Research this prospect</div>
                     <div className="flex gap-2 flex-wrap">
                       <a href={personGoogle}
                         target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                        className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition-all font-medium">
-                        👤 Find {lead.name.split(' ')[0]}'s Profile
+                        className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition-all font-medium">
+                        👤 Find {firstName} on LinkedIn
                       </a>
                       <a href={companyGoogle}
                         target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                        className="flex items-center gap-2 text-xs px-4 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600/20 transition-all font-medium">
-                        🏢 Find {lead.company} Page
+                        className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600/20 transition-all font-medium">
+                        🏢 Company LinkedIn
+                      </a>
+                      <a href={companyWeb}
+                        target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                        className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 transition-all font-medium">
+                        🌐 Company Web
                       </a>
                     </div>
-                    <p className="text-xs text-gray-600">Google indexes LinkedIn — click the first result to open their real profile.</p>
+                    <p className="text-xs text-gray-600">AI-generated profiles — use these to find real counterparts or similar decision-makers.</p>
                   </div>
                 );
               })()}
