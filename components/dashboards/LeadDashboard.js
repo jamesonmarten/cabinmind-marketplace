@@ -29,6 +29,15 @@ const ICP_PRESETS = [
   { label: '🏥 HealthTech', value: 'CTO or Head of Product at digital health companies, 20–100 employees, raising Series A/B, dealing with HIPAA compliance' },
 ];
 
+// Batch size options — each API call fetches exactly 5 leads (Groq: ~1-2s, OpenAI fallback: ~10s)
+const CHUNK_SIZE = 5;
+const BATCH_OPTIONS = [
+  { label: '10',  value: 10  },
+  { label: '25',  value: 25  },
+  { label: '50',  value: 50  },
+  { label: '100', value: 100 },
+];
+
 const COMPANY_SIZES = [
   { label: 'Any size', value: '' },
   { label: '1–10 (Startup)', value: '1-10' },
@@ -140,9 +149,11 @@ function CopyBtn({ value, label }) {
 function DataSourceBadge({ source }) {
   if (!source) return null;
   const map = {
-    'hunter+wikipedia':  { label: '🟢 Verified', cls: 'text-green-400 bg-green-500/10 border-green-500/20', tip: 'Email found via Hunter.io + company description from Wikipedia' },
-    'wikipedia+pattern': { label: '🔵 Enriched', cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20', tip: 'Company description from Wikipedia, email pattern generated from name + domain' },
-    'pattern':           { label: '🟡 Pattern', cls: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20', tip: 'Email generated from name + domain pattern' },
+    'hunter+gpt':        { label: '🟢 Verified', cls: 'text-green-400 bg-green-500/10 border-green-500/20', tip: 'Real email found via Hunter.io' },
+    'hunter+wikipedia':  { label: '🟢 Verified', cls: 'text-green-400 bg-green-500/10 border-green-500/20', tip: 'Real email via Hunter.io + Wikipedia company data' },
+    'gpt+pattern':       { label: '🔵 AI Profile', cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20', tip: 'AI-generated profile with email pattern — verify before outreach' },
+    'wikipedia+pattern': { label: '🔵 Enriched', cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20', tip: 'Wikipedia company data + email pattern' },
+    'pattern':           { label: '🟡 Pattern', cls: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20', tip: 'Email pattern from name + domain' },
     'ai-synthesised':    { label: '🤖 AI Profile', cls: 'text-purple-400 bg-purple-500/10 border-purple-500/20', tip: 'AI-generated profile — verify before outreach' },
   };
   const b = map[source] || map['ai-synthesised'];
@@ -598,7 +609,7 @@ export default function LeadDashboard({ session }) {
   const [location, setLocation] = useState('');
   const [companySize, setCompanySize] = useState('');
   const [excludeCompanies, setExcludeCompanies] = useState('');
-  const [batchSize, setBatchSize] = useState(5);
+  const [batchSize, setBatchSize] = useState(25);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Results state
@@ -608,6 +619,10 @@ export default function LeadDashboard({ session }) {
   const [statuses, setStatuses] = useState({});
   const [notes, setNotes] = useState({});
   const [lastSources, setLastSources] = useState(null);
+
+  // Batch progress state
+  const [batchProgress, setBatchProgress] = useState({ done: 0, total: 0, active: false, provider: null, msPerBatch: null });
+  const abortRef = useRef(false);
 
   // Pipeline (localStorage-persisted)
   const [savedLeads, setSavedLeads] = useState([]);
@@ -639,34 +654,92 @@ export default function LeadDashboard({ session }) {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch {}
   }, []);
 
-  // ── Generate ──────────────────────────────────────────────────────────────
+  // ── Chunked batch engine ──────────────────────────────────────────────────
+  // Each chunk = 1 API call → 5 leads.
+  // With Groq: ~1-2s/chunk → 100 leads in ~20-40s, appearing live as they arrive.
+  // Fallback OpenAI: ~10s/chunk → 100 leads in ~3-4 min.
   const generateLeads = async () => {
     if (!icp.trim()) return;
-    setLoading(true); setError(''); setLeads([]);
-    try {
-      const r = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          icp: icp.trim(), count: batchSize,
-          industry: industry.trim() || undefined,
-          location: location.trim() || undefined,
-          companySize: companySize || undefined,
-          excludeCompanies: excludeCompanies.trim() || undefined,
-        }),
-      });
-      const data = await r.json();
-      if (data.error) throw new Error(data.error);
-      const enriched = (data.leads || []).map(l => ({ ...l, _status: 'New', _notes: '' }));
-      setLeads(enriched);
-      setLastSources(data.sources);
-      const newStats = { runs: sessionStats.runs + 1, total: sessionStats.total + enriched.length };
+    abortRef.current = false;
+    setLoading(true);
+    setError('');
+    setLeads([]);
+    setLastSources(null);
+
+    const chunks = Math.ceil(batchSize / CHUNK_SIZE);
+    setBatchProgress({ done: 0, total: chunks, active: true, provider: null, msPerBatch: null });
+
+    const payload = {
+      icp: icp.trim(),
+      industry: industry.trim() || undefined,
+      location: location.trim() || undefined,
+      companySize: companySize || undefined,
+      excludeCompanies: excludeCompanies.trim() || undefined,
+    };
+
+    let allLeads = [];
+    let chunkErrors = 0;
+    let totalMs = 0;
+    let detectedProvider = null;
+
+    for (let i = 0; i < chunks; i++) {
+      if (abortRef.current) break;
+      const t0 = Date.now();
+      try {
+        const r = await fetch('/api/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, batchNum: i + 1 }),
+        });
+        const ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) throw new Error('Server timeout — will retry next batch');
+        const data = await r.json();
+        if (data.error) throw new Error(data.error);
+
+        const elapsed = Date.now() - t0;
+        totalMs += elapsed;
+        if (data.provider) detectedProvider = data.provider;
+
+        const chunk = (data.leads || []).map(l => ({ ...l, _status: 'New', _notes: '' }));
+        allLeads = [...allLeads, ...chunk];
+        setLeads([...allLeads]);
+        setLastSources(data.sources);
+        setBatchProgress({
+          done: i + 1,
+          total: chunks,
+          active: i + 1 < chunks && !abortRef.current,
+          provider: detectedProvider,
+          msPerBatch: Math.round(totalMs / (i + 1)),
+        });
+        chunkErrors = 0; // reset on success
+      } catch (e) {
+        chunkErrors++;
+        setBatchProgress(p => ({ ...p, done: i + 1, active: i + 1 < chunks }));
+        if (chunkErrors >= 3) {
+          setError(`Stopped after ${allLeads.length} leads — too many errors: ${e.message}`);
+          break;
+        }
+        // Brief pause before retrying next chunk
+        await new Promise(res => setTimeout(res, 1000));
+      }
+    }
+
+    if (allLeads.length > 0) {
+      const newStats = { runs: sessionStats.runs + 1, total: sessionStats.total + allLeads.length };
       setSessionStats(newStats);
       try { localStorage.setItem(STATS_KEY, JSON.stringify(newStats)); } catch {}
-    } catch (e) {
-      setError(e.message || 'Lead generation failed. Please try again.');
+    } else if (!error) {
+      setError('No leads generated. Please refine your ICP description and try again.');
     }
+
+    setBatchProgress(p => ({ ...p, active: false }));
     setLoading(false);
+  };
+
+  const stopGeneration = () => {
+    abortRef.current = true;
+    setLoading(false);
+    setBatchProgress(p => ({ ...p, active: false }));
   };
 
   // ── Pipeline actions ──────────────────────────────────────────────────────
@@ -793,15 +866,23 @@ export default function LeadDashboard({ session }) {
 
               {/* Batch size */}
               <div className="mb-4">
-                <label className="text-gray-400 text-xs block mb-1.5">Leads per run</label>
-                <div className="flex gap-2">
-                  {[5, 10, 15].map(n => (
-                    <button key={n} onClick={() => setBatchSize(n)}
-                      className={`px-5 py-2 rounded-xl text-sm font-medium border transition-all ${batchSize === n ? 'bg-purple-600 border-purple-500 text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'}`}>
-                      {n}
+                <label className="text-gray-400 text-xs block mb-1.5">
+                  Total leads to generate
+                  <span className="text-gray-600 ml-2">
+                    — streamed live · {batchProgress.provider === 'groq' ? '⚡ Groq (~1-2s/batch)' : batchProgress.provider ? '🔄 OpenAI (~10s/batch)' : '⚡ Groq + OpenAI fallback'}
+                  </span>
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {BATCH_OPTIONS.map(({ label, value }) => (
+                    <button key={value} onClick={() => setBatchSize(value)}
+                      className={`px-5 py-2 rounded-xl text-sm font-medium border transition-all ${batchSize === value ? 'bg-purple-600 border-purple-500 text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'}`}>
+                      {label}
                     </button>
                   ))}
                 </div>
+                <p className="text-gray-600 text-xs mt-1.5">
+                  ⚡ With Groq: {batchSize} leads in ~{Math.ceil(batchSize / CHUNK_SIZE) * 2}–{Math.ceil(batchSize / CHUNK_SIZE) * 3}s · results appear as each batch of {CHUNK_SIZE} completes
+                </p>
               </div>
 
               {/* Advanced filters */}
@@ -844,10 +925,16 @@ export default function LeadDashboard({ session }) {
                 <button onClick={generateLeads} disabled={loading || !icp.trim()}
                   className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold disabled:opacity-40 hover:opacity-90 transition-all flex items-center gap-2 shadow-lg shadow-purple-500/20">
                   {loading
-                    ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Enriching prospects…</>
+                    ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Generating…</>
                     : `🔎 Research ${batchSize} Leads`}
                 </button>
-                {leads.length > 0 && (
+                {loading && (
+                  <button onClick={stopGeneration}
+                    className="px-4 py-3 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 text-sm hover:bg-red-500/30 transition-all">
+                    ⏹ Stop
+                  </button>
+                )}
+                {leads.length > 0 && !loading && (
                   <>
                     <button onClick={saveAll} className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm hover:bg-white/10 transition-all">
                       💾 Save All to Pipeline
@@ -858,6 +945,84 @@ export default function LeadDashboard({ session }) {
                   </>
                 )}
               </div>
+
+              {/* Live batch progress bar */}
+              {loading && batchProgress.total > 0 && (
+                <div className="mt-4 space-y-3">
+                  {/* Header row */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                      <span className="text-xs text-white font-medium">
+                        Batch {Math.min(batchProgress.done + 1, batchProgress.total)} of {batchProgress.total}
+                      </span>
+                      <span className="text-xs text-gray-500">· {leads.length} leads found</span>
+                      {batchProgress.provider && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                          batchProgress.provider === 'groq'
+                            ? 'text-green-400 bg-green-500/10 border-green-500/20'
+                            : 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+                        }`}>
+                          {batchProgress.provider === 'groq' ? '⚡ Groq' : '🔄 OpenAI'}
+                          {batchProgress.msPerBatch ? ` · ${(batchProgress.msPerBatch / 1000).toFixed(1)}s/batch` : ''}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-purple-400 font-bold text-sm">
+                      {Math.round((batchProgress.done / batchProgress.total) * 100)}%
+                    </span>
+                  </div>
+
+                  {/* Main progress bar */}
+                  <div className="relative w-full h-3 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full bg-gradient-to-r from-purple-600 via-violet-500 to-fuchsia-500"
+                      animate={{ width: `${(batchProgress.done / batchProgress.total) * 100}%` }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                    />
+                    {/* Shimmer effect while active */}
+                    {batchProgress.active && (
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        animate={{ x: ['-100%', '200%'] }}
+                        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Batch segment dots */}
+                  <div className="flex gap-1">
+                    {Array.from({ length: batchProgress.total }).map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className={`flex-1 h-1 rounded-full transition-all duration-300 ${
+                          i < batchProgress.done
+                            ? 'bg-purple-400'
+                            : i === batchProgress.done
+                            ? 'bg-purple-400/50 animate-pulse'
+                            : 'bg-white/10'
+                        }`}
+                        initial={{ scaleY: 0.5 }}
+                        animate={{ scaleY: i < batchProgress.done ? 1 : 0.5 }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* ETA estimate */}
+                  {batchProgress.msPerBatch && batchProgress.done > 0 && (
+                    <div className="text-xs text-gray-500 text-right">
+                      {(() => {
+                        const remaining = batchProgress.total - batchProgress.done;
+                        const etaMs = remaining * batchProgress.msPerBatch;
+                        return etaMs < 60000
+                          ? `~${Math.ceil(etaMs / 1000)}s remaining`
+                          : `~${Math.ceil(etaMs / 60000)}m remaining`;
+                      })()}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {error && <div className="mt-3 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">{error}</div>}
             </div>
 
@@ -878,7 +1043,10 @@ export default function LeadDashboard({ session }) {
             {leads.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-white font-semibold text-sm">{leads.length} prospects profiled</h3>
+                  <h3 className="text-white font-semibold text-sm">
+                    {leads.length} {loading ? 'and counting…' : 'prospects profiled'}
+                    {loading && <span className="ml-2 inline-block w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin align-middle" />}
+                  </h3>
                   {avgScore > 0 && (
                     <span className="text-gray-500 text-xs">
                       Avg score <span className="text-white font-bold">{avgScore}</span> ·
