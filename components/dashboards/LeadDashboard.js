@@ -78,17 +78,18 @@ function buildCSV(leads) {
     'Name','Title','Company','Domain','Industry','Company Size','Location',
     'ICP Score','Score Reason','Buying Signal','Pain Points','Budget Range','Why Now',
     'Tech Stack','Email','Email Source','Email Verified','Phone',
-    'LinkedIn Search','Company Description','Company Funding','Company LinkedIn',
+    'LinkedIn','LinkedIn Direct','Company Description','Company Funding','Company LinkedIn',
     'Company Founded','Outreach Status','Notes','Data Source',
   ];
   const rows = leads.map(l => [
     l.name, l.title, l.company, l.domain || '', l.industry || '', l.size || '', l.location || '',
     l.score, l.score_reason || '', l.signal || '', l.pain_points || '', l.budget_range || '', l.why_now || '',
     l.tech || '', l.email || '', l.email_source || '', l.email_verified ? 'Yes' : '',
-    l.phone || '', l.linkedin_search || '',
+    l.phone || '', l.linkedin || '',
+    l.linkedin_is_direct ? 'Yes' : 'No',
     l.company_description || '', l.company_raised || '', l.company_linkedin || '',
     l.company_founded || '',
-    l._status || 'New', l._notes || '', l.data_source || 'ai-synthesised',
+    l._status || 'New', l._notes || '', l.data_source || 'ai-pattern',
   ]);
   return [headers, ...rows]
     .map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))
@@ -149,14 +150,19 @@ function CopyBtn({ value, label }) {
 function DataSourceBadge({ source }) {
   if (!source) return null;
   const map = {
+    // ── New Hunter pipeline values ──
+    'hunter-verified':   { label: '🟢 Verified', cls: 'text-green-400 bg-green-500/10 border-green-500/20', tip: 'Real verified email from Hunter.io' },
+    'hunter':            { label: '🔵 Hunter', cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20', tip: 'Real contact found via Hunter.io' },
+    'ai-pattern':        { label: '🤖 AI Profile', cls: 'text-purple-400 bg-purple-500/10 border-purple-500/20', tip: 'AI-generated profile for real company — verify before outreach' },
+    // ── Legacy values (backcompat) ──
     'hunter+gpt':        { label: '🟢 Verified', cls: 'text-green-400 bg-green-500/10 border-green-500/20', tip: 'Real email found via Hunter.io' },
     'hunter+wikipedia':  { label: '🟢 Verified', cls: 'text-green-400 bg-green-500/10 border-green-500/20', tip: 'Real email via Hunter.io + Wikipedia company data' },
-    'gpt+pattern':       { label: '🔵 AI Profile', cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20', tip: 'AI-generated profile with email pattern — verify before outreach' },
+    'gpt+pattern':       { label: '🤖 AI Profile', cls: 'text-purple-400 bg-purple-500/10 border-purple-500/20', tip: 'AI-generated profile with email pattern — verify before outreach' },
     'wikipedia+pattern': { label: '🔵 Enriched', cls: 'text-blue-400 bg-blue-500/10 border-blue-500/20', tip: 'Wikipedia company data + email pattern' },
     'pattern':           { label: '🟡 Pattern', cls: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20', tip: 'Email pattern from name + domain' },
     'ai-synthesised':    { label: '🤖 AI Profile', cls: 'text-purple-400 bg-purple-500/10 border-purple-500/20', tip: 'AI-generated profile — verify before outreach' },
   };
-  const b = map[source] || map['ai-synthesised'];
+  const b = map[source] || map['ai-pattern'];
   return (
     <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${b.cls}`} title={b.tip}>
       {b.label}
@@ -359,25 +365,37 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
               {/* Email patterns */}
               <EmailPatternsPanel patterns={lead.all_email_patterns} email={lead.email} />
 
-              {/* Research links — no quotes around name so fictional people still surface similar real profiles */}
+              {/* Research links — LinkedIn direct URL (Hunter) or Google search fallback */}
               {(lead.name || lead.company) && (() => {
                 const firstName = (lead.name || '').split(' ')[0];
-                // Unquoted name + title + company + "linkedin" finds similar real people even for fictional names
-                const personGoogle  = `https://www.google.com/search?q=${encodeURIComponent(`${lead.name} ${lead.title} ${lead.company} linkedin`)}`;
-                // Quoted company name for the company page — company names are specific enough
-                const companyGoogle = `https://www.google.com/search?q=${encodeURIComponent(`"${lead.company}" site:linkedin.com/company`)}`;
-                // Plain web search for the company itself
-                const companyWeb    = `https://www.google.com/search?q=${encodeURIComponent(`${lead.company} ${lead.industry || ''} B2B`.trim())}`;
+                // Hunter-supplied direct /in/ URL → goes straight to the real profile
+                // AI-pattern fallback → unquoted Google search surfaces similar real people
+                const personLinkedIn = lead.linkedin && lead.linkedin_is_direct
+                  ? lead.linkedin
+                  : `https://www.google.com/search?q=${encodeURIComponent(`${lead.name} ${lead.title} ${lead.company} linkedin`)}`;
+                const companyLinkedIn = `https://www.google.com/search?q=${encodeURIComponent(`"${lead.company}" site:linkedin.com/company`)}`;
+                const companyWeb      = `https://www.google.com/search?q=${encodeURIComponent(`${lead.company} ${lead.industry || ''} B2B`.trim())}`;
                 return (
                   <div className="space-y-2">
-                    <div className="text-xs text-gray-500 font-medium">🔍 Research this prospect</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 font-medium">🔍 Research this prospect</span>
+                      {lead.linkedin_is_direct && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 font-medium">
+                          ✅ Direct LinkedIn URL
+                        </span>
+                      )}
+                    </div>
                     <div className="flex gap-2 flex-wrap">
-                      <a href={personGoogle}
+                      <a href={personLinkedIn}
                         target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                        className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30 transition-all font-medium">
-                        👤 Find {firstName} on LinkedIn
+                        className={`flex items-center gap-2 text-xs px-3 py-2 rounded-xl border transition-all font-medium ${
+                          lead.linkedin_is_direct
+                            ? 'bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30'
+                            : 'bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30'
+                        }`}>
+                        {lead.linkedin_is_direct ? '✅' : '👤'} {lead.linkedin_is_direct ? `${firstName}'s LinkedIn` : `Find ${firstName} on LinkedIn`}
                       </a>
-                      <a href={companyGoogle}
+                      <a href={companyLinkedIn}
                         target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                         className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600/20 transition-all font-medium">
                         🏢 Company LinkedIn
@@ -388,7 +406,11 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
                         🌐 Company Web
                       </a>
                     </div>
-                    <p className="text-xs text-gray-600">AI-generated profiles — use these to find real counterparts or similar decision-makers.</p>
+                    <p className="text-xs text-gray-600">
+                      {lead.linkedin_is_direct
+                        ? 'Direct LinkedIn profile from Hunter.io — click to open the real profile.'
+                        : 'AI-generated profile — search finds real counterparts or similar decision-makers.'}
+                    </p>
                   </div>
                 );
               })()}
@@ -490,7 +512,8 @@ function IntegrationsModal({ leads, savedLeads, onClose }) {
           'Pain Points': lead.pain_points || '',
           'Budget Range': lead.budget_range || '',
           'Tech Stack': lead.tech || '',
-          'LinkedIn Search': lead.linkedin_search || '',
+          'LinkedIn': lead.linkedin || '',
+          'LinkedIn Direct': lead.linkedin_is_direct ? 'Yes' : 'No',
           'Status': lead._status || 'New',
           'Notes': lead._notes || '',
           'Data Source': lead.data_source || '',
@@ -845,9 +868,11 @@ export default function LeadDashboard({ session }) {
   const filteredSaved = savedFilter === 'All' ? savedLeads : savedLeads.filter(l => (l._status || 'New') === savedFilter);
 
   const tierLabel = lastSources
-    ? lastSources.tier === 1 ? '🟢 Tier 1 — Hunter verified emails + Wikipedia company data'
-    : lastSources.tier === 2 ? '🔵 Tier 2 — Wikipedia company data + email pattern generation'
-    : '🤖 Tier 3 — AI profile synthesis'
+    ? lastSources.hunterUsed && lastSources.realLeads > 0
+      ? `🟢 Hunter.io — ${lastSources.realLeads} real contacts · ${lastSources.verifiedEmails} verified emails · ${lastSources.directLinkedIn} direct LinkedIn URLs`
+      : lastSources.hunterQuotaExceeded
+      ? '🟡 Hunter quota reached — AI profiles for real companies'
+      : '🤖 AI profile synthesis — real companies, AI-synthesised contacts'
     : null;
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1101,9 +1126,11 @@ export default function LeadDashboard({ session }) {
                 <span>{tierLabel}</span>
                 <span className="text-gray-600">·</span>
                 <span className="text-gray-500">
-                  {lastSources?.tier === 1 ? 'Real emails found via Hunter.io + company info from Wikipedia (free)'
-                   : lastSources?.tier === 2 ? 'Company info from Wikipedia (free) + email patterns generated from name + domain'
-                   : 'AI-synthesised profiles — verify contact details before outreach'}
+                  {lastSources?.hunterUsed && lastSources?.realLeads > 0
+                    ? `${lastSources.verifiedEmails > 0 ? 'Verified emails ready for outreach.' : 'Emails sourced from Hunter.io.'} Direct LinkedIn links open real profiles.`
+                    : lastSources?.hunterQuotaExceeded
+                    ? 'Hunter monthly quota reached — upgrade to Hunter Starter for 500 searches/mo.'
+                    : 'AI-synthesised profiles for real companies — verify contact details before outreach.'}
                 </span>
               </div>
             )}
