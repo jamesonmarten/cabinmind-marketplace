@@ -333,7 +333,13 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
               {/* Data grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                 {[
-                  { label: 'Email', val: lead.email, copy: true, note: lead.email_verified ? '✅ Verified' : lead.email_source === 'hunter' ? '🔵 Hunter' : '🟡 Pattern' },
+                  { label: 'Email', val: lead.email || '—', copy: !!lead.email, note:
+                      lead.email_verified          ? '✅ Verified'
+                    : lead.email_source === 'hunter'          ? '🔵 Hunter'
+                    : lead.email_source === 'pattern-verified' ? '✅ Pattern verified'
+                    : lead.email_source === 'pattern-invalid'  ? null  // hidden — no email shown
+                    : '🟡 Pattern — verify before sending'
+                  },
                   { label: 'Phone', val: lead.phone || 'Upgrade to Pro', copy: !!lead.phone },
                   { label: 'Company size', val: lead.size || '—' },
                   { label: 'Industry', val: lead.industry || '—' },
@@ -341,10 +347,10 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
                   { label: 'Domain', val: lead.domain || '—', copy: !!lead.domain },
                 ].map(({ label, val, copy, note: fieldNote }) => (
                   <div key={label} className="bg-black/20 rounded-xl p-2.5">
-                    <div className="text-gray-600 mb-0.5 flex items-center gap-1">{label} {fieldNote && <span className="text-gray-700">{fieldNote}</span>}</div>
+                    <div className="text-gray-600 mb-0.5 flex items-center gap-1">{label} {fieldNote && <span className={`ml-1 ${fieldNote.startsWith('✅') ? 'text-green-500' : fieldNote.startsWith('🟡') ? 'text-yellow-600' : 'text-gray-600'}`}>{fieldNote}</span>}</div>
                     <div className="text-gray-300 flex items-center gap-1 break-all">
                       <span className="truncate">{val}</span>
-                      {copy && val && <CopyBtn value={val} label={label} />}
+                      {copy && val && val !== '—' && <CopyBtn value={val} label={label} />}
                     </div>
                   </div>
                 ))}
@@ -872,7 +878,7 @@ export default function LeadDashboard({ session }) {
       ? `🟢 Hunter.io — ${lastSources.realLeads} real contacts · ${lastSources.verifiedEmails} verified emails · ${lastSources.directLinkedIn} direct LinkedIn URLs`
       : lastSources.hunterQuotaExceeded
       ? '🟡 Hunter quota reached — AI profiles for real companies'
-      : '🤖 AI profile synthesis — real companies, AI-synthesised contacts'
+      : `🤖 AI profile synthesis${lastSources.patternVerified > 0 ? ` · ${lastSources.patternVerified} pattern emails verified` : ''}`
     : null;
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1127,10 +1133,10 @@ export default function LeadDashboard({ session }) {
                 <span className="text-gray-600">·</span>
                 <span className="text-gray-500">
                   {lastSources?.hunterUsed && lastSources?.realLeads > 0
-                    ? `${lastSources.verifiedEmails > 0 ? 'Verified emails ready for outreach.' : 'Emails sourced from Hunter.io.'} Direct LinkedIn links open real profiles.`
+                    ? `${lastSources.verifiedEmails > 0 ? 'Verified emails ready for outreach.' : 'Emails sourced from Hunter.io.'} Direct LinkedIn links open real profiles. Invalid emails automatically dropped.`
                     : lastSources?.hunterQuotaExceeded
                     ? 'Hunter monthly quota reached — upgrade to Hunter Starter for 500 searches/mo.'
-                    : 'AI-synthesised profiles for real companies — verify contact details before outreach.'}
+                    : `AI-synthesised profiles for real companies.${lastSources?.patternVerified > 0 ? ` ${lastSources.patternVerified} pattern emails passed Hunter verification.` : ' Invalid pattern emails removed automatically.'}`}
                 </span>
               </div>
             )}

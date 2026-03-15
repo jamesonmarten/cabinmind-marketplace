@@ -15,10 +15,101 @@
 
 import Groq from 'groq-sdk';
 import OpenAI from 'openai';
+import dns from 'dns/promises';
 
 const groq   = process.env.GROQ_API_KEY   ? new Groq({ apiKey: process.env.GROQ_API_KEY })   : null;
 const openai = process.env.OPENAI_API_KEY  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 const HUNTER = process.env.HUNTER_API_KEY  || null;
+
+// Role/catch-all prefixes that are never real decision-maker inboxes
+const ROLE_PREFIXES = new Set([
+  'info','hello','hey','hi','support','contact','admin','sales','marketing',
+  'team','office','enquiries','enquiry','noreply','no-reply','donotreply',
+  'help','jobs','careers','billing','accounts','press','media','legal',
+  'privacy','abuse','postmaster','hostmaster','webmaster','feedback',
+]);
+
+// ─── Domain MX validator ──────────────────────────────────────────────────────
+// Returns true if the domain has at least one valid MX record (i.e. can receive email).
+// Caches results for the lifetime of the request to avoid duplicate lookups.
+const mxCache = new Map();
+async function domainHasMX(domain) {
+  if (mxCache.has(domain)) return mxCache.get(domain);
+  try {
+    const records = await dns.resolveMx(domain);
+    const ok = Array.isArray(records) && records.length > 0;
+    mxCache.set(domain, ok);
+    return ok;
+  } catch {
+    mxCache.set(domain, false);
+    return false;
+  }
+}
+
+// ─── Hunter email verifier ────────────────────────────────────────────────────
+// Calls Hunter /email-verifier for a single address.
+// Returns: { status: 'valid'|'invalid'|'risky'|'unknown', score: 0-100, reason }
+// Hunter counts this as 1 verification credit (separate from search credits).
+async function hunterVerifyEmail(email) {
+  if (!HUNTER) return { status: 'unknown', score: 0, reason: 'no-key' };
+  try {
+    const url = `https://api.hunter.io/v2/email-verifier?email=${encodeURIComponent(email)}&api_key=${HUNTER}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      if (r.status === 429 || body?.errors?.[0]?.code === 429) return { status: 'unknown', score: 0, reason: 'quota' };
+      return { status: 'unknown', score: 0, reason: `http-${r.status}` };
+    }
+    const { data } = await r.json();
+    return {
+      status: data?.status || 'unknown',
+      score:  data?.score  || 0,
+      reason: data?.result || '',
+    };
+  } catch (e) {
+    return { status: 'unknown', score: 0, reason: e.message };
+  }
+}
+
+// ─── Email quality gate ───────────────────────────────────────────────────────
+// Returns { pass: bool, reason: string, verifiedStatus: string }
+// Rules (in order — first failure wins):
+//  1. Must look like a real email address
+//  2. Local part must not be a role address
+//  3. Domain must have MX records
+//  4. Hunter confidence >= 50 (for Hunter-sourced emails)
+//  5. Hunter verification status must not be 'invalid'
+function isRoleEmail(local) {
+  return ROLE_PREFIXES.has(local.toLowerCase().replace(/[^a-z]/g, ''));
+}
+
+async function verifyEmailQuality(email, hunterConfidence = null, hunterStatus = null) {
+  if (!email || !email.includes('@')) return { pass: false, reason: 'malformed' };
+
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return { pass: false, reason: 'malformed' };
+
+  // Role address check
+  if (isRoleEmail(local)) return { pass: false, reason: 'role-address' };
+
+  // MX record check
+  const hasMX = await domainHasMX(domain);
+  if (!hasMX) return { pass: false, reason: 'no-mx' };
+
+  // Hunter confidence floor (only applied when we have a Hunter confidence score)
+  if (hunterConfidence !== null && hunterConfidence < 50) {
+    return { pass: false, reason: `low-confidence-${hunterConfidence}` };
+  }
+
+  // Hunter verification status (already returned by /domain-search or /email-verifier)
+  if (hunterStatus === 'invalid') return { pass: false, reason: 'hunter-invalid' };
+
+  return {
+    pass:           true,
+    reason:         hunterStatus || 'mx-ok',
+    verifiedStatus: hunterStatus || 'unverified',
+  };
+}
 
 // ─── Safe JSON parser ─────────────────────────────────────────────────────────
 function safeJSON(raw) {
@@ -70,6 +161,13 @@ Rules:
 - Vary geography and sub-vertical within the ICP
 - Domains must be correct (e.g. "close.com", "pipedrive.com", "outreach.io")
 
+CRITICAL domain rules:
+- Domains MUST be the real, primary .com domain the company uses for its website and email
+- NEVER use country-code abbreviations like .co, .io, .ai unless that is literally the ONLY domain the company uses publicly (e.g. bitly.com NOT bit.ly for email)
+- If you are unsure whether a company uses .com or .co — always choose .com
+- Examples of correct domains: "close.com", "pipedrive.com", "outreach.io", "kairosventures.com"
+- Examples of WRONG domains: "kairosventures.co", "acme.co" (these are link-shortener or squatter domains)
+
 Return ONLY a JSON array of exactly 5 objects, no markdown:
 [{"company":"Acme Corp","domain":"acmecorp.com","industry":"B2B SaaS","size":"51-200","location":"Austin, TX","why_fits":"Why employees here fit the ICP","signal":"Concrete reason to reach out this week","pain_points":"pain 1, pain 2","budget_range":"$20K-$60K/yr","tech":"HubSpot, Stripe"}]`;
 
@@ -113,6 +211,26 @@ Return ONLY a JSON array of exactly 5 objects, no markdown:
 }
 
 // ─── Step 2: Hunter domain search → real contacts ─────────────────────────────
+
+// Attempt to correct a bare .co domain to .com by checking which has Hunter data.
+// Also strips any accidental path/protocol prefix.
+async function sanitiseDomain(raw) {
+  let domain = (raw || '').toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/\.$/, '')
+    .trim();
+
+  // If domain ends with .co (and not .com / .co.uk / etc.) try .com first
+  if (/\.co$/.test(domain)) {
+    const dotCom = domain + 'm';          // "kairosventures.co" → "kairosventures.com"
+    console.log(`[leads] Domain ends in .co — preferring ${dotCom} over ${domain}`);
+    return dotCom;                         // always prefer .com; Hunter will return empty if wrong
+  }
+
+  return domain;
+}
+
 async function hunterDomainSearch(domain) {
   if (!HUNTER) return null;
   try {
@@ -237,8 +355,7 @@ async function generateLeads(icp, filters, batchNum) {
 
   for (const companyMeta of companies) {
     if (leads.length >= 5) break;
-    const domain = (companyMeta.domain || '').toLowerCase()
-      .replace(/^https?:\/\//, '').replace(/\/$/, '');
+    const domain = await sanitiseDomain(companyMeta.domain);
     if (!domain) continue;
 
     let hunterData = null;
@@ -261,36 +378,81 @@ async function generateLeads(icp, filters, batchNum) {
         ['ceo','cto','coo','cfo','vp','founder','director','head','chief','president','owner']
           .some(k => (e.position || '').toLowerCase().includes(k))
       );
-      const contacts = (senior.length ? senior : emails).slice(0, 2);
+      const candidates = (senior.length ? senior : emails).slice(0, 4); // take up to 4 so we can skip bad ones
 
-      for (const c of contacts) {
+      for (const c of candidates) {
         if (leads.length >= 5) break;
+
+        const hunterStatus = c.verification?.status || null;
+        const quality = await verifyEmailQuality(c.value, c.confidence, hunterStatus);
+
+        if (!quality.pass) {
+          console.warn(`[leads] Skipping ${c.value} — ${quality.reason}`);
+          continue;
+        }
+
         leads.push(buildLead({
           name:            `${c.first_name || ''} ${c.last_name || ''}`.trim(),
           title:           c.position || c.department || '',
           email:           c.value,
           linkedin:        c.linkedin || null,
-          emailVerified:   c.verification?.status === 'valid',
+          emailVerified:   hunterStatus === 'valid',
           emailConfidence: c.confidence,
           emailSource:     'hunter',
+          emailQuality:    quality.verifiedStatus,
           companyMeta:     { ...companyMeta, location: hunterData.country || companyMeta.location },
           domain,
           score:           scoreContact(c, icp),
           scoreReason:     `${c.position || 'Decision maker'} at ${companyMeta.company} — ${companyMeta.why_fits || icp.slice(0, 80)}`,
-          dataSource:      c.verification?.status === 'valid' ? 'hunter-verified' : 'hunter',
+          dataSource:      hunterStatus === 'valid' ? 'hunter-verified' : 'hunter',
         }));
+      }
+
+      // If all Hunter contacts failed quality gate, fall back to AI synthesis for this company
+      if (leads.length === 0 || (leads[leads.length - 1]?.domain !== domain && leads.length < 5)) {
+        // No valid contact was added for this company — skip silently (company still real)
       }
     } else {
       // ── FALLBACK PATH ── No Hunter data — synthesise a name for a real company
+      // then verify the pattern email before including it
       const s = await synthesisePerson(companyMeta, icp, aiProvider);
-      const nameParts = (s.name || '').trim().split(/\s+/);
+      const nameParts = (s.name || 'Contact').trim().split(/\s+/);
+      const patternEmail = emailPattern(nameParts[0], nameParts.slice(1).join(' '), domain);
+
+      // Verify pattern email via Hunter email-verifier
+      let emailVerified = false;
+      let finalEmail = patternEmail;
+      let verifiedStatus = 'unverified';
+      let emailSource = 'pattern';
+
+      if (HUNTER) {
+        const verification = await hunterVerifyEmail(patternEmail);
+        if (verification.status === 'invalid') {
+          console.warn(`[leads] AI-pattern email ${patternEmail} is invalid — omitting email`);
+          finalEmail = null; // Don't show an invalid email
+          emailSource = 'pattern-invalid';
+          verifiedStatus = 'invalid';
+        } else {
+          emailVerified = verification.status === 'valid';
+          verifiedStatus = verification.status;
+          emailSource = emailVerified ? 'pattern-verified' : 'pattern';
+        }
+      }
+
+      // Quality gate for pattern email (role check + MX — skip Hunter verify if we just did it)
+      const quality = await verifyEmailQuality(
+        finalEmail,
+        null, // no Hunter confidence for pattern emails
+        verifiedStatus === 'invalid' ? 'invalid' : null,
+      );
+
       leads.push(buildLead({
         name:          s.name || 'Contact',
         title:         s.title || '',
-        email:         null,
+        email:         quality.pass ? finalEmail : null,
         linkedin:      null,
-        emailVerified: false,
-        emailSource:   'pattern',
+        emailVerified,
+        emailSource,
         companyMeta,
         domain,
         score:         s.score || 75,
@@ -300,13 +462,14 @@ async function generateLeads(icp, filters, batchNum) {
     }
   }
 
-  const realCount     = leads.filter(l => l.email_source === 'hunter').length;
-  const verifiedCount = leads.filter(l => l.email_verified).length;
+  const realCount      = leads.filter(l => l.email_source === 'hunter').length;
+  const verifiedCount  = leads.filter(l => l.email_verified).length;
   const directLinkedIn = leads.filter(l => l.linkedin_is_direct).length;
+  const patternVerifiedCount = leads.filter(l => l.email_source === 'pattern-verified').length;
 
   return {
     leads: leads.slice(0, 5),
-    meta: { aiProvider, hunterQuotaExceeded, realCount, verifiedCount, directLinkedIn },
+    meta: { aiProvider, hunterQuotaExceeded, realCount, verifiedCount, directLinkedIn, patternVerifiedCount },
   };
 }
 
@@ -336,6 +499,7 @@ export default async function handler(req, res) {
         hunterQuotaExceeded: meta.hunterQuotaExceeded,
         realLeads:           meta.realCount,
         verifiedEmails:      meta.verifiedCount,
+        patternVerified:     meta.patternVerifiedCount,
         directLinkedIn:      meta.directLinkedIn,
       },
     });
