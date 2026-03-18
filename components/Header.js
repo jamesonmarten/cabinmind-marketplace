@@ -15,6 +15,7 @@ export default function Header() {
 
   const navLinks = [
     { href: '/agents', label: 'Marketplace' },
+    { href: '/demo', label: 'Live Demo', accent: true },
     { href: '/pricing', label: 'Pricing' },
     { href: '/agents/builder', label: 'Build an Agent' },
   ];
@@ -38,16 +39,21 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map(({ href, label }) => (
+          {navLinks.map(({ href, label, accent }) => (
             <Link
               key={href}
               href={href}
-              className={`text-sm font-medium transition-colors ${
+              className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
                 router.pathname.startsWith(href)
                   ? 'text-white'
+                  : accent
+                  ? 'text-brand-400 hover:text-brand-300'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
+              {accent && (
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />
+              )}
               {label}
             </Link>
           ))}
@@ -75,13 +81,14 @@ export default function Header() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden glass border-t border-white/10 px-4 py-4 flex flex-col gap-4">
-          {navLinks.map(({ href, label }) => (
+          {navLinks.map(({ href, label, accent }) => (
             <Link
               key={href}
               href={href}
-              className="text-gray-300 hover:text-white font-medium"
+              className={`font-medium flex items-center gap-2 ${accent ? 'text-brand-400' : 'text-gray-300 hover:text-white'}`}
               onClick={() => setMenuOpen(false)}
             >
+              {accent && <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />}
               {label}
             </Link>
           ))}
