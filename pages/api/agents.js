@@ -5,7 +5,7 @@ export default function handler(req, res) {
       name: 'AI Receptionist',
       description: 'Answers website chat and qualifies leads automatically.',
       category: 'Customer Support',
-      price: 39,
+      price: 79,
       features: ['Website chat', 'Lead qualification', 'Appointment booking'],
       tools: ['Calendar booking', 'CRM lookup', 'FAQ database', 'Email sender'],
       actions: ['Book appointment', 'Send lead to CRM', 'Email summary']
@@ -15,7 +15,7 @@ export default function handler(req, res) {
       name: 'AI Website Auditor',
       description: 'Analyzes your site for SEO and UX improvements.',
       category: 'Marketing',
-      price: 19,
+      price: 29,
       features: ['SEO analysis', 'UX audit', 'Performance report'],
       tools: ['Crawler', 'Keyword analysis', 'Performance metrics'],
       actions: ['Generate report', 'Email audit summary']
@@ -25,7 +25,7 @@ export default function handler(req, res) {
       name: 'AI Blog Writer',
       description: 'Creates SEO-optimized blog posts for your business.',
       category: 'Content',
-      price: 29,
+      price: 49,
       features: ['Keyword research', 'Topic generation', 'Content creation'],
       tools: ['SEO toolkit', 'Language model'],
       actions: ['Generate outline', 'Write full article']
@@ -35,7 +35,7 @@ export default function handler(req, res) {
       name: 'AI Sales Assistant',
       description: 'Drafts outreach emails and manages follow-ups.',
       category: 'Sales',
-      price: 49,
+      price: 99,
       features: ['Email drafting', 'Follow-up scheduling', 'CRM integration'],
       tools: ['Email sender', 'CRM lookup'],
       actions: ['Send outreach', 'Log interaction']
@@ -43,12 +43,13 @@ export default function handler(req, res) {
     {
       id: 'lead-researcher',
       name: 'AI Lead Researcher',
-      description: 'Discovers and qualifies new prospects.',
+      description: 'Discovers and qualifies new prospects with ZeroBounce-verified emails.',
       category: 'Sales',
-      price: 59,
-      features: ['Prospect discovery', 'Lead scoring', 'Data enrichment'],
-      tools: ['Web scraper', 'APIs', 'CRM integration'],
-      actions: ['Generate lead list', 'Enrich data']
+      price: 49,
+      priceLabel: 'from $49/mo',
+      features: ['Prospect discovery', 'Lead scoring', 'ZeroBounce email validation', 'LinkedIn profiles'],
+      tools: ['Hunter.io', 'ZeroBounce', 'Groq AI', 'CRM integration'],
+      actions: ['Generate lead list', 'Enrich data', 'Export to CRM']
     }
   ];
 

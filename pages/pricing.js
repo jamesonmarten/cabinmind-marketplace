@@ -1,13 +1,17 @@
 /**
  * /pricing — CabinMind AI Agent Marketplace
  *
- * Pricing strategy:
- *   Starter  $29/mo  — Platform keys, 50 leads/mo cap   (you pay ~$2/mo in API costs)
- *   Pro      $79/mo  — Client brings Hunter key; platform ZB (client pays Hunter ~$49/mo)
- *   Scale    $149/mo — Full BYOK: client brings both keys (client pays ~$65/mo in APIs)
- *   Agency   $299/mo — Full BYOK, 5 seats, white-label   (client pays ~$65+/mo in APIs)
+ * Pricing strategy (repositioned to market rate):
+ *   Starter  $49/mo  — Platform keys, 100 leads/mo      (you pay ~$2/mo → 96% margin)
+ *   Pro      $149/mo — Client brings Hunter key; platform ZB (99% margin)
+ *   Scale    $299/mo — Full BYOK; unlimited              (100% margin)
+ *   Agency   $599/mo — Full BYOK, 5 seats, white-label  (100% margin)
  *
- * Other 4 agents keep flat pricing (no external API cost at scale).
+ * Competitive context:
+ *   Clay $149–800 · Apollo $99–199 · Seamless $147–397 · Instantly $97–358
+ *
+ * Other 4 agents — repriced to reflect value:
+ *   Website Auditor $29 · Blog Writer $49 · Receptionist $79 · Sales Assistant $99
  */
 import Layout from '../components/Layout';
 import Link from 'next/link';
@@ -21,30 +25,31 @@ const LEAD_TIERS = [
   {
     id: 'lead-starter',
     name: 'Starter',
-    price: 29,
+    price: 49,
     badge: null,
     color: 'border-white/10',
     btnClass: 'glass border border-white/10 text-white hover:border-brand-400/40 hover:text-brand-300',
-    leadsPerMonth: 50,
+    leadsPerMonth: 100,
     hunterPlan: 'Platform key (shared)',
     zbPlan: 'Platform key (shared)',
     byok: false,
-    desc: 'Get started with AI prospecting — no API accounts needed.',
+    desc: 'Get started with AI prospecting — no API accounts needed. Cancel anytime.',
     features: [
-      '50 verified leads / month',
+      '100 verified leads / month',
       'ZeroBounce email validation ✅',
       'A–D ICP scoring on 8 signals',
-      'Direct LinkedIn profiles',
+      'Direct LinkedIn /in/ profiles',
       'CSV + HubSpot export',
       'Platform API keys included',
+      'Email support',
     ],
     apiNote: null,
-    costNote: 'Everything included. No external accounts needed.',
+    costNote: 'All-inclusive. No Hunter or ZeroBounce account needed.',
   },
   {
     id: 'lead-pro',
     name: 'Pro',
-    price: 79,
+    price: 149,
     badge: 'Most Popular',
     color: 'border-brand-500/50 shadow-2xl shadow-brand-500/20',
     btnClass: 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-lg shadow-brand-500/30 hover:opacity-90',
@@ -52,7 +57,7 @@ const LEAD_TIERS = [
     hunterPlan: 'Your Hunter.io Starter ($49/mo)',
     zbPlan: 'Platform ZeroBounce key',
     byok: 'hunter',
-    desc: 'Serious outbound teams who need real Hunter data at scale.',
+    desc: 'Serious outbound teams who need verified decision-makers at real scale.',
     features: [
       '500 verified leads / month',
       'Bring your own Hunter.io key 🔑',
@@ -60,16 +65,17 @@ const LEAD_TIERS = [
       'Full 6-layer email validation',
       'A–D ICP scoring on 8 signals',
       'Direct LinkedIn /in/ profiles',
+      'Multi-ICP saved templates',
       'CSV + HubSpot + Airtable export',
       'Priority support',
     ],
-    apiNote: 'Requires a Hunter.io Starter plan ($49/mo). You control your own quota.',
-    costNote: 'Hunter Starter $49 + CabinMind $79 = $128/mo total for 500 leads ($0.26/lead).',
+    apiNote: 'Requires Hunter.io Starter ($49/mo). You own the quota.',
+    costNote: 'CabinMind $149 + Hunter $49 = $198/mo for 500 leads — $0.40/lead vs $18.50 manual.',
   },
   {
     id: 'lead-scale',
     name: 'Scale',
-    price: 149,
+    price: 299,
     badge: 'Best Value',
     color: 'border-purple-500/40',
     btnClass: 'glass border border-purple-500/40 text-purple-300 hover:bg-purple-500/10',
@@ -77,7 +83,7 @@ const LEAD_TIERS = [
     hunterPlan: 'Your Hunter.io key (any plan)',
     zbPlan: 'Your ZeroBounce key (any plan)',
     byok: 'both',
-    desc: 'Unlimited generation — you own your API quota, you control your spend.',
+    desc: 'Unlimited generation — your quota, your spend, your pipeline velocity.',
     features: [
       'Unlimited lead batches',
       'Bring your own Hunter.io key 🔑',
@@ -87,15 +93,15 @@ const LEAD_TIERS = [
       'Direct LinkedIn /in/ profiles',
       'Multi-ICP saved templates',
       'CSV + HubSpot + Airtable export',
-      'Priority support + Slack access',
+      'Slack support + onboarding call',
     ],
-    apiNote: 'Hunter Growth ($99/mo, 2K searches) + ZeroBounce ($25/mo, 5K) = $124/mo in APIs.',
-    costNote: 'CabinMind $149 + ~$124 APIs = $273/mo for unlimited leads — vs $18.50/lead manual.',
+    apiNote: 'Hunter Growth $99/mo (2K searches) + ZeroBounce $25/mo (5K) = $124/mo in APIs.',
+    costNote: 'CabinMind $299 + ~$124 APIs = $423/mo unlimited — vs $18.50/lead manual.',
   },
   {
     id: 'lead-agency',
     name: 'Agency',
-    price: 299,
+    price: 599,
     badge: 'White-Label',
     color: 'border-violet-500/40',
     btnClass: 'glass border border-violet-500/40 text-violet-300 hover:bg-violet-500/10',
@@ -103,19 +109,19 @@ const LEAD_TIERS = [
     hunterPlan: 'Your Hunter.io key (any plan)',
     zbPlan: 'Your ZeroBounce key (any plan)',
     byok: 'both',
-    desc: 'Run AI lead gen as a service for your own clients.',
+    desc: 'Run AI lead gen as a productised service. Charge clients at any margin.',
     features: [
       'Everything in Scale',
       '5 sub-account seats',
-      'White-label dashboard branding',
-      'Client-facing reports',
+      'White-label dashboard & reports',
       'Per-client ICP templates',
+      'Client-facing PDF exports',
       'API access for custom integrations',
       'Dedicated onboarding call',
-      'SLA-backed support',
+      'SLA-backed priority support',
     ],
-    apiNote: 'Bring your own Hunter + ZeroBounce keys (or pass cost to clients).',
-    costNote: 'One CabinMind account, multiple client campaigns. Resell at any margin.',
+    apiNote: 'Bring your own keys — or bill API costs directly to each client.',
+    costNote: 'One subscription, unlimited client campaigns. Resell at any margin you choose.',
   },
 ];
 
@@ -126,27 +132,27 @@ const OTHER_PLANS = [
     id: 'website-audit',
     icon: '📈',
     name: 'AI Website Auditor',
-    price: 19,
-    desc: 'Full SEO & Core Web Vitals analysis on demand.',
-    features: ['Unlimited audits', 'Core Web Vitals report', 'SEO scorecard', 'PDF export', 'Competitor comparison'],
+    price: 29,
+    desc: 'Full SEO & Core Web Vitals audit on demand. Outrank competitors.',
+    features: ['Unlimited audits', 'Core Web Vitals report', 'SEO scorecard + fixes', 'PDF export', 'Competitor comparison'],
     highlight: false,
   },
   {
     id: 'blog-writer',
     icon: '✍️',
     name: 'AI Blog Writer',
-    price: 29,
-    desc: 'SEO-optimised articles published on autopilot.',
-    features: ['20 articles / month', 'Keyword research', 'WordPress auto-publish', '2,400-word output', 'SEO meta generation'],
+    price: 49,
+    desc: 'SEO-optimised long-form articles published on autopilot every week.',
+    features: ['20 articles / month', 'Keyword research included', 'WordPress auto-publish', '2,400-word output', 'SEO meta generation'],
     highlight: false,
   },
   {
     id: 'receptionist',
     icon: '🤖',
     name: 'AI Receptionist',
-    price: 39,
-    desc: 'Answer every visitor and qualify every lead, 24/7.',
-    features: ['Unlimited conversations', 'Lead qualification', 'Appointment booking', 'CRM push', 'Custom persona'],
+    price: 79,
+    desc: 'Answers every visitor, qualifies every lead, books meetings — 24/7.',
+    features: ['Unlimited conversations', 'Lead qualification flows', 'Appointment booking', 'CRM push', 'Custom persona & tone'],
     highlight: true,
     badge: 'Most Popular',
   },
@@ -154,8 +160,8 @@ const OTHER_PLANS = [
     id: 'sales-assistant',
     icon: '💼',
     name: 'AI Sales Assistant',
-    price: 49,
-    desc: 'Personalised outreach sequences that actually convert.',
+    price: 99,
+    desc: 'Personalised multi-step outreach sequences that actually convert.',
     features: ['500 prospects / month', '5-step follow-up sequences', 'CRM auto-logging', 'Reply detection', 'Open-rate analytics'],
     highlight: false,
   },
@@ -164,19 +170,23 @@ const OTHER_PLANS = [
 const FAQ = [
   {
     q: 'Why do some plans require my own API keys?',
-    a: "Hunter.io and ZeroBounce charge per search/validation. Rather than marking up those costs and burying them in your subscription, we let you control your own quota directly — you pay the API providers at their published rates, and CabinMind charges only for the AI orchestration layer. It's transparent, scalable, and typically 3–5× cheaper than bundled alternatives.",
+    a: "Hunter.io and ZeroBounce charge per search/validation. Rather than marking up those costs and burying them in your subscription, we let you control your own quota directly — you pay the API providers at their published rates, and CabinMind charges only for the AI orchestration layer. It's transparent, scalable, and typically 3–5× cheaper than bundled alternatives like Apollo or Seamless.",
   },
   {
     q: 'What does BYOK (Bring Your Own Key) mean in practice?',
-    a: "You create a free Hunter.io and/or ZeroBounce account, copy your API key, and paste it into your CabinMind dashboard under Settings → API Keys. We store it encrypted and use it only when you run lead searches — never shared, never used for other customers.",
+    a: "You create a free Hunter.io and/or ZeroBounce account, copy your API key, and paste it into your CabinMind dashboard under the API Keys tab. We store it in your browser session and use it only when you run lead searches — never shared, never used for other customers.",
   },
   {
     q: 'Which Hunter.io plan do I need?',
-    a: "For Pro (500 leads/mo): Hunter Starter at $49/mo gives you 500 domain searches. For Scale/Agency (unlimited): Hunter Growth at $99/mo gives you 2,000 searches. Hunter's free tier (25 searches/mo) works for testing only.",
+    a: "For Pro (500 leads/mo): Hunter Starter at $49/mo gives you 500 domain searches. For Scale/Agency (unlimited): Hunter Growth at $99/mo gives 2,000 searches. Hunter's free tier (25 searches/mo) covers testing only.",
   },
   {
     q: 'Which ZeroBounce plan do I need?',
-    a: "ZeroBounce charges per validation credit. For 500 leads/mo: the $16 pay-as-you-go pack (2,000 credits) covers it comfortably. For unlimited runs: the $25/mo plan (5,000 credits) or $49/mo (10,000 credits). Their free tier gives 100 credits — enough for testing.",
+    a: "ZeroBounce charges per validation credit. For 500 leads/mo the $16 pay-as-you-go pack (2,000 credits) covers it. For unlimited runs: $25/mo (5,000 credits) or $49/mo (10,000 credits). Free tier = 100 credits/mo — enough for testing.",
+  },
+  {
+    q: 'How does this compare to Apollo or Clay?',
+    a: "Apollo charges $99–$199/mo for bundled, often stale data with no transparency. Clay charges $149–$800/mo. CabinMind uses live Hunter.io data (updated daily) + ZeroBounce validation on every email — and shows you exactly which 8 signals drove each score. You get higher quality, full auditability, and you own your own API quota.",
   },
   {
     q: 'Can I start on Starter and upgrade later?',
@@ -192,7 +202,7 @@ const FAQ = [
   },
   {
     q: 'Do you offer agency or reseller pricing?',
-    a: "The Agency plan is designed for exactly that. Email support@devcabin.tech to discuss volume discounts for high-seat counts.",
+    a: "The Agency plan ($599/mo) is built for exactly that — 5 seats, white-label reports, per-client ICP templates. Email support@devcabin.tech to discuss volume deals for high-seat counts.",
   },
 ];
 
@@ -404,14 +414,14 @@ function CostTransparencySection() {
               {[
                 {
                   icon: '🟢',
-                  label: 'Starter $29/mo',
+                  label: 'Starter $49/mo',
                   sub: 'Platform keys included',
-                  detail: '50 leads/mo · ~$2 in API costs absorbed by us',
+                  detail: '100 leads/mo · ~$2 in API costs absorbed by us',
                   color: 'border-green-500/30 bg-green-500/5',
                 },
                 {
                   icon: '🔵',
-                  label: 'Pro $79/mo',
+                  label: 'Pro $149/mo',
                   sub: 'Bring your Hunter key',
                   detail: '500 leads/mo · You pay Hunter $49/mo directly',
                   color: 'border-blue-500/30 bg-blue-500/5',

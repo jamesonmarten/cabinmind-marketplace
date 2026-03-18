@@ -5,16 +5,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // Map agent IDs to Stripe price data.
 // In production, store real Stripe Price IDs here after creating them in your dashboard.
 const AGENT_PRICES = {
-  receptionist:      { name: 'AI Receptionist',              amount: 3900  }, // $39/mo
-  'website-audit':   { name: 'AI Website Auditor',           amount: 1900  }, // $19/mo
-  'blog-writer':     { name: 'AI Blog Writer',               amount: 2900  }, // $29/mo
-  'sales-assistant': { name: 'AI Sales Assistant',           amount: 4900  }, // $49/mo
-  // Lead Researcher — tiered BYOK plans
-  'lead-researcher': { name: 'AI Lead Researcher',           amount: 5900  }, // legacy $59 (maps to Starter)
-  'lead-starter':    { name: 'AI Lead Researcher — Starter', amount: 2900  }, // $29/mo  — platform keys, 50 leads
-  'lead-pro':        { name: 'AI Lead Researcher — Pro',     amount: 7900  }, // $79/mo  — client Hunter key
-  'lead-scale':      { name: 'AI Lead Researcher — Scale',   amount: 14900 }, // $149/mo — full BYOK, unlimited
-  'lead-agency':     { name: 'AI Lead Researcher — Agency',  amount: 29900 }, // $299/mo — BYOK, 5 seats, white-label
+  // Flat-rate agents (no external API cost)
+  'website-audit':   { name: 'AI Website Auditor',           amount: 2900  }, // $29/mo
+  'blog-writer':     { name: 'AI Blog Writer',               amount: 4900  }, // $49/mo
+  'receptionist':    { name: 'AI Receptionist',              amount: 7900  }, // $79/mo
+  'sales-assistant': { name: 'AI Sales Assistant',           amount: 9900  }, // $99/mo
+  // Lead Researcher — BYOK tiered plans
+  'lead-researcher': { name: 'AI Lead Researcher — Starter', amount: 4900  }, // $49/mo legacy redirect → Starter
+  'lead-starter':    { name: 'AI Lead Researcher — Starter', amount: 4900  }, // $49/mo  · platform keys · 100 leads
+  'lead-pro':        { name: 'AI Lead Researcher — Pro',     amount: 14900 }, // $149/mo · client Hunter key · 500 leads
+  'lead-scale':      { name: 'AI Lead Researcher — Scale',   amount: 29900 }, // $299/mo · full BYOK · unlimited
+  'lead-agency':     { name: 'AI Lead Researcher — Agency',  amount: 59900 }, // $599/mo · BYOK · 5 seats · white-label
 };
 
 export default async function handler(req, res) {

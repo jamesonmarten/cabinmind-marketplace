@@ -1416,10 +1416,10 @@ export default function LeadDashboard({ session, isPaid = false }) {
               </p>
               <div className="grid sm:grid-cols-4 gap-3">
                 {[
-                  { id: 'starter',  label: 'Starter',  price: '$29/mo', sub: '50 leads · Platform keys',     color: 'border-green-500/40 bg-green-500/5'   },
-                  { id: 'pro',      label: 'Pro',       price: '$79/mo', sub: '500 leads · Your Hunter key', color: 'border-blue-500/40 bg-blue-500/5'     },
-                  { id: 'scale',    label: 'Scale',     price: '$149/mo',sub: 'Unlimited · Both your keys',  color: 'border-purple-500/40 bg-purple-500/5' },
-                  { id: 'agency',   label: 'Agency',    price: '$299/mo',sub: 'Unlimited · BYOK · 5 seats',  color: 'border-violet-500/40 bg-violet-500/5' },
+                  { id: 'starter',  label: 'Starter',  price: '$49/mo', sub: '100 leads · Platform keys',    color: 'border-green-500/40 bg-green-500/5'   },
+                  { id: 'pro',      label: 'Pro',       price: '$149/mo',sub: '500 leads · Your Hunter key', color: 'border-blue-500/40 bg-blue-500/5'     },
+                  { id: 'scale',    label: 'Scale',     price: '$299/mo',sub: 'Unlimited · Both your keys',  color: 'border-purple-500/40 bg-purple-500/5' },
+                  { id: 'agency',   label: 'Agency',    price: '$599/mo',sub: 'Unlimited · BYOK · 5 seats',  color: 'border-violet-500/40 bg-violet-500/5' },
                 ].map(p => (
                   <button key={p.id} onClick={() => setPlan(p.id)}
                     className={`border rounded-xl p-4 text-left transition-all ${plan === p.id ? p.color + ' ring-1 ring-white/20' : 'border-white/10 bg-white/3 hover:bg-white/8'}`}>
@@ -1503,10 +1503,10 @@ export default function LeadDashboard({ session, isPaid = false }) {
               <div className="text-amber-400 font-semibold text-sm mb-3">🔑 Which keys does each plan use?</div>
               <div className="space-y-2 text-xs text-gray-400">
                 {[
-                  { plan: 'Starter $29',  hunter: 'Platform',      zb: 'Platform',     leads: '50/mo cap' },
-                  { plan: 'Pro $79',      hunter: 'Your key 🔑',   zb: 'Platform',     leads: '500/mo' },
-                  { plan: 'Scale $149',   hunter: 'Your key 🔑',   zb: 'Your key 🔑',  leads: 'Unlimited' },
-                  { plan: 'Agency $299',  hunter: 'Your key 🔑',   zb: 'Your key 🔑',  leads: 'Unlimited' },
+                  { plan: 'Starter $49',  hunter: 'Platform',      zb: 'Platform',     leads: '100/mo cap' },
+                  { plan: 'Pro $149',     hunter: 'Your key 🔑',   zb: 'Platform',     leads: '500/mo' },
+                  { plan: 'Scale $299',   hunter: 'Your key 🔑',   zb: 'Your key 🔑',  leads: 'Unlimited' },
+                  { plan: 'Agency $599',  hunter: 'Your key 🔑',   zb: 'Your key 🔑',  leads: 'Unlimited' },
                 ].map((row, i) => (
                   <div key={i} className="grid grid-cols-4 gap-2 py-1.5 border-b border-white/5 last:border-0">
                     <span className="text-gray-300 font-semibold">{row.plan}</span>
