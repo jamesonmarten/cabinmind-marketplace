@@ -61,11 +61,14 @@ const STATUS_ICONS = {
   'Qualified': '⭐', 'Meeting Set': '📅', 'Not a fit': '❌',
 };
 
-const SCORE_STYLE = (s) =>
-  s >= 90 ? { badge: 'from-green-500/30 to-emerald-500/20 text-green-300 border-green-500/40', label: 'Excellent', dot: 'bg-green-400' }
-  : s >= 82 ? { badge: 'from-blue-500/30 to-cyan-500/20 text-blue-300 border-blue-500/40', label: 'Strong', dot: 'bg-blue-400' }
-  : s >= 72 ? { badge: 'from-yellow-500/30 to-amber-500/20 text-yellow-300 border-yellow-500/40', label: 'Good', dot: 'bg-yellow-400' }
-  : { badge: 'from-gray-500/30 to-gray-500/20 text-gray-400 border-gray-500/40', label: 'Partial', dot: 'bg-gray-400' };
+// Score style uses grade (A/B/C/D) when available, falls back to raw score
+const SCORE_STYLE = (s, grade) => {
+  const g = grade || (s >= 90 ? 'A' : s >= 75 ? 'B' : s >= 60 ? 'C' : 'D');
+  if (g === 'A') return { badge: 'from-green-500/30 to-emerald-500/20 text-green-300 border-green-500/40', label: 'Hot',  dot: 'bg-green-400',  gradeColor: 'text-green-400' };
+  if (g === 'B') return { badge: 'from-blue-500/30 to-cyan-500/20 text-blue-300 border-blue-500/40',     label: 'Warm', dot: 'bg-blue-400',   gradeColor: 'text-blue-400'  };
+  if (g === 'C') return { badge: 'from-yellow-500/30 to-amber-500/20 text-yellow-300 border-yellow-500/40', label: 'Cool', dot: 'bg-yellow-400', gradeColor: 'text-yellow-400' };
+  return                { badge: 'from-gray-500/30 to-gray-500/20 text-gray-400 border-gray-500/40',       label: 'Cold', dot: 'bg-gray-400',   gradeColor: 'text-gray-400'  };
+};
 
 const STORAGE_KEY   = 'cabinmind_leads_pipeline_v2';
 const SETTINGS_KEY  = 'cabinmind_leads_settings';
@@ -170,8 +173,46 @@ function DataSourceBadge({ source }) {
   );
 }
 
-function StatusDropdown({ status, onChange }) {
-  const [open, setOpen] = useState(false);
+function DemoUpgradeWall({ onDismiss }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="relative bg-gradient-to-br from-purple-900/40 to-violet-900/30 border border-purple-500/30 rounded-2xl p-8 text-center overflow-hidden"
+    >
+      {/* Background blur blob */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-600/20 rounded-full blur-3xl" />
+      </div>
+      <div className="relative z-10">
+        <div className="text-5xl mb-3">🔒</div>
+        <h3 className="text-white font-bold text-xl mb-2">Demo Limited to 5 Leads</h3>
+        <p className="text-gray-300 text-sm leading-relaxed mb-1 max-w-sm mx-auto">
+          You&apos;ve seen the quality. Unlock unlimited generation — up to 100 leads per run,
+          full email verification, direct LinkedIn profiles, and CRM export.
+        </p>
+        <div className="flex flex-wrap justify-center gap-2 my-5 text-sm">
+          {['✅ ZeroBounce verified emails','🔗 Direct LinkedIn profiles','📊 Full score breakdown','💾 Pipeline CRM','🔗 HubSpot / Airtable export','♾️ Unlimited batches'].map(f => (
+            <span key={f} className="px-3 py-1.5 bg-white/10 border border-white/10 rounded-full text-gray-200">{f}</span>
+          ))}
+        </div>
+        <a
+          href="/#pricing"
+          className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-base hover:opacity-90 transition-all shadow-lg shadow-purple-500/30"
+        >
+          Unlock Full Access →
+        </a>
+        {onDismiss && (
+          <button onClick={onDismiss} className="block mx-auto mt-3 text-xs text-gray-600 hover:text-gray-400 transition-colors">
+            Keep viewing demo leads
+          </button>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+function StatusDropdown({ status, onChange }) {  const [open, setOpen] = useState(false);
   const ref = useRef();
   useEffect(() => {
     const h = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -212,7 +253,8 @@ function EmailPatternsPanel({ patterns, email }) {
   if (!allPatterns.length) return null;
   return (
     <div className="bg-black/20 border border-white/10 rounded-xl p-3">
-      <div className="text-xs text-gray-500 font-medium mb-2">📬 Email patterns to try</div>
+      <div className="text-xs text-gray-500 font-medium mb-0.5">📬 Email patterns to try manually</div>
+      <div className="text-xs text-gray-600 mb-2">These are guesses based on name + domain — copy and verify before sending.</div>
       <div className="space-y-1">
         {allPatterns.map((p, i) => (
           <div key={i} className={`flex items-center justify-between text-xs rounded-lg px-2 py-1.5 transition-all ${i === 0 ? 'bg-purple-500/10 border border-purple-500/20' : 'bg-white/5'}`}>
@@ -225,7 +267,7 @@ function EmailPatternsPanel({ patterns, email }) {
           </div>
         ))}
       </div>
-      <div className="text-xs text-gray-600 mt-2">★ = most common pattern for this domain</div>
+      <div className="text-xs text-gray-600 mt-2">★ = most common pattern · unverified — use a tool like NeverBounce before bulk outreach</div>
     </div>
   );
 }
@@ -233,7 +275,7 @@ function EmailPatternsPanel({ patterns, email }) {
 function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove }) {
   const [expanded, setExpanded] = useState(false);
   const [note, setNote] = useState(lead._notes || '');
-  const s = SCORE_STYLE(lead.score);
+  const s = SCORE_STYLE(lead.score, lead.grade);
   // Stable identity key — never use email (duplicates possible from AI generation)
   const id = lead._id || `${lead.name}|${lead.company}`.toLowerCase().replace(/[^a-z0-9|]/g, '');
 
@@ -255,8 +297,10 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
           <div className="text-gray-400 text-xs truncate mt-0.5">{lead.title} · {lead.company}</div>
           <div className="flex gap-1.5 mt-2 flex-wrap">
             <span className={`text-xs px-2 py-0.5 rounded-full border font-bold bg-gradient-to-r ${s.badge}`}>
-              <span className={`inline-block w-1.5 h-1.5 rounded-full ${s.dot} mr-1`} />{lead.score} {s.label}
-            </span>
+                <span className={`inline-block w-1.5 h-1.5 rounded-full ${s.dot} mr-1`} />
+                <span className={`font-black mr-1 ${s.gradeColor}`}>{lead.grade || 'B'}</span>
+                {lead.score} · {s.label}
+              </span>
             {lead.signal && (
               <span className="text-xs text-amber-300/80 bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5 truncate max-w-[240px]">
                 🔥 {lead.signal}
@@ -291,6 +335,40 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
                 <div className="bg-white/5 border border-white/10 rounded-xl p-3">
                   <div className="text-xs text-gray-500 font-medium mb-1">🧠 ICP fit reason</div>
                   <div className="text-gray-300 text-xs leading-relaxed">{lead.score_reason}</div>
+                </div>
+              )}
+
+              {/* Score signals audit trail */}
+              {lead.score_signals?.length > 0 && (
+                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                  <div className="text-xs text-gray-500 font-medium mb-2">
+                    📊 Score breakdown — {lead.score} pts · Grade {lead.grade || 'B'} ({s.label})
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {lead.score_signals.map((sig, i) => {
+                      const isBonus   = sig.includes('(+');
+                      const isPenalty = sig.includes('(−') || sig.includes('(-');
+                      return (
+                        <span key={i} className={`text-xs px-2 py-1 rounded-full border font-medium ${
+                          isBonus   ? 'bg-green-500/10 border-green-500/20 text-green-300'
+                          : isPenalty ? 'bg-red-500/10 border-red-500/20 text-red-300'
+                          : 'bg-gray-500/10 border-gray-500/20 text-gray-400'
+                        }`}>
+                          {isBonus ? '↑' : isPenalty ? '↓' : '•'} {sig}
+                        </span>
+                      );
+                    })}
+                  </div>
+                  {lead.zb_status && (
+                    <div className={`mt-2 text-xs font-medium ${
+                      lead.zb_status === 'valid'     ? 'text-green-400'
+                      : lead.zb_status === 'catch-all' ? 'text-yellow-400'
+                      : 'text-gray-500'
+                    }`}>
+                      🛡️ ZeroBounce: {lead.zb_status}
+                      {lead.catch_all && ' (catch-all domain — accepts all mail)'}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -333,12 +411,15 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
               {/* Data grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
                 {[
-                  { label: 'Email', val: lead.email || '—', copy: !!lead.email, note:
-                      lead.email_verified          ? '✅ Verified'
-                    : lead.email_source === 'hunter'          ? '🔵 Hunter'
-                    : lead.email_source === 'pattern-verified' ? '✅ Pattern verified'
-                    : lead.email_source === 'pattern-invalid'  ? null  // hidden — no email shown
-                    : '🟡 Pattern — verify before sending'
+                  { label: 'Email', val: lead.email || null, copy: !!lead.email, note:
+                      lead.zb_status === 'valid'                  ? '✅ ZeroBounce verified'
+                    : lead.email_verified                          ? '✅ Verified'
+                    : lead.zb_status === 'catch-all'              ? '🟡 Catch-all domain'
+                    : lead.email_source === 'hunter'               ? '🔵 Hunter'
+                    : lead.email_source === 'pattern-verified'     ? '✅ Pattern verified'
+                    : lead.email_source === 'pattern'              ? '🟡 Unverified pattern'
+                    : lead.email_source === 'pattern-invalid'      ? '❌ Invalid — removed'
+                    : null
                   },
                   { label: 'Phone', val: lead.phone || 'Upgrade to Pro', copy: !!lead.phone },
                   { label: 'Company size', val: lead.size || '—' },
@@ -347,10 +428,28 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
                   { label: 'Domain', val: lead.domain || '—', copy: !!lead.domain },
                 ].map(({ label, val, copy, note: fieldNote }) => (
                   <div key={label} className="bg-black/20 rounded-xl p-2.5">
-                    <div className="text-gray-600 mb-0.5 flex items-center gap-1">{label} {fieldNote && <span className={`ml-1 ${fieldNote.startsWith('✅') ? 'text-green-500' : fieldNote.startsWith('🟡') ? 'text-yellow-600' : 'text-gray-600'}`}>{fieldNote}</span>}</div>
+                    <div className="text-gray-600 mb-0.5 flex items-center gap-1 flex-wrap">
+                      {label}
+                      {fieldNote && (
+                        <span className={`text-xs font-medium ml-1 ${
+                          fieldNote.startsWith('✅') ? 'text-green-500'
+                          : fieldNote.startsWith('🟡') ? 'text-yellow-500'
+                          : fieldNote.startsWith('❌') ? 'text-red-500'
+                          : 'text-gray-500'
+                        }`}>{fieldNote}</span>
+                      )}
+                    </div>
                     <div className="text-gray-300 flex items-center gap-1 break-all">
-                      <span className="truncate">{val}</span>
-                      {copy && val && val !== '—' && <CopyBtn value={val} label={label} />}
+                      {val ? (
+                        <>
+                          <span className="truncate">{val}</span>
+                          {copy && <CopyBtn value={val} label={label} />}
+                        </>
+                      ) : (
+                        <span className="text-gray-600 italic">
+                          {label === 'Email' ? 'Not verified — see patterns below' : '—'}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -371,16 +470,25 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
               {/* Email patterns */}
               <EmailPatternsPanel patterns={lead.all_email_patterns} email={lead.email} />
 
-              {/* Research links — LinkedIn direct URL (Hunter) or Google search fallback */}
+              {/* Research links — LinkedIn direct URL (Hunter) or LinkedIn People Search fallback */}
               {(lead.name || lead.company) && (() => {
                 const firstName = (lead.name || '').split(' ')[0];
-                // Hunter-supplied direct /in/ URL → goes straight to the real profile
-                // AI-pattern fallback → unquoted Google search surfaces similar real people
+
+                // Hunter gave us a direct /in/ URL → open the real profile straight away.
+                // Fallback: LinkedIn's own People Search (name + company) — works without login,
+                // no Google middleman, surfaces the actual person if they have a profile.
                 const personLinkedIn = lead.linkedin && lead.linkedin_is_direct
                   ? lead.linkedin
-                  : `https://www.google.com/search?q=${encodeURIComponent(`${lead.name} ${lead.title} ${lead.company} linkedin`)}`;
-                const companyLinkedIn = `https://www.google.com/search?q=${encodeURIComponent(`"${lead.company}" site:linkedin.com/company`)}`;
-                const companyWeb      = `https://www.google.com/search?q=${encodeURIComponent(`${lead.company} ${lead.industry || ''} B2B`.trim())}`;
+                  : `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(`${lead.name} ${lead.company}`)}&origin=GLOBAL_SEARCH_HEADER`;
+
+                // Company LinkedIn page — search LinkedIn company pages directly
+                const companyLinkedIn = `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(lead.company)}&origin=GLOBAL_SEARCH_HEADER`;
+
+                // Company website fallback
+                const companyWeb = lead.domain
+                  ? `https://${lead.domain}`
+                  : `https://www.google.com/search?q=${encodeURIComponent(`${lead.company} ${lead.industry || ''} official site`.trim())}`;
+
                 return (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -399,23 +507,23 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
                             ? 'bg-green-600/20 border-green-500/30 text-green-400 hover:bg-green-600/30'
                             : 'bg-blue-600/20 border-blue-500/30 text-blue-400 hover:bg-blue-600/30'
                         }`}>
-                        {lead.linkedin_is_direct ? '✅' : '👤'} {lead.linkedin_is_direct ? `${firstName}'s LinkedIn` : `Find ${firstName} on LinkedIn`}
+                        {lead.linkedin_is_direct ? '✅' : '🔗'} {lead.linkedin_is_direct ? `${firstName}'s Profile` : `Search ${firstName} on LinkedIn`}
                       </a>
                       <a href={companyLinkedIn}
                         target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                         className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600/20 transition-all font-medium">
-                        🏢 Company LinkedIn
+                        🏢 Company Page
                       </a>
                       <a href={companyWeb}
                         target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                         className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:bg-white/10 transition-all font-medium">
-                        🌐 Company Web
+                        🌐 {lead.domain || 'Company Web'}
                       </a>
                     </div>
                     <p className="text-xs text-gray-600">
                       {lead.linkedin_is_direct
-                        ? 'Direct LinkedIn profile from Hunter.io — click to open the real profile.'
-                        : 'AI-generated profile — search finds real counterparts or similar decision-makers.'}
+                        ? 'Verified LinkedIn profile from Hunter.io — opens the real person\'s page.'
+                        : `LinkedIn People Search for "${lead.name}" at ${lead.company} — results are from LinkedIn directly.`}
                     </p>
                   </div>
                 );
@@ -658,14 +766,14 @@ function IntegrationsModal({ leads, savedLeads, onClose }) {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
-export default function LeadDashboard({ session }) {
+export default function LeadDashboard({ session, isPaid = false }) {
   // Form state
   const [icp, setIcp] = useState('');
   const [industry, setIndustry] = useState('');
   const [location, setLocation] = useState('');
   const [companySize, setCompanySize] = useState('');
   const [excludeCompanies, setExcludeCompanies] = useState('');
-  const [batchSize, setBatchSize] = useState(25);
+  const [batchSize, setBatchSize] = useState(isPaid ? 25 : 5);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Results state
@@ -689,6 +797,7 @@ export default function LeadDashboard({ session }) {
   const [tab, setTab] = useState('generate');
   const [savedFilter, setSavedFilter] = useState('All');
   const [showIntegrations, setShowIntegrations] = useState(false);
+  const [showUpgradeWall, setShowUpgradeWall] = useState(false);
   const [sessionStats, setSessionStats] = useState({ runs: 0, total: 0 });
 
   // ── Restore from localStorage ─────────────────────────────────────────────
@@ -751,7 +860,7 @@ export default function LeadDashboard({ session }) {
         const r = await fetch('/api/leads', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, batchNum: i + 1 }),
+          body: JSON.stringify({ ...payload, batchNum: i + 1, isDemo: !isPaid }),
         });
         const ct = r.headers.get('content-type') || '';
         if (!ct.includes('application/json')) throw new Error('Server timeout — will retry next batch');
@@ -875,7 +984,12 @@ export default function LeadDashboard({ session }) {
 
   const tierLabel = lastSources
     ? lastSources.hunterUsed && lastSources.realLeads > 0
-      ? `🟢 Hunter.io — ${lastSources.realLeads} real contacts · ${lastSources.verifiedEmails} verified emails · ${lastSources.directLinkedIn} direct LinkedIn URLs`
+      ? [
+          `🟢 Hunter.io — ${lastSources.realLeads} real contacts`,
+          lastSources.zeroBounceVerified > 0 ? `${lastSources.zeroBounceVerified} ZeroBounce verified` : '',
+          `${lastSources.verifiedEmails} verified emails`,
+          `${lastSources.directLinkedIn} direct LinkedIn URLs`,
+        ].filter(Boolean).join(' · ')
       : lastSources.hunterQuotaExceeded
       ? '🟡 Hunter quota reached — AI profiles for real companies'
       : `🤖 AI profile synthesis${lastSources.patternVerified > 0 ? ` · ${lastSources.patternVerified} pattern emails verified` : ''}`
@@ -964,25 +1078,37 @@ export default function LeadDashboard({ session }) {
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 resize-none" />
               </div>
 
-              {/* Batch size */}
+              {/* Batch size — demo users capped at 5 leads */}
               <div className="mb-4">
                 <label className="text-gray-400 text-xs block mb-1.5">
                   Total leads to generate
-                  <span className="text-gray-600 ml-2">
+                  {!isPaid && <span className="ml-2 text-purple-400 font-medium">— Demo: 5 leads free · <a href="/#pricing" className="underline hover:text-purple-300">Upgrade for 100+</a></span>}
+                  {isPaid && <span className="text-gray-600 ml-2">
                     — streamed live · {batchProgress.provider === 'groq' ? '⚡ Groq (~1-2s/batch)' : batchProgress.provider ? '🔄 OpenAI (~10s/batch)' : '⚡ Groq + OpenAI fallback'}
-                  </span>
+                  </span>}
                 </label>
                 <div className="flex gap-2 flex-wrap">
-                  {BATCH_OPTIONS.map(({ label, value }) => (
-                    <button key={value} onClick={() => setBatchSize(value)}
-                      className={`px-5 py-2 rounded-xl text-sm font-medium border transition-all ${batchSize === value ? 'bg-purple-600 border-purple-500 text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'}`}>
+                  {(isPaid ? BATCH_OPTIONS : [{ label: '5 (Demo)', value: 5 }]).map(({ label, value }) => (
+                    <button key={value} onClick={() => isPaid && setBatchSize(value)}
+                      className={`px-5 py-2 rounded-xl text-sm font-medium border transition-all ${
+                        (!isPaid || batchSize === value)
+                          ? 'bg-purple-600 border-purple-500 text-white'
+                          : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                      }`}>
                       {label}
                     </button>
                   ))}
+                  {!isPaid && (
+                    <a href="/#pricing" className="px-5 py-2 rounded-xl text-sm font-medium border border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-all">
+                      🔓 Unlock 10 / 25 / 50 / 100
+                    </a>
+                  )}
                 </div>
-                <p className="text-gray-600 text-xs mt-1.5">
-                  ⚡ With Groq: {batchSize} leads in ~{Math.ceil(batchSize / CHUNK_SIZE) * 2}–{Math.ceil(batchSize / CHUNK_SIZE) * 3}s · results appear as each batch of {CHUNK_SIZE} completes
-                </p>
+                {isPaid && (
+                  <p className="text-gray-600 text-xs mt-1.5">
+                    ⚡ With Groq: {batchSize} leads in ~{Math.ceil(batchSize / CHUNK_SIZE) * 2}–{Math.ceil(batchSize / CHUNK_SIZE) * 3}s · results appear as each batch of {CHUNK_SIZE} completes
+                  </p>
+                )}
               </div>
 
               {/* Advanced filters */}

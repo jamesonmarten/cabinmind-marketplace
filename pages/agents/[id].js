@@ -907,9 +907,9 @@ function LeadDemo() {
   const [expandedLead, setExpandedLead] = useState(null);
   const [savedLeads, setSavedLeads] = useState({});
 
-  const SCORE_COLOR = s => s >= 90 ? 'text-green-400' : s >= 80 ? 'text-yellow-400' : 'text-orange-400';
-  const SCORE_BG = s => s >= 90 ? 'bg-green-400/20 border-green-400/30' : s >= 80 ? 'bg-yellow-400/20 border-yellow-400/30' : 'bg-orange-400/20 border-orange-400/30';
-  const SCORE_LABEL = s => s >= 90 ? 'Excellent fit' : s >= 80 ? 'Strong fit' : 'Good fit';
+  const SCORE_COLOR = s => s >= 90 ? 'text-green-400' : s >= 75 ? 'text-blue-400' : s >= 60 ? 'text-yellow-400' : 'text-gray-400';
+  const SCORE_BG    = s => s >= 90 ? 'bg-green-400/20 border-green-400/30' : s >= 75 ? 'bg-blue-400/20 border-blue-400/30' : s >= 60 ? 'bg-yellow-400/20 border-yellow-400/30' : 'bg-gray-400/20 border-gray-400/30';
+  const SCORE_LABEL = s => s >= 90 ? 'Hot · A' : s >= 75 ? 'Warm · B' : s >= 60 ? 'Cool · C' : 'Cold · D';
 
   const STATUS_MSGS = [
     '› Scanning LinkedIn profiles and company directories…',
@@ -946,7 +946,7 @@ function LeadDemo() {
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ icp }),
+        body: JSON.stringify({ icp, isDemo: true, batchNum: 1 }),
       });
       clearInterval(msgIv);
       // Guard against non-JSON responses (e.g. Vercel HTML error pages on timeout)
@@ -1109,19 +1109,28 @@ function LeadDemo() {
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div className="bg-black/20 rounded-lg p-2">
                         <div className="text-gray-500 mb-0.5">Email</div>
-                        <div className="text-gray-300 truncate">{l.email}</div>
+                        <div className={`truncate font-mono ${l._demo_masked ? 'text-gray-600 italic' : 'text-gray-300'}`}>
+                          {l.email || 'Not found'}
+                          {l._demo_masked && <span className="ml-1 text-purple-500 not-italic">🔒 Unlock</span>}
+                        </div>
                       </div>
                       <div className="bg-black/20 rounded-lg p-2">
-                        <div className="text-gray-500 mb-0.5">Phone</div>
-                        <div className="text-gray-300">{l.phone}</div>
+                        <div className="text-gray-500 mb-0.5">LinkedIn</div>
+                        <div className="text-gray-300">
+                          {l.linkedin_is_direct
+                            ? <span className="text-gray-600 italic">🔒 Unlock direct link</span>
+                            : l.linkedin
+                              ? <a href={l.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Search →</a>
+                              : '—'}
+                        </div>
+                      </div>
+                      <div className="bg-black/20 rounded-lg p-2">
+                        <div className="text-gray-500 mb-0.5">Score</div>
+                        <div className={`font-bold ${SCORE_COLOR(l.score)}`}>{l.score} · {l.grade || '—'}</div>
                       </div>
                       <div className="bg-black/20 rounded-lg p-2">
                         <div className="text-gray-500 mb-0.5">Company size</div>
-                        <div className="text-gray-300">{l.size} employees</div>
-                      </div>
-                      <div className="bg-black/20 rounded-lg p-2">
-                        <div className="text-gray-500 mb-0.5">Tech stack</div>
-                        <div className="text-gray-300 truncate">{l.tech}</div>
+                        <div className="text-gray-300">{l.size || '—'}</div>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -1145,11 +1154,32 @@ function LeadDemo() {
             ))}
 
             {stage === 'done' && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-                className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-300 flex items-center justify-between gap-2">
-                <span>✅ {leads.length} leads enriched · Click any lead to save & start outreach</span>
-                <span className="font-bold text-purple-400 flex-shrink-0">Est. ${estPipeline.toLocaleString()} pipeline</span>
-              </motion.div>
+              <>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+                  className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-300 flex items-center justify-between gap-2">
+                  <span>✅ {leads.length} leads scored · Emails &amp; LinkedIn locked in demo</span>
+                  <span className={`font-bold flex-shrink-0 ${SCORE_COLOR(avgScore)}`}>Avg {avgScore} pts</span>
+                </motion.div>
+                {/* Upgrade wall */}
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+                  className="mt-3 bg-gradient-to-br from-purple-900/60 to-violet-900/40 border border-purple-500/30 rounded-xl p-5 text-center">
+                  <div className="text-2xl mb-2">🔒</div>
+                  <div className="text-white font-bold text-sm mb-1">Full emails, LinkedIn profiles &amp; unlimited leads</div>
+                  <div className="text-gray-400 text-xs mb-3 leading-relaxed">
+                    Purchase to unlock verified emails, direct LinkedIn /in/ profiles,
+                    ZeroBounce validation, score breakdown, pipeline CRM, and HubSpot/Airtable export.
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-1.5 mb-4 text-xs">
+                    {['✅ Real emails','🔗 LinkedIn /in/','🛡️ ZeroBounce','📊 Score audit','♾️ 100 leads/run','💾 Pipeline CRM'].map(f => (
+                      <span key={f} className="px-2 py-1 bg-white/10 rounded-full text-gray-200">{f}</span>
+                    ))}
+                  </div>
+                  <a href="/agents/lead-researcher#pricing"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-purple-500/30">
+                    Unlock Full Access →
+                  </a>
+                </motion.div>
+              </>
             )}
           </div>
         )}

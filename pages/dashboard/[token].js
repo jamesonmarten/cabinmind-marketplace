@@ -104,7 +104,7 @@ export default function DashboardPage() {
       {/* Dashboard content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {DashboardComponent ? (
-          <DashboardComponent session={session} />
+          <DashboardComponent session={session} isPaid={true} />
         ) : (
           <div className="text-center py-24 text-gray-500">Dashboard coming soon.</div>
         )}
