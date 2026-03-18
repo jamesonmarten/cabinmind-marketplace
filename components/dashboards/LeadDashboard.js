@@ -767,6 +767,34 @@ function IntegrationsModal({ leads, savedLeads, onClose }) {
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function LeadDashboard({ session, isPaid = false }) {
+  // ── BYOK API keys (Pro / Scale / Agency plans) ─────────────────────────────
+  const BYOK_KEY = 'cabinmind_byok_keys';
+  const [hunterApiKey, setHunterApiKey]         = useState('');
+  const [zeroBounceApiKey, setZeroBounceApiKey] = useState('');
+  const [byokSaved, setByokSaved]               = useState(false);
+  const [showSettings, setShowSettings]         = useState(false);
+  const [plan, setPlan]                         = useState('starter'); // starter | pro | scale | agency
+
+  // Restore BYOK keys from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(BYOK_KEY);
+      if (raw) {
+        const k = JSON.parse(raw);
+        if (k.hunterApiKey)     setHunterApiKey(k.hunterApiKey);
+        if (k.zeroBounceApiKey) setZeroBounceApiKey(k.zeroBounceApiKey);
+        if (k.plan)             setPlan(k.plan);
+      }
+    } catch {}
+  }, []);
+
+  const saveByokKeys = () => {
+    try {
+      localStorage.setItem(BYOK_KEY, JSON.stringify({ hunterApiKey, zeroBounceApiKey, plan }));
+    } catch {}
+    setByokSaved(true);
+    setTimeout(() => setByokSaved(false), 2500);
+  };
   // Form state
   const [icp, setIcp] = useState('');
   const [industry, setIndustry] = useState('');
@@ -860,7 +888,14 @@ export default function LeadDashboard({ session, isPaid = false }) {
         const r = await fetch('/api/leads', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, batchNum: i + 1, isDemo: !isPaid }),
+          body: JSON.stringify({
+            ...payload,
+            batchNum: i + 1,
+            isDemo: !isPaid,
+            plan,
+            hunterApiKey:     hunterApiKey     || undefined,
+            zeroBounceApiKey: zeroBounceApiKey || undefined,
+          }),
         });
         const ct = r.headers.get('content-type') || '';
         if (!ct.includes('application/json')) throw new Error('Server timeout — will retry next batch');
@@ -1023,6 +1058,7 @@ export default function LeadDashboard({ session, isPaid = false }) {
           {[
             { id: 'generate', label: '🔎 Research' },
             { id: 'pipeline', label: `🗂️ Pipeline (${savedLeads.length})` },
+            ...(isPaid ? [{ id: 'settings', label: '🔑 API Keys' }] : []),
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${tab === t.id ? 'bg-gradient-to-r from-purple-600 to-violet-500 text-white shadow' : 'text-gray-400 hover:text-white'}`}>
@@ -1367,6 +1403,134 @@ export default function LeadDashboard({ session, isPaid = false }) {
             )}
           </motion.div>
         )}
+
+        {/* ── API Keys / Settings tab (paid only) ── */}
+        {tab === 'settings' && isPaid && (
+          <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+
+            {/* Plan selector */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+              <h2 className="text-white font-bold text-lg mb-1">Your Plan</h2>
+              <p className="text-gray-400 text-sm mb-5">
+                Select which plan you purchased. This controls which API keys are used and how many leads you can generate.
+              </p>
+              <div className="grid sm:grid-cols-4 gap-3">
+                {[
+                  { id: 'starter',  label: 'Starter',  price: '$29/mo', sub: '50 leads · Platform keys',     color: 'border-green-500/40 bg-green-500/5'   },
+                  { id: 'pro',      label: 'Pro',       price: '$79/mo', sub: '500 leads · Your Hunter key', color: 'border-blue-500/40 bg-blue-500/5'     },
+                  { id: 'scale',    label: 'Scale',     price: '$149/mo',sub: 'Unlimited · Both your keys',  color: 'border-purple-500/40 bg-purple-500/5' },
+                  { id: 'agency',   label: 'Agency',    price: '$299/mo',sub: 'Unlimited · BYOK · 5 seats',  color: 'border-violet-500/40 bg-violet-500/5' },
+                ].map(p => (
+                  <button key={p.id} onClick={() => setPlan(p.id)}
+                    className={`border rounded-xl p-4 text-left transition-all ${plan === p.id ? p.color + ' ring-1 ring-white/20' : 'border-white/10 bg-white/3 hover:bg-white/8'}`}>
+                    <div className="text-white font-bold">{p.label}</div>
+                    <div className="text-gray-400 text-xs mt-0.5">{p.price}</div>
+                    <div className="text-gray-500 text-xs mt-1">{p.sub}</div>
+                    {plan === p.id && <div className="text-xs text-green-400 mt-2 font-semibold">✓ Active</div>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Hunter key */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center text-xl flex-shrink-0">🎯</div>
+                <div>
+                  <h3 className="text-white font-bold">Hunter.io API Key</h3>
+                  <p className="text-gray-400 text-xs">Required for Pro, Scale, and Agency plans. Powers real email + LinkedIn discovery.</p>
+                </div>
+                {plan === 'starter' && (
+                  <span className="ml-auto text-xs px-2 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-green-400">
+                    ✅ Platform key used on Starter
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <input
+                  type="password"
+                  value={hunterApiKey}
+                  onChange={e => setHunterApiKey(e.target.value)}
+                  placeholder={plan === 'starter' ? 'Optional — platform key active on Starter' : 'Paste your Hunter.io API key…'}
+                  className="flex-1 bg-black/30 border border-white/15 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-orange-500/50"
+                />
+                <a href="https://hunter.io/api-keys" target="_blank" rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-xl bg-orange-500/15 border border-orange-500/30 text-orange-400 text-sm font-semibold hover:bg-orange-500/25 transition-colors whitespace-nowrap flex items-center gap-1">
+                  Get key →
+                </a>
+              </div>
+              <div className="mt-3 text-xs text-gray-500">
+                Hunter Starter $49/mo = 500 searches · Growth $99/mo = 2,000 searches ·{' '}
+                <a href="https://hunter.io/pricing" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline">View plans</a>
+              </div>
+            </div>
+
+            {/* ZeroBounce key */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-green-500/20 border border-green-500/30 flex items-center justify-center text-xl flex-shrink-0">🛡️</div>
+                <div>
+                  <h3 className="text-white font-bold">ZeroBounce API Key</h3>
+                  <p className="text-gray-400 text-xs">Required for Scale and Agency plans. Blocks spam traps, disposables, and hard bounces.</p>
+                </div>
+                {(plan === 'starter' || plan === 'pro') && (
+                  <span className="ml-auto text-xs px-2 py-1 rounded-full bg-green-500/15 border border-green-500/30 text-green-400">
+                    ✅ Platform key used on {plan === 'starter' ? 'Starter' : 'Pro'}
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <input
+                  type="password"
+                  value={zeroBounceApiKey}
+                  onChange={e => setZeroBounceApiKey(e.target.value)}
+                  placeholder={plan === 'starter' || plan === 'pro' ? 'Optional — platform key active on this plan' : 'Paste your ZeroBounce API key…'}
+                  className="flex-1 bg-black/30 border border-white/15 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-green-500/50"
+                />
+                <a href="https://www.zerobounce.net/members/api" target="_blank" rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-xl bg-green-500/15 border border-green-500/30 text-green-400 text-sm font-semibold hover:bg-green-500/25 transition-colors whitespace-nowrap flex items-center gap-1">
+                  Get key →
+                </a>
+              </div>
+              <div className="mt-3 text-xs text-gray-500">
+                Pay-as-you-go $16 / 2,000 credits · Monthly $25/mo (5K) · $49/mo (10K) ·{' '}
+                <a href="https://www.zerobounce.net/email-validation-pricing.html" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">View plans</a>
+              </div>
+            </div>
+
+            {/* What each plan uses */}
+            <div className="bg-amber-500/8 border border-amber-500/20 rounded-2xl p-5">
+              <div className="text-amber-400 font-semibold text-sm mb-3">🔑 Which keys does each plan use?</div>
+              <div className="space-y-2 text-xs text-gray-400">
+                {[
+                  { plan: 'Starter $29',  hunter: 'Platform',      zb: 'Platform',     leads: '50/mo cap' },
+                  { plan: 'Pro $79',      hunter: 'Your key 🔑',   zb: 'Platform',     leads: '500/mo' },
+                  { plan: 'Scale $149',   hunter: 'Your key 🔑',   zb: 'Your key 🔑',  leads: 'Unlimited' },
+                  { plan: 'Agency $299',  hunter: 'Your key 🔑',   zb: 'Your key 🔑',  leads: 'Unlimited' },
+                ].map((row, i) => (
+                  <div key={i} className="grid grid-cols-4 gap-2 py-1.5 border-b border-white/5 last:border-0">
+                    <span className="text-gray-300 font-semibold">{row.plan}</span>
+                    <span>Hunter: {row.hunter}</span>
+                    <span>ZB: {row.zb}</span>
+                    <span className="text-gray-300">{row.leads}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Save button */}
+            <button
+              onClick={saveByokKeys}
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-base hover:opacity-90 transition-all shadow-lg shadow-purple-500/20"
+            >
+              {byokSaved ? '✅ Keys Saved!' : '💾 Save API Keys'}
+            </button>
+            <p className="text-center text-xs text-gray-600">
+              Keys are stored in your browser only — never sent to our servers except to make API calls on your behalf.
+            </p>
+          </motion.div>
+        )}
+
       </AnimatePresence>
 
       {/* ── Integrations modal ── */}

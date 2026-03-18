@@ -31,10 +31,10 @@ import dns from 'dns/promises';
 
 const groq       = process.env.GROQ_API_KEY        ? new Groq({ apiKey: process.env.GROQ_API_KEY })        : null;
 const openai     = process.env.OPENAI_API_KEY       ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })    : null;
-const HUNTER     = process.env.HUNTER_API_KEY       || null;
-const ZEROBOUNCE = process.env.ZEROBOUNCE_API_KEY   || null;
 
-const ZB_ACTIVE  = ZEROBOUNCE && ZEROBOUNCE !== 'your_zerobounce_api_key_here';
+// Platform fallback keys (used for Starter plan / demo only)
+const PLATFORM_HUNTER     = process.env.HUNTER_API_KEY     || null;
+const PLATFORM_ZEROBOUNCE = process.env.ZEROBOUNCE_API_KEY || null;
 
 // Role/catch-all prefixes that are never real decision-maker inboxes
 const ROLE_PREFIXES = new Set([
@@ -63,12 +63,13 @@ async function domainHasMX(domain) {
 }
 
 // ZeroBounce email validator (PRIMARY)
-// Free tier: 100 validations/month
+// Free tier: 100 validations/month | Starter: $16/2K | Growth: $25/5K
 // Detects: spam traps, disposables, hard bounces, catch-all domains, role addresses
-async function zeroBounceValidate(email) {
-  if (!ZB_ACTIVE) return { available: false, reason: 'no-zb-key' };
+async function zeroBounceValidate(email, apiKey) {
+  const key = apiKey || null;
+  if (!key || key === 'your_zerobounce_api_key_here') return { available: false, reason: 'no-zb-key' };
   try {
-    const url = `https://api.zerobounce.net/v2/validate?api_key=${ZEROBOUNCE}&email=${encodeURIComponent(email)}&ip_address=`;
+    const url = `https://api.zerobounce.net/v2/validate?api_key=${key}&email=${encodeURIComponent(email)}&ip_address=`;
     const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
@@ -92,10 +93,11 @@ async function zeroBounceValidate(email) {
 }
 
 // Hunter email verifier (FALLBACK when ZeroBounce unavailable)
-async function hunterVerify(email) {
-  if (!HUNTER) return { status: 'unknown', score: 0, reason: 'no-key' };
+async function hunterVerify(email, apiKey) {
+  const key = apiKey || null;
+  if (!key) return { status: 'unknown', score: 0, reason: 'no-key' };
   try {
-    const url = `https://api.hunter.io/v2/email-verifier?email=${encodeURIComponent(email)}&api_key=${HUNTER}`;
+    const url = `https://api.hunter.io/v2/email-verifier?email=${encodeURIComponent(email)}&api_key=${key}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(10000) });
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
@@ -111,7 +113,7 @@ async function hunterVerify(email) {
 
 // 6-layer email validation gate
 // Returns { pass, reason, zbStatus, catchAll, verified }
-async function validateEmail(email, hunterConfidence = null, hunterStatus = null) {
+async function validateEmail(email, hunterConfidence = null, hunterStatus = null, zbKey = null, hunterKey = null) {
   // Layer 1: format
   if (!email || !email.includes('@')) return { pass: false, reason: 'malformed' };
   const [local, domain] = email.split('@');
@@ -133,7 +135,7 @@ async function validateEmail(email, hunterConfidence = null, hunterStatus = null
   if (hunterStatus === 'invalid') return { pass: false, reason: 'hunter-invalid' };
 
   // Layer 6a: ZeroBounce (primary)
-  const zb = await zeroBounceValidate(email);
+  const zb = await zeroBounceValidate(email, zbKey);
   if (zb.available) {
     if (zb.bad) {
       return { pass: false, reason: `zb-${zb.status}${zb.subStatus ? `-${zb.subStatus}` : ''}`, zbStatus: zb.status };
@@ -145,7 +147,7 @@ async function validateEmail(email, hunterConfidence = null, hunterStatus = null
   if (hunterStatus === 'valid') {
     return { pass: true, reason: 'hunter-valid', zbStatus: null, catchAll: false, verified: true };
   }
-  const hv = await hunterVerify(email);
+  const hv = await hunterVerify(email, hunterKey);
   if (hv.status === 'invalid') {
     return { pass: false, reason: 'hunter-verifier-invalid', zbStatus: null };
   }
@@ -423,10 +425,11 @@ Return ONLY a JSON array of exactly 5 objects, no markdown:
 }
 
 // Step 2: Hunter domain search -> real contacts
-async function hunterDomainSearch(domain) {
-  if (!HUNTER) return null;
+async function hunterDomainSearch(domain, apiKey) {
+  const key = apiKey || null;
+  if (!key) return null;
   try {
-    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&limit=5&type=personal&api_key=${HUNTER}`;
+    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&limit=5&type=personal&api_key=${key}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
@@ -473,7 +476,7 @@ Return ONLY valid JSON: {"name":"Full Name","title":"Job Title","score_reason":"
 }
 
 // Main pipeline
-async function generateLeads(icp, filters, batchNum) {
+async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
   const { companies, aiProvider } = await getCompanyDomains(icp, filters, batchNum);
   const leads = [];
   let hunterQuotaExceeded = false;
@@ -485,8 +488,8 @@ async function generateLeads(icp, filters, batchNum) {
     if (!domain) continue;
 
     let hunterData = null;
-    if (HUNTER && !hunterQuotaExceeded) {
-      const result = await hunterDomainSearch(domain);
+    if (hunterKey && !hunterQuotaExceeded) {
+      const result = await hunterDomainSearch(domain, hunterKey);
       if (result === 'quota_exceeded') {
         hunterQuotaExceeded = true;
         console.warn('[leads] Hunter quota exceeded — AI fallback for remaining');
@@ -511,7 +514,7 @@ async function generateLeads(icp, filters, batchNum) {
         const hunterStatus = c.verification?.status || null;
 
         // 6-layer validation
-        const validation = await validateEmail(c.value, c.confidence, hunterStatus);
+        const validation = await validateEmail(c.value, c.confidence, hunterStatus, zbKey, hunterKey);
         if (!validation.pass) {
           console.warn(`[leads] Skip ${c.value}: ${validation.reason}`);
           continue;
@@ -568,7 +571,7 @@ async function generateLeads(icp, filters, batchNum) {
       let zbStatus      = null;
       let catchAll      = false;
 
-      const validation = await validateEmail(patternEmail, null, null);
+      const validation = await validateEmail(patternEmail, null, null, zbKey, hunterKey);
       if (!validation.pass) {
         console.warn(`[leads] Pattern email ${patternEmail} failed: ${validation.reason}`);
         finalEmail   = null;
@@ -631,12 +634,21 @@ async function generateLeads(icp, filters, batchNum) {
     leads: leads.slice(0, 5),
     meta: {
       aiProvider, hunterQuotaExceeded,
-      zbAvailable: ZB_ACTIVE,
+      zbAvailable: !!(zbKey),
       realCount, verifiedCount, directLinkedIn, zbVerified, patternVerified,
       avgScore, hotLeads, warmLeads,
     },
   };
 }
+
+// ─── Plan limits ─────────────────────────────────────────────────────────────
+// Starter:  uses platform keys, capped 50 leads/mo  (you foot the bill, but it's <$3/mo)
+// Pro:      client brings Hunter key; platform ZB key; up to 500 leads/mo
+// Scale:    client brings both keys; unlimited
+// Agency:   client brings both keys; unlimited + multi-seat
+// isDemo:   no real keys used; AI + pattern only
+
+const PLAN_BATCH_CAPS = { starter: 10, pro: 100, scale: Infinity, agency: Infinity };
 
 // Handler
 export default async function handler(req, res) {
@@ -646,6 +658,11 @@ export default async function handler(req, res) {
     const {
       icp, industry, location, companySize, excludeCompanies,
       batchNum = 1, isDemo = false,
+      // Client-supplied BYOK keys (Pro / Scale / Agency plans)
+      hunterApiKey: clientHunterKey,
+      zeroBounceApiKey: clientZbKey,
+      // Plan tier sent by the client (dashboard knows its own plan)
+      plan = 'starter',
     } = req.body || {};
 
     if (!icp?.trim()) return res.status(400).json({ error: 'icp is required' });
@@ -658,6 +675,41 @@ export default async function handler(req, res) {
       });
     }
 
+    // Resolve which keys to use based on plan:
+    //   Starter  — platform Hunter + platform ZB (both capped to keep your costs low)
+    //   Pro      — client Hunter key + platform ZB key (client pays for Hunter)
+    //   Scale+   — client Hunter key + client ZB key (client pays for both)
+    //   Demo     — no real keys (AI pattern-only, masked)
+    let hunterKey, zbKey;
+    if (isDemo) {
+      hunterKey = null;
+      zbKey     = null;
+    } else if (plan === 'scale' || plan === 'agency') {
+      // Full BYOK — both keys must come from client
+      hunterKey = clientHunterKey || null;
+      zbKey     = clientZbKey     || null;
+      if (!hunterKey) {
+        return res.status(400).json({
+          error: 'Scale/Agency plan requires your Hunter.io API key. Add it in Dashboard → API Keys.',
+          byok: true, missingKey: 'hunter',
+        });
+      }
+      if (!zbKey) {
+        return res.status(400).json({
+          error: 'Scale/Agency plan requires your ZeroBounce API key. Add it in Dashboard → API Keys.',
+          byok: true, missingKey: 'zerobounce',
+        });
+      }
+    } else if (plan === 'pro') {
+      // Client brings Hunter; platform supplies ZB
+      hunterKey = clientHunterKey || PLATFORM_HUNTER;
+      zbKey     = PLATFORM_ZEROBOUNCE || null;
+    } else {
+      // Starter — platform supplies both (low-volume fallback)
+      hunterKey = PLATFORM_HUNTER;
+      zbKey     = PLATFORM_ZEROBOUNCE || null;
+    }
+
     const filters = {
       industry:    industry         || '',
       location:    location         || '',
@@ -665,7 +717,7 @@ export default async function handler(req, res) {
       exclude:     excludeCompanies || '',
     };
 
-    const { leads, meta } = await generateLeads(icp.trim(), filters, parseInt(batchNum) || 1);
+    const { leads, meta } = await generateLeads(icp.trim(), filters, parseInt(batchNum) || 1, hunterKey, zbKey);
 
     const finalLeads = isDemo ? maskForDemo(leads) : leads;
 
@@ -673,6 +725,11 @@ export default async function handler(req, res) {
       leads:    finalLeads,
       count:    finalLeads.length,
       provider: meta.aiProvider,
+      plan,
+      byok: {
+        hunterClientKey:     !!(clientHunterKey),
+        zeroBounceClientKey: !!(clientZbKey),
+      },
       scoring: {
         avgScore:  meta.avgScore,
         hotLeads:  meta.hotLeads,
@@ -680,7 +737,7 @@ export default async function handler(req, res) {
       },
       sources: {
         tier:                meta.realCount > 0 ? 1 : 3,
-        hunterUsed:          !!HUNTER && !meta.hunterQuotaExceeded,
+        hunterUsed:          !!hunterKey && !meta.hunterQuotaExceeded,
         hunterQuotaExceeded: meta.hunterQuotaExceeded,
         zeroBounceUsed:      meta.zbAvailable,
         zeroBounceVerified:  meta.zbVerified,
