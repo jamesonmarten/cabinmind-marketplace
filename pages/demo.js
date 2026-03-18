@@ -115,7 +115,7 @@ const ROI_SCENARIOS = [
     avgDeal: 8000,
     hourlyRate: 65,
     hoursPerLead: 2.5,
-    toolCost: 97,
+    toolCost: 49,
     color: 'from-blue-500 to-cyan-400',
   },
   {
@@ -126,7 +126,7 @@ const ROI_SCENARIOS = [
     avgDeal: 24000,
     hourlyRate: 90,
     hoursPerLead: 2.0,
-    toolCost: 97,
+    toolCost: 149,
     color: 'from-purple-500 to-violet-400',
   },
   {
@@ -137,7 +137,7 @@ const ROI_SCENARIOS = [
     avgDeal: 75000,
     hourlyRate: 120,
     hoursPerLead: 1.5,
-    toolCost: 97,
+    toolCost: 299,
     color: 'from-pink-500 to-rose-400',
   },
 ];
@@ -161,10 +161,11 @@ const VALIDATION_LAYERS = [
 ];
 
 const COST_COMPARISON = [
-  { method: 'Manual SDR research',    perLead: 18.50, quality: 45, speed: 'Hours', icon: '👤' },
-  { method: 'Apollo.io / ZoomInfo',   perLead: 0.80,  quality: 55, speed: 'Minutes', icon: '📋' },
-  { method: 'Freelance researcher',   perLead: 12.00, quality: 60, speed: 'Days', icon: '💼' },
-  { method: 'CabinMind Lead Agent',   perLead: 0.10,  quality: 94, speed: '2.5 seconds', icon: '⚡', highlight: true },
+  { method: 'Manual SDR research',    perLead: 18.50, quality: 45, speed: 'Hours',      icon: '👤' },
+  { method: 'Apollo.io / Seamless',   perLead: 0.80,  quality: 55, speed: 'Minutes',    icon: '📋' },
+  { method: 'Clay (Growth)',          perLead: 0.60,  quality: 65, speed: 'Minutes',    icon: '🏗️' },
+  { method: 'Freelance researcher',   perLead: 12.00, quality: 60, speed: 'Days',       icon: '💼' },
+  { method: 'CabinMind — Starter',    perLead: 0.49,  quality: 94, speed: '2.5 seconds',icon: '⚡', highlight: true },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -264,7 +265,7 @@ function HeroSection() {
             { val: '2.5s',  label: 'Per batch of 5 leads' },
             { val: '6',     label: 'Email validation layers' },
             { val: '99%',   label: 'Grade-A leads score 90+' },
-            { val: '$0.10', label: 'Cost per verified lead' },
+            { val: '$0.49', label: 'Cost per lead · Starter plan' },
           ].map((s, i) => (
             <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
               <div className="text-2xl font-black text-white mb-1">{s.val}</div>
@@ -586,9 +587,9 @@ function CostComparisonSection() {
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
           className="text-center mb-16">
           <div className="text-purple-400 text-sm font-semibold uppercase tracking-widest mb-3">Cost Analysis</div>
-          <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">$0.10 per verified lead</h2>
+          <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">$0.49 per verified lead</h2>
           <p className="text-gray-400 text-lg max-w-xl mx-auto">
-            Compare what you're spending today vs. what CabinMind costs — including data quality.
+            Starter plan: 100 leads for $49/mo. Compare what you're spending today vs. what CabinMind costs — including data quality.
           </p>
         </motion.div>
 
@@ -635,9 +636,9 @@ function CostComparisonSection() {
         <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
           className="grid sm:grid-cols-3 gap-4">
           {[
-            { label: 'vs. SDR research', saving: '185×', desc: 'cheaper per lead', color: 'text-green-400' },
-            { label: 'vs. Apollo/ZoomInfo', saving: '8×', desc: 'cheaper per lead', color: 'text-blue-400' },
-            { label: 'vs. Freelancers', saving: '120×', desc: 'cheaper per lead', color: 'text-purple-400' },
+            { label: 'vs. SDR research', saving: '38×', desc: 'cheaper per lead', color: 'text-green-400' },
+            { label: 'vs. Apollo / Seamless', saving: '1.6×', desc: 'cheaper + higher quality', color: 'text-blue-400' },
+            { label: 'vs. Freelancers', saving: '24×', desc: 'cheaper per lead', color: 'text-purple-400' },
           ].map((s, i) => (
             <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-5 text-center">
               <div className={`text-4xl font-black ${s.color} mb-1`}>{s.saving}</div>
@@ -667,8 +668,8 @@ function ROISection() {
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
           className="text-center mb-12">
           <div className="text-purple-400 text-sm font-semibold uppercase tracking-widest mb-3">ROI Calculator</div>
-          <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">Your actual return on $97/mo</h2>
-          <p className="text-gray-400 text-lg max-w-xl mx-auto">Pick your scenario — see exactly what CabinMind pays back.</p>
+          <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">Your actual return on investment</h2>
+          <p className="text-gray-400 text-lg max-w-xl mx-auto">Pick your scenario — see exactly what CabinMind pays back. Plans from $49/mo.</p>
         </motion.div>
 
         {/* Scenario selector */}
@@ -693,7 +694,7 @@ function ROISection() {
               { label: 'Leads/month', val: s.monthlyLeads.toLocaleString(), icon: '🔎', color: 'text-blue-400',   sub: 'Generated automatically' },
               { label: 'Hours saved', val: manualHoursSaved.toLocaleString(), icon: '⏱️', color: 'text-yellow-400', sub: `Worth $${manualCostSaved.toLocaleString()}` },
               { label: 'Revenue generated', val: `$${(revenueGenerated / 1000).toFixed(0)}K`, icon: '💰', color: 'text-green-400', sub: `${(s.closeRate * 100).toFixed(0)}% close rate · $${s.avgDeal.toLocaleString()} avg deal` },
-              { label: 'ROI on $97/mo', val: `${roi.toLocaleString()}%`, icon: '📈', color: 'text-purple-400', sub: `Net: $${netProfit.toLocaleString()}/mo after cost` },
+              { label: 'ROI on plan', val: `${roi.toLocaleString()}%`, icon: '📈', color: 'text-purple-400', sub: `Net: $${netProfit.toLocaleString()}/mo after $${s.toolCost} plan cost` },
             ].map((card, i) => (
               <div key={i} className="bg-white/5 border border-white/10 rounded-2xl p-5 text-center">
                 <div className="text-3xl mb-3">{card.icon}</div>

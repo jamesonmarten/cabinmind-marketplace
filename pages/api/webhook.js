@@ -22,11 +22,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 const AGENT_META = {
-  receptionist:      { name: 'AI Receptionist',    icon: '🤖', price: '$39/mo', setupUrl: 'https://products.devcabin.tech/agents/receptionist' },
-  'website-audit':   { name: 'AI Website Auditor',  icon: '📈', price: '$19/mo', setupUrl: 'https://products.devcabin.tech/agents/website-audit' },
-  'blog-writer':     { name: 'AI Blog Writer',       icon: '✍️', price: '$29/mo', setupUrl: 'https://products.devcabin.tech/agents/blog-writer' },
-  'sales-assistant': { name: 'AI Sales Assistant',   icon: '💼', price: '$49/mo', setupUrl: 'https://products.devcabin.tech/agents/sales-assistant' },
-  'lead-researcher': { name: 'AI Lead Researcher',   icon: '🔎', price: '$59/mo', setupUrl: 'https://products.devcabin.tech/agents/lead-researcher' },
+  // Flat-rate agents
+  'receptionist':      { name: 'AI Receptionist',              icon: '🤖', price: '$79/mo',  setupUrl: 'https://products.devcabin.tech/agents/receptionist' },
+  'website-audit':     { name: 'AI Website Auditor',           icon: '📈', price: '$29/mo',  setupUrl: 'https://products.devcabin.tech/agents/website-audit' },
+  'blog-writer':       { name: 'AI Blog Writer',               icon: '✍️', price: '$49/mo',  setupUrl: 'https://products.devcabin.tech/agents/blog-writer' },
+  'sales-assistant':   { name: 'AI Sales Assistant',           icon: '💼', price: '$99/mo',  setupUrl: 'https://products.devcabin.tech/agents/sales-assistant' },
+  // Lead Researcher — BYOK tiered
+  'lead-researcher':   { name: 'AI Lead Researcher — Starter', icon: '🔎', price: '$49/mo',  setupUrl: 'https://products.devcabin.tech/dashboard', byok: true },
+  'lead-starter':      { name: 'AI Lead Researcher — Starter', icon: '🔎', price: '$49/mo',  setupUrl: 'https://products.devcabin.tech/dashboard', byok: true },
+  'lead-pro':          { name: 'AI Lead Researcher — Pro',     icon: '🔎', price: '$149/mo', setupUrl: 'https://products.devcabin.tech/dashboard', byok: true, byokNote: 'Add your Hunter.io API key in your dashboard under API Keys.' },
+  'lead-scale':        { name: 'AI Lead Researcher — Scale',   icon: '🔎', price: '$299/mo', setupUrl: 'https://products.devcabin.tech/dashboard', byok: true, byokNote: 'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys.' },
+  'lead-agency':       { name: 'AI Lead Researcher — Agency',  icon: '🔎', price: '$599/mo', setupUrl: 'https://products.devcabin.tech/dashboard', byok: true, byokNote: 'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys. You have 5 seats — invite team members from Settings.' },
 };
 
 /** Read the raw body from the request stream */
@@ -97,9 +103,8 @@ async function sendConfirmationEmail({ toEmail, toName, agentId, sessionId, dash
           <p style="margin:0 0 16px;color:#e2e8f0;font-size:15px;font-weight:700;">Your next steps</p>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
             ${[
-              ['1', 'Activate your agent', `Click the button below to open your setup guide and go live in minutes.`],
-              ['2', 'Connect your tools', 'Link your CRM, calendar, or website — depending on which agent you chose.'],
-              ['3', 'Monitor results', 'Check your CabinMind dashboard to see your agent working in real time.'],
+              ['1', 'Open your dashboard', `Click the button below to access your private dashboard — it's ready now.`],
+              ...(agent.byok ? [['2', 'Add your API keys', agent.byokNote || 'Add your Hunter.io and/or ZeroBounce API keys under the API Keys tab to unlock full lead generation.'], ['3', 'Run your first search', 'Describe your ideal customer in plain English and get 5 verified, scored leads in seconds.']] : [['2', 'Connect your tools', 'Link your CRM, calendar, or website — depending on which agent you chose.'], ['3', 'Monitor results', 'Check your dashboard to see your agent working in real time.']]),
             ].map(([n, title, desc]) => `
             <tr>
               <td width="36" valign="top" style="padding:0 12px 16px 0;">
