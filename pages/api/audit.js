@@ -36,7 +36,8 @@ export default async function handler(req, res) {
   let psiError = null;
 
   try {
-    const r = await fetch(PSI_URL, { signal: AbortSignal.timeout(25000) });
+    // 20s timeout — leaves plenty of headroom in the 60s Vercel function limit for AI fallback
+    const r = await fetch(PSI_URL, { signal: AbortSignal.timeout(20000) });
     if (r.ok) {
       psiData = await r.json();
     } else {
