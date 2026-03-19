@@ -6,3 +6,4 @@ node_modules/
 .DS_Store
 .vercel
 *.tmp
+test-e2e-leads.mjs
