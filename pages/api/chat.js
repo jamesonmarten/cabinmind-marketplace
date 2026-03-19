@@ -12,7 +12,7 @@ Your goals in order:
 
 Key facts about CabinMind you can reference:
 - 5 AI agents: AI Receptionist, Website Auditor, Blog Writer, Sales Assistant, Lead Researcher
-- Pricing starts at $97/month, cancel anytime, 5-minute setup, no engineering needed
+- Pricing starts at $29/month for the Website Auditor, up to $99/month for the Sales Assistant. AI Lead Researcher starts at $49/month. Cancel anytime, 5-minute setup, no engineering needed
 - Integrates with HubSpot, Salesforce, WordPress, Google Calendar, Slack
 - Used by 200+ businesses, average customer saves 12 hours/week
 - Free 14-day trial available, no credit card required to start
