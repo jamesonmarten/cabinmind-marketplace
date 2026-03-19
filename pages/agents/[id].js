@@ -1100,52 +1100,90 @@ function LeadDemo() {
 
                 {expandedLead === i && (
                   <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-                    className="px-3 pb-3 border-t border-white/5 space-y-2 pt-2.5">
+                    className="px-3 pb-3 border-t border-white/5 space-y-2.5 pt-2.5">
+
+                    {/* Buying signal */}
                     {l.signal && (
                       <div className="bg-amber-400/10 border border-amber-400/20 rounded-lg px-3 py-2 text-xs text-amber-300">
                         <span className="font-semibold">🔥 Buying signal:</span> {l.signal}
                       </div>
                     )}
+
+                    {/* Data grid */}
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="bg-black/20 rounded-lg p-2">
-                        <div className="text-gray-500 mb-0.5">Email</div>
-                        <div className={`truncate font-mono ${l._demo_masked ? 'text-gray-600 italic' : 'text-gray-300'}`}>
-                          {l.email || 'Not found'}
-                          {l._demo_masked && <span className="ml-1 text-purple-500 not-italic">🔒 Unlock</span>}
+                      {/* Email — blurred but clearly real */}
+                      <div className="bg-black/20 rounded-lg p-2 col-span-2">
+                        <div className="text-gray-500 mb-0.5 flex items-center justify-between">
+                          <span>Email</span>
+                          {l.email_verified && <span className="text-green-400">✅ ZB validated</span>}
+                          {l.zb_status && !l.email_verified && <span className="text-yellow-400">⚡ {l.zb_status}</span>}
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-gray-500 tracking-wide">{l.email || 's••••••@a••••.com'}</span>
+                          <a href="/pricing" className="flex-shrink-0 text-[10px] text-purple-400 bg-purple-500/15 border border-purple-500/25 rounded-full px-2 py-0.5 hover:bg-purple-500/25 transition-colors whitespace-nowrap">🔒 Unlock →</a>
                         </div>
                       </div>
+
+                      {/* LinkedIn */}
                       <div className="bg-black/20 rounded-lg p-2">
                         <div className="text-gray-500 mb-0.5">LinkedIn</div>
-                        <div className="text-gray-300">
-                          {l.linkedin_is_direct
-                            ? <span className="text-gray-600 italic">🔒 Unlock direct link</span>
-                            : l.linkedin
-                              ? <a href={l.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Search →</a>
-                              : '—'}
-                        </div>
+                        {l.linkedin
+                          ? <a href={l.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-xs">Search profile →</a>
+                          : <a href="/pricing" className="text-purple-400 text-xs">🔒 Direct /in/ link</a>}
                       </div>
+
+                      {/* Score */}
                       <div className="bg-black/20 rounded-lg p-2">
-                        <div className="text-gray-500 mb-0.5">Score</div>
-                        <div className={`font-bold ${SCORE_COLOR(l.score)}`}>{l.score} · {l.grade || '—'}</div>
+                        <div className="text-gray-500 mb-0.5">ICP Score</div>
+                        <div className={`font-black text-base ${SCORE_COLOR(l.score)}`}>{l.score} <span className="text-sm font-bold">· {l.grade || SCORE_LABEL(l.score).split(' · ')[1]}</span></div>
+                      </div>
+
+                      {/* Industry + size */}
+                      <div className="bg-black/20 rounded-lg p-2">
+                        <div className="text-gray-500 mb-0.5">Industry</div>
+                        <div className="text-gray-300 truncate">{l.industry || '—'}</div>
                       </div>
                       <div className="bg-black/20 rounded-lg p-2">
                         <div className="text-gray-500 mb-0.5">Company size</div>
                         <div className="text-gray-300">{l.size || '—'}</div>
                       </div>
+
+                      {/* Pain points */}
+                      {l.pain_points && (
+                        <div className="bg-black/20 rounded-lg p-2 col-span-2">
+                          <div className="text-gray-500 mb-0.5">Pain points</div>
+                          <div className="text-gray-400 leading-relaxed">{l.pain_points}</div>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Score signals — show real audit trail */}
+                    {l.score_signals?.length > 0 && (
+                      <div className="bg-white/3 border border-white/5 rounded-lg p-2.5">
+                        <div className="text-gray-500 text-xs mb-1.5 font-medium">📊 Score breakdown</div>
+                        <div className="flex flex-wrap gap-1">
+                          {l.score_signals.map((sig, j) => (
+                            <span key={j} className="text-[10px] text-green-400/80 bg-green-500/10 border border-green-500/15 rounded-full px-2 py-0.5">{sig}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CTA buttons */}
                     <div className="flex gap-2">
+                      <a href="/pricing"
+                        className="flex-1 text-xs py-2 rounded-lg transition-all font-semibold text-center bg-gradient-to-r from-purple-600/80 to-violet-600/80 text-white border border-purple-500/30 hover:opacity-90">
+                        🔓 Unlock Full Data →
+                      </a>
                       <button
                         onClick={() => setSavedLeads(s => ({ ...s, [i]: true }))}
                         disabled={savedLeads[i]}
-                        className={`flex-1 text-xs py-1.5 rounded-lg transition-all font-medium ${
+                        className={`flex-1 text-xs py-2 rounded-lg transition-all font-medium ${
                           savedLeads[i]
                             ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                            : 'bg-purple-500/20 text-purple-300 border border-purple-400/30 hover:bg-purple-500/30'
+                            : 'bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10'
                         }`}>
-                        {savedLeads[i] ? '✓ Saved to CRM' : '+ Save to CRM'}
-                      </button>
-                      <button className="flex-1 text-xs py-1.5 rounded-lg bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 transition-all font-medium">
-                        ✉ Start Outreach
+                        {savedLeads[i] ? '✓ Saved' : '+ Save to CRM'}
                       </button>
                     </div>
                   </motion.div>
@@ -1157,7 +1195,7 @@ function LeadDemo() {
               <>
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
                   className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-300 flex items-center justify-between gap-2">
-                  <span>✅ {leads.length} leads scored · Emails &amp; LinkedIn locked in demo</span>
+                  <span>✅ {leads.length} real leads found · Expand any card to see score breakdown · Email &amp; LinkedIn /in/ locked</span>
                   <span className={`font-bold flex-shrink-0 ${SCORE_COLOR(avgScore)}`}>Avg {avgScore} pts</span>
                 </motion.div>
                 {/* Upgrade wall */}
@@ -1174,10 +1212,11 @@ function LeadDemo() {
                       <span key={f} className="px-2 py-1 bg-white/10 rounded-full text-gray-200">{f}</span>
                     ))}
                   </div>
-                  <a href="/agents/lead-researcher#pricing"
+                  <a href="/pricing"
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-purple-500/30">
-                    Unlock Full Access →
+                    Unlock Full Access — from $49/mo →
                   </a>
+                  <div className="mt-2 text-xs text-gray-600">14-day money-back guarantee · Cancel anytime</div>
                 </motion.div>
               </>
             )}

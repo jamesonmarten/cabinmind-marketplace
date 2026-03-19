@@ -197,10 +197,10 @@ function DemoUpgradeWall({ onDismiss }) {
           ))}
         </div>
         <a
-          href="/#pricing"
+          href="/pricing"
           className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-base hover:opacity-90 transition-all shadow-lg shadow-purple-500/30"
         >
-          Unlock Full Access →
+          Unlock Full Access — from $49/mo →
         </a>
         {onDismiss && (
           <button onClick={onDismiss} className="block mx-auto mt-3 text-xs text-gray-600 hover:text-gray-400 transition-colors">

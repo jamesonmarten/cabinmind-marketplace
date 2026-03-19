@@ -333,26 +333,29 @@ function buildLead({
 }
 
 // Demo masking — applied server-side after generation
+// Keeps: name, title, company, score, grade, signal, pain_points, industry, size, score_signals
+// Hides: exact email (blurred), direct LinkedIn /in/ URL, all_email_patterns
 function maskForDemo(leads) {
   return leads.map(l => {
-    let maskedEmail = l.email;
+    // Blur email: s••••••@a••••.com — clearly real but unactionable without upgrade
+    let maskedEmail = null;
     if (l.email) {
       const [local, domain] = l.email.split('@');
-      const ml = local[0] + '••••••';
+      const ml = (local[0] || 's') + '••••••';
       const domParts = domain.split('.');
-      const md = domParts[0][0] + '••••' + '.' + domParts.slice(1).join('.');
+      const md = (domParts[0][0] || 'a') + '••••' + '.' + domParts.slice(1).join('.');
       maskedEmail = `${ml}@${md}`;
     }
     return {
       ...l,
       email:              maskedEmail,
-      email_verified:     false,
-      linkedin:           l.linkedin_is_direct ? null : l.linkedin,
+      email_verified:     l.email_verified, // keep — shows validation worked
+      zb_status:          l.zb_status,      // keep — shows ZeroBounce ran
+      score_signals:      l.score_signals,  // keep — shows scoring quality
+      linkedin:           l.linkedin_is_direct ? null : l.linkedin, // search link OK, /in/ locked
       linkedin_is_direct: false,
       linkedin_validated: false,
-      all_email_patterns: [],
-      zb_status:          null,
-      score_signals:      [],
+      all_email_patterns: [],               // locked behind paywall
       _demo_masked:       true,
     };
   });
@@ -682,8 +685,10 @@ export default async function handler(req, res) {
     //   Demo     — no real keys (AI pattern-only, masked)
     let hunterKey, zbKey;
     if (isDemo) {
-      hunterKey = null;
-      zbKey     = null;
+      // Demo uses platform keys so real Hunter data flows through —
+      // maskForDemo() handles the gate (blurs email, strips LinkedIn direct).
+      hunterKey = PLATFORM_HUNTER;
+      zbKey     = PLATFORM_ZEROBOUNCE || null;
     } else if (plan === 'scale' || plan === 'agency') {
       // Full BYOK — both keys must come from client
       hunterKey = clientHunterKey || null;
