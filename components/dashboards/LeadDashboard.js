@@ -71,7 +71,6 @@ const SCORE_STYLE = (s, grade) => {
 };
 
 const STORAGE_KEY   = 'cabinmind_leads_pipeline_v2';
-const SETTINGS_KEY  = 'cabinmind_leads_settings';
 const STATS_KEY     = 'cabinmind_leads_stats';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -772,7 +771,6 @@ export default function LeadDashboard({ session, isPaid = false }) {
   const [hunterApiKey, setHunterApiKey]         = useState('');
   const [zeroBounceApiKey, setZeroBounceApiKey] = useState('');
   const [byokSaved, setByokSaved]               = useState(false);
-  const [showSettings, setShowSettings]         = useState(false);
   const [plan, setPlan]                         = useState('starter'); // starter | pro | scale | agency
 
   // Restore BYOK keys from localStorage on mount
@@ -825,7 +823,7 @@ export default function LeadDashboard({ session, isPaid = false }) {
   const [tab, setTab] = useState('generate');
   const [savedFilter, setSavedFilter] = useState('All');
   const [showIntegrations, setShowIntegrations] = useState(false);
-  const [showUpgradeWall, setShowUpgradeWall] = useState(false);
+  const [showUpgradeWall, setShowUpgradeWall] = useState(true);
   const [sessionStats, setSessionStats] = useState({ runs: 0, total: 0 });
 
   // ── Restore from localStorage ─────────────────────────────────────────────
@@ -864,6 +862,7 @@ export default function LeadDashboard({ session, isPaid = false }) {
     setError('');
     setLeads([]);
     setLastSources(null);
+    setShowUpgradeWall(true); // reset so wall shows again on next demo run
 
     const chunks = Math.ceil(batchSize / CHUNK_SIZE);
     setBatchProgress({ done: 0, total: chunks, active: true, provider: null, msPerBatch: null });
@@ -1331,6 +1330,10 @@ export default function LeadDashboard({ session, isPaid = false }) {
                     />
                   );
                 })}
+                {/* Demo upgrade wall — shown after 5 leads for unpaid users */}
+                {!isPaid && leads.length >= 5 && !loading && showUpgradeWall && (
+                  <DemoUpgradeWall onDismiss={() => setShowUpgradeWall(false)} />
+                )}
               </div>
             )}
           </motion.div>

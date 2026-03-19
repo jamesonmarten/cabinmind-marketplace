@@ -1,9 +1,9 @@
 {
   "functions": {
     "pages/api/chat.js":     { "maxDuration": 30 },
-    "pages/api/leads.js":    { "maxDuration": 30 },
-    "pages/api/audit.js":    { "maxDuration": 30 },
-    "pages/api/webhook.js":  { "maxDuration": 30 }
+    "pages/api/leads.js":    { "maxDuration": 60 },
+    "pages/api/audit.js":    { "maxDuration": 60 },
+    "pages/api/webhook.js":  { "maxDuration": 60 }
   },
   "headers": [
     {
