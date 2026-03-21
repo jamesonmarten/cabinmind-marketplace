@@ -765,13 +765,13 @@ function IntegrationsModal({ leads, savedLeads, onClose }) {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
-export default function LeadDashboard({ session, isPaid = false }) {
+export default function LeadDashboard({ session, isPaid = false, initialPlan = 'starter' }) {
   // ── BYOK API keys (Pro / Scale / Agency plans) ─────────────────────────────
   const BYOK_KEY = 'cabinmind_byok_keys';
   const [hunterApiKey, setHunterApiKey]         = useState('');
   const [zeroBounceApiKey, setZeroBounceApiKey] = useState('');
   const [byokSaved, setByokSaved]               = useState(false);
-  const [plan, setPlan]                         = useState('starter'); // starter | pro | scale | agency
+  const [plan, setPlan]                         = useState(initialPlan);
 
   // Restore BYOK keys from localStorage on mount
   useEffect(() => {
@@ -781,14 +781,16 @@ export default function LeadDashboard({ session, isPaid = false }) {
         const k = JSON.parse(raw);
         if (k.hunterApiKey)     setHunterApiKey(k.hunterApiKey);
         if (k.zeroBounceApiKey) setZeroBounceApiKey(k.zeroBounceApiKey);
-        if (k.plan)             setPlan(k.plan);
+        // Only restore stored plan if it was explicitly set by the user;
+        // otherwise keep initialPlan passed from the dashboard (more reliable)
+        if (k.plan && k.planSetByUser) setPlan(k.plan);
       }
     } catch {}
   }, []);
 
   const saveByokKeys = () => {
     try {
-      localStorage.setItem(BYOK_KEY, JSON.stringify({ hunterApiKey, zeroBounceApiKey, plan }));
+      localStorage.setItem(BYOK_KEY, JSON.stringify({ hunterApiKey, zeroBounceApiKey, plan, planSetByUser: true }));
     } catch {}
     setByokSaved(true);
     setTimeout(() => setByokSaved(false), 2500);

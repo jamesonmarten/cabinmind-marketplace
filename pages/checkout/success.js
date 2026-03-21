@@ -10,6 +10,10 @@ const AGENT_NAMES = {
   'blog-writer':     'AI Blog Writer',
   'sales-assistant': 'AI Sales Assistant',
   'lead-researcher': 'AI Lead Researcher',
+  'lead-starter':    'AI Lead Researcher — Starter',
+  'lead-pro':        'AI Lead Researcher — Pro',
+  'lead-scale':      'AI Lead Researcher — Scale',
+  'lead-agency':     'AI Lead Researcher — Agency',
 };
 
 const AGENT_ICONS = {
@@ -18,12 +22,32 @@ const AGENT_ICONS = {
   'blog-writer':     '✍️',
   'sales-assistant': '💼',
   'lead-researcher': '🔎',
+  'lead-starter':    '🔎',
+  'lead-pro':        '🔎',
+  'lead-scale':      '🔎',
+  'lead-agency':     '🔎',
 };
 
-const NEXT_STEPS = [
+// Lead Researcher tiers need BYOK next-steps; others use default flow
+const BYOK_TIERS = new Set(['lead-starter','lead-pro','lead-scale','lead-agency','lead-researcher']);
+const BYOK_NOTES = {
+  'lead-starter': 'Platform Hunter.io + ZeroBounce keys are pre-configured — you can start generating leads immediately from your dashboard.',
+  'lead-pro':     'Add your Hunter.io API key in your dashboard under API Keys → your ZeroBounce is covered by the platform.',
+  'lead-scale':   'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys to unlock unlimited generation.',
+  'lead-agency':  'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys. You have 5 seats — invite your team from Settings.',
+  'lead-researcher': 'Platform keys are pre-configured — click your dashboard link to start generating leads.',
+};
+
+const DEFAULT_NEXT_STEPS = [
   { icon: '📧', title: 'Check your email', desc: 'Your welcome email contains a personal dashboard link — bookmark it!' },
   { icon: '🚀', title: 'Open your dashboard', desc: 'Click the link in your email to access your full agent dashboard right now.' },
   { icon: '⚙️', title: 'Configure & go live', desc: 'Follow the in-dashboard setup guide to connect your tools and go live in minutes.' },
+];
+
+const BYOK_NEXT_STEPS = [
+  { icon: '📧', title: 'Check your email', desc: 'Your personal dashboard link is in your welcome email — bookmark it for quick access.' },
+  { icon: '🔑', title: 'Add your API keys', desc: 'Open your dashboard → API Keys tab and paste in your Hunter.io / ZeroBounce keys (see note above).' },
+  { icon: '🔎', title: 'Research your first leads', desc: 'Paste your ICP, hit Research, and get fully-profiled prospects with verified emails in seconds.' },
 ];
 
 export default function CheckoutSuccess() {
@@ -45,6 +69,9 @@ export default function CheckoutSuccess() {
   const agentId   = agent || session?.metadata?.agentId || '';
   const agentName = AGENT_NAMES[agentId] || 'Your Agent';
   const agentIcon = AGENT_ICONS[agentId] || '⚡';
+  const isByok    = BYOK_TIERS.has(agentId);
+  const byokNote  = BYOK_NOTES[agentId] || '';
+  const NEXT_STEPS = isByok ? BYOK_NEXT_STEPS : DEFAULT_NEXT_STEPS;
 
   const customerName  = session?.customer_details?.name  || '';
   const customerEmail = session?.customer_details?.email || '';
@@ -90,6 +117,19 @@ export default function CheckoutSuccess() {
               <div className="text-green-400 text-sm font-medium">Subscription activated</div>
             </div>
           </motion.div>
+
+          {/* BYOK setup note for Lead Researcher tiers */}
+          {isByok && byokNote && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 }}
+              className="mb-5 glass rounded-xl border border-purple-500/30 px-5 py-4 text-left max-w-lg mx-auto"
+            >
+              <div className="text-purple-400 font-semibold text-sm mb-1">🔑 Your API key setup</div>
+              <div className="text-gray-300 text-sm leading-relaxed">{byokNote}</div>
+            </motion.div>
+          )}
 
           {/* Email confirmation notice */}
           {!loading && (

@@ -20,14 +20,23 @@ const DASHBOARDS = {
   'blog-writer':     BlogDashboard,
   'sales-assistant': SalesDashboard,
   'lead-researcher': LeadDashboard,
+  // Lead Researcher BYOK tiers — all use the same dashboard
+  'lead-starter':    LeadDashboard,
+  'lead-pro':        LeadDashboard,
+  'lead-scale':      LeadDashboard,
+  'lead-agency':     LeadDashboard,
 };
 
 const AGENT_META = {
-  receptionist:      { name: 'AI Receptionist',    icon: '🤖', color: 'from-blue-500 to-cyan-400' },
-  'website-audit':   { name: 'AI Website Auditor',  icon: '📈', color: 'from-green-500 to-emerald-400' },
-  'blog-writer':     { name: 'AI Blog Writer',       icon: '✍️', color: 'from-yellow-500 to-orange-400' },
-  'sales-assistant': { name: 'AI Sales Assistant',   icon: '💼', color: 'from-pink-500 to-rose-400' },
-  'lead-researcher': { name: 'AI Lead Researcher',   icon: '🔎', color: 'from-purple-500 to-violet-400' },
+  receptionist:      { name: 'AI Receptionist',             icon: '🤖', color: 'from-blue-500 to-cyan-400'     },
+  'website-audit':   { name: 'AI Website Auditor',           icon: '📈', color: 'from-green-500 to-emerald-400' },
+  'blog-writer':     { name: 'AI Blog Writer',               icon: '✍️',  color: 'from-yellow-500 to-orange-400' },
+  'sales-assistant': { name: 'AI Sales Assistant',           icon: '💼', color: 'from-pink-500 to-rose-400'     },
+  'lead-researcher': { name: 'AI Lead Researcher',           icon: '🔎', color: 'from-purple-500 to-violet-400' },
+  'lead-starter':    { name: 'AI Lead Researcher — Starter', icon: '🔎', color: 'from-purple-500 to-violet-400' },
+  'lead-pro':        { name: 'AI Lead Researcher — Pro',     icon: '🔎', color: 'from-purple-500 to-violet-400' },
+  'lead-scale':      { name: 'AI Lead Researcher — Scale',   icon: '🔎', color: 'from-purple-600 to-fuchsia-500'},
+  'lead-agency':     { name: 'AI Lead Researcher — Agency',  icon: '🔎', color: 'from-violet-600 to-purple-500' },
 };
 
 export default function DashboardPage() {
@@ -104,7 +113,16 @@ export default function DashboardPage() {
       {/* Dashboard content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {DashboardComponent ? (
-          <DashboardComponent session={session} isPaid={true} />
+          <DashboardComponent
+            session={session}
+            isPaid={true}
+            initialPlan={
+              session.agentId === 'lead-pro'    ? 'pro'
+              : session.agentId === 'lead-scale'  ? 'scale'
+              : session.agentId === 'lead-agency' ? 'agency'
+              : 'starter'
+            }
+          />
         ) : (
           <div className="text-center py-24 text-gray-500">Dashboard coming soon.</div>
         )}
