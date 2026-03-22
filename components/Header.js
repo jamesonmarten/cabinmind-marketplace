@@ -17,7 +17,7 @@ export default function Header() {
     { href: '/agents',  label: 'Marketplace'   },
     { href: '/demo',    label: 'Live Demo', accent: true },
     { href: '/pricing', label: 'Pricing'        },
-    { href: '/compare', label: 'vs. Apollo'     },
+    { href: '/compare', label: 'Compare vs Others' },
     { href: '/agents/builder', label: 'Build an Agent' },
   ];
 
