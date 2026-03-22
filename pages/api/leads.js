@@ -29,6 +29,7 @@ import Groq from 'groq-sdk';
 import OpenAI from 'openai';
 import dns from 'dns/promises';
 import { checkUsage, recordUsage, PLAN_LIMITS } from '../../lib/usageStore';
+import { withProtection } from '../../lib/rateLimit';
 
 const groq       = process.env.GROQ_API_KEY        ? new Groq({ apiKey: process.env.GROQ_API_KEY })        : null;
 const openai     = process.env.OPENAI_API_KEY       ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })    : null;
@@ -655,7 +656,7 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
 const PLAN_BATCH_CAPS = { starter: 10, pro: 100, scale: Infinity, agency: Infinity };
 
 // Handler
-export default async function handler(req, res) {
+export default withProtection('leads', async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
@@ -784,4 +785,4 @@ export default async function handler(req, res) {
     console.error('[/api/leads]', err.message);
     return res.status(500).json({ error: 'Lead generation failed. Please try again.' });
   }
-}
+});

@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { withProtection } from '../../lib/rateLimit';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -26,7 +27,7 @@ Tone rules:
 When you've captured name + contact info or they've committed to a demo, end that thread with:
 "Perfect — I've noted everything and sent your details to our team. They'll reach out within the hour. Anything else I can help with today?"`;
 
-export default async function handler(req, res) {
+export default withProtection('chat', async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -50,4 +51,4 @@ export default async function handler(req, res) {
     console.error('OpenAI error:', err);
     return res.status(500).json({ error: 'Failed to get response from AI' });
   }
-}
+});

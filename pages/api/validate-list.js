@@ -24,6 +24,7 @@
  */
 
 import { checkUsage, recordUsage, PLAN_LIMITS } from '../../lib/usageStore';
+import { withProtection } from '../../lib/rateLimit';
 
 const CONCURRENCY = 10;
 const MAX_LEADS   = 500;
@@ -90,7 +91,7 @@ async function pool(tasks, concurrency) {
   return results;
 }
 
-export default async function handler(req, res) {
+export default withProtection('validate-list', async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { leads = [], zeroBounceApiKey, plan = 'starter', subscriptionKey } = req.body || {};
@@ -239,4 +240,4 @@ export default async function handler(req, res) {
       credits_remaining: creditsAfter,
     },
   });
-}
+});

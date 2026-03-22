@@ -7,10 +7,11 @@
  * Customers always get a useful result.
  */
 import OpenAI from 'openai';
+import { withProtection } from '../../lib/rateLimit';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export default async function handler(req, res) {
+export default withProtection('audit', async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   let { url } = req.body;
@@ -57,7 +58,7 @@ export default async function handler(req, res) {
 
   // ── Parse real PSI data ────────────────────────────────────────────────────
   return parsePsiAndRespond(psiData, url, res);
-}
+});
 
 // ── Shared fix/impact hint maps ─────────────────────────────────────────────
 const FIX_HINTS = {

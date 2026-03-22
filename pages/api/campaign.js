@@ -28,6 +28,7 @@
 
 import Groq from 'groq-sdk';
 import OpenAI from 'openai';
+import { withProtection } from '../../lib/rateLimit';
 
 const groqClient  = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -141,7 +142,7 @@ function parseSequence(raw) {
   });
 }
 
-export default async function handler(req, res) {
+export default withProtection('campaign', async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { lead, senderName, senderCompany, productDesc } = req.body || {};
@@ -178,4 +179,4 @@ export default async function handler(req, res) {
       detail: openaiErr.message,
     });
   }
-}
+});
