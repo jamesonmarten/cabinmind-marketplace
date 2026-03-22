@@ -106,6 +106,33 @@ function downloadCSV(leads, filename) {
   a.click();
 }
 
+// Instantly.ai-compatible CSV export
+// Columns: First Name, Last Name, Email, Company, Website, Phone, Personalization
+function buildInstantlyCSV(leads) {
+  const headers = ['First Name','Last Name','Email','Company','Website','Phone','Title','ICP Score','Personalization'];
+  const rows = leads.map(l => {
+    const parts = (l.name || '').trim().split(/\s+/);
+    const first = parts[0] || '';
+    const last  = parts.slice(1).join(' ') || '';
+    // Auto-personalisation line drawn from score signals + pain points
+    const signals = (l.score_signals || []).slice(0, 2).map(s => s.replace(/\s*\([^)]*\)/g, '')).join(', ');
+    const pain    = l.pain_points ? l.pain_points.slice(0, 80) : '';
+    const personalisation = [signals, pain].filter(Boolean).join(' · ').slice(0, 120);
+    return [first, last, l.email || '', l.company || '', l.domain ? `https://${l.domain}` : '', l.phone || '', l.title || '', l.score || '', personalisation];
+  });
+  return [headers, ...rows]
+    .map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+}
+
+function downloadInstantlyCSV(leads) {
+  const blob = new Blob([buildInstantlyCSV(leads)], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `instantly-import-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+}
+
 function openInSheets(leads) {
   // Build a Google Sheets importdata-compatible CSV data URI
   // Easiest cross-browser approach: download CSV then instruct user,
@@ -763,6 +790,444 @@ function IntegrationsModal({ leads, savedLeads, onClose }) {
   );
 }
 
+// ─── Campaign Tab ─────────────────────────────────────────────────────────────
+// ZeroBounce list validation + AI sequence generation + Instantly.ai export
+
+function CampaignTab({ leads, savedLeads, zeroBounceApiKey: zbKeyProp, isPaid }) {
+  const leadsPool = savedLeads.length > 0 ? savedLeads : leads;
+
+  // Validation state
+  const [validating, setValidating]     = useState(false);
+  const [validateResult, setValidateResult] = useState(null); // { valid, warnings, rejected, stats }
+  const [validateError, setValidateError]   = useState('');
+  const [zbKey, setZbKey]               = useState(zbKeyProp || '');
+
+  // Sequence generation state
+  const [genLead, setGenLead]           = useState(null);   // lead being sequenced
+  const [generating, setGenerating]     = useState(false);
+  const [sequence, setSequence]         = useState(null);   // [{step,subject,body,day,label}]
+  const [genError, setGenError]         = useState('');
+  const [activeStep, setActiveStep]     = useState(0);
+  const [senderName, setSenderName]     = useState('');
+  const [senderCompany, setSenderCompany] = useState('');
+  const [productDesc, setProductDesc]   = useState('');
+  const [copiedField, setCopiedField]   = useState(null);
+
+  // Which sub-tab
+  const [campaignTab, setCampaignTab]   = useState('validate'); // 'validate' | 'sequence' | 'export'
+
+  const inputCls = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50';
+
+  // ── ZeroBounce validation ────────────────────────────────────────────────
+  const runValidation = async () => {
+    if (!leadsPool.length) return;
+    const key = zbKey || zbKeyProp;
+    setValidating(true);
+    setValidateError('');
+    setValidateResult(null);
+    try {
+      const r = await fetch('/api/validate-list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leads: leadsPool, zeroBounceApiKey: key || undefined }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setValidateError(d.error || 'Validation failed'); return; }
+      setValidateResult(d);
+    } catch (e) { setValidateError(e.message); }
+    finally { setValidating(false); }
+  };
+
+  // ── AI sequence generation ───────────────────────────────────────────────
+  const generateSequence = async (lead) => {
+    setGenLead(lead);
+    setGenerating(true);
+    setGenError('');
+    setSequence(null);
+    setActiveStep(0);
+    setCampaignTab('sequence');
+    try {
+      const r = await fetch('/api/campaign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lead, senderName, senderCompany, productDesc }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setGenError(d.error || 'Generation failed'); return; }
+      setSequence(d.sequence);
+    } catch (e) { setGenError(e.message); }
+    finally { setGenerating(false); }
+  };
+
+  const copyField = (text, key) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(key);
+    setTimeout(() => setCopiedField(null), 1500);
+  };
+
+  const exportList = (list, name) => {
+    const blob = new Blob([buildInstantlyCSV(list)], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${name}-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  };
+
+  return (
+    <motion.div key="campaign" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
+
+      {/* Header */}
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+          <div>
+            <h2 className="text-white font-bold text-lg">📣 Campaign Builder</h2>
+            <p className="text-gray-400 text-sm mt-0.5">
+              Validate emails with ZeroBounce → generate AI sequences → export to Instantly.ai
+            </p>
+          </div>
+          <div className="text-xs text-gray-500 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+            {leadsPool.length} leads in pool ({savedLeads.length > 0 ? 'pipeline' : 'current results'})
+          </div>
+        </div>
+
+        {/* Sub-tabs */}
+        <div className="flex gap-1 bg-white/5 border border-white/10 rounded-xl p-1">
+          {[
+            { id: 'validate', label: '🛡️ Validate Emails' },
+            { id: 'sequence', label: '✉️ AI Sequences'    },
+            { id: 'export',   label: '🚀 Export'          },
+          ].map(t => (
+            <button key={t.id} onClick={() => setCampaignTab(t.id)}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${campaignTab === t.id ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Validate tab ── */}
+      {campaignTab === 'validate' && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+          <div>
+            <h3 className="text-white font-semibold mb-1">ZeroBounce Email Validation</h3>
+            <p className="text-gray-400 text-xs leading-relaxed">
+              Runs every email in your lead pool through ZeroBounce before sending.
+              Removes spam traps, hard bounces, and disposables — protecting your sender reputation.
+            </p>
+          </div>
+
+          {/* Key input — only show if no key saved */}
+          {!zbKeyProp && (
+            <div>
+              <label className="text-gray-400 text-xs block mb-1.5">
+                ZeroBounce API key <span className="text-gray-600">(or add it under API Keys tab)</span>
+              </label>
+              <input value={zbKey} onChange={e => setZbKey(e.target.value)}
+                placeholder="your ZeroBounce API key" className={inputCls} />
+              <p className="text-gray-600 text-xs mt-1">
+                Free: 100 credits/mo · $16 = 2,000 · $25/mo = 5,000 ·{' '}
+                <a href="https://www.zerobounce.net/members/dashboard" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">zerobounce.net →</a>
+              </p>
+            </div>
+          )}
+
+          <button onClick={runValidation} disabled={validating || leadsPool.length === 0}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all disabled:opacity-40 flex items-center justify-center gap-2">
+            {validating
+              ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Validating {leadsPool.length} emails…</>
+              : `🛡️ Validate ${leadsPool.length} Emails with ZeroBounce`}
+          </button>
+
+          {validateError && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-300 text-sm">{validateError}</div>
+          )}
+
+          {validateResult && (
+            <div className="space-y-3">
+              {/* Stats row */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: '✅ Valid', val: validateResult.stats.valid,    cls: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
+                  { label: '⚠️ Catch-all', val: validateResult.stats.warnings, cls: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
+                  { label: '❌ Rejected', val: validateResult.stats.rejected, cls: 'text-red-400',   bg: 'bg-red-500/10 border-red-500/20' },
+                ].map(s => (
+                  <div key={s.label} className={`border rounded-xl p-3 text-center ${s.bg}`}>
+                    <div className={`text-2xl font-bold ${s.cls}`}>{s.val}</div>
+                    <div className="text-gray-400 text-xs mt-0.5">{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {validateResult.stats.credits_remaining !== null && (
+                <p className="text-gray-600 text-xs text-right">
+                  ZeroBounce credits remaining: {validateResult.stats.credits_remaining}
+                </p>
+              )}
+
+              {/* Deliverability score */}
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-gray-400 text-xs">List deliverability</span>
+                  <span className="text-white font-bold">
+                    {Math.round(((validateResult.stats.valid + validateResult.stats.warnings) / validateResult.stats.total) * 100)}%
+                  </span>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-green-500 to-emerald-400"
+                    style={{ width: `${Math.round((validateResult.stats.valid / validateResult.stats.total) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-gray-500 text-xs mt-2">
+                  {validateResult.stats.rejected} emails removed — safe to send to the remaining {validateResult.stats.valid + validateResult.stats.warnings}
+                </p>
+              </div>
+
+              {/* Rejected list */}
+              {validateResult.rejected.length > 0 && (
+                <details className="bg-red-500/5 border border-red-500/20 rounded-xl p-3">
+                  <summary className="text-red-400 text-xs font-medium cursor-pointer">
+                    ❌ {validateResult.rejected.length} rejected emails (click to expand)
+                  </summary>
+                  <div className="mt-3 space-y-1.5">
+                    {validateResult.rejected.map((l, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-300">{l.email}</span>
+                        <span className="text-red-400 font-mono">{l._vz_reason}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              )}
+
+              {/* Generate sequences from valid leads */}
+              <div className="pt-2 border-t border-white/10">
+                <p className="text-gray-400 text-xs mb-3">
+                  Ready to write sequences for your {validateResult.valid.length} clean leads?
+                </p>
+                <button onClick={() => setCampaignTab('sequence')}
+                  className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm font-semibold hover:bg-white/10 transition-all">
+                  ✉️ Write AI Sequences →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Sequence tab ── */}
+      {campaignTab === 'sequence' && (
+        <div className="space-y-4">
+          {/* Sender info */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
+            <h3 className="text-white font-semibold">Your sender details</h3>
+            <p className="text-gray-400 text-xs">Used to personalise every email — appears as the "from" voice.</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-gray-400 text-xs block mb-1.5">Your name</label>
+                <input value={senderName} onChange={e => setSenderName(e.target.value)}
+                  placeholder="e.g. Jameson" className={inputCls} />
+              </div>
+              <div>
+                <label className="text-gray-400 text-xs block mb-1.5">Your company</label>
+                <input value={senderCompany} onChange={e => setSenderCompany(e.target.value)}
+                  placeholder="e.g. Dev Cabin Technologies" className={inputCls} />
+              </div>
+            </div>
+            <div>
+              <label className="text-gray-400 text-xs block mb-1.5">What you're offering (1–2 sentences)</label>
+              <textarea value={productDesc} onChange={e => setProductDesc(e.target.value)} rows={2}
+                placeholder="e.g. AI agents that automate lead research, website audits, and customer chat — saving sales teams 10+ hours a week"
+                className={inputCls + ' resize-none'} />
+            </div>
+          </div>
+
+          {/* Lead picker — valid leads from validation, or full pool */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3">
+            <h3 className="text-white font-semibold">Pick a lead to sequence</h3>
+            <p className="text-gray-400 text-xs">
+              Select any lead — the AI writes a 4-step sequence personalised from their pain points, buying signals, and ICP match.
+            </p>
+            <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {(validateResult?.valid ?? leadsPool).filter(l => l.email).map((lead, i) => {
+                const isSelected = genLead?.name === lead.name && genLead?.company === lead.company;
+                const style = SCORE_STYLE(lead.score || 0, lead.grade);
+                return (
+                  <div key={i}
+                    onClick={() => generateSequence(lead)}
+                    className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isSelected ? 'border-purple-500/50 bg-purple-500/10' : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10'}`}>
+                    <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarGradient(lead.score || 0)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                      {lead.grade || 'B'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white text-sm font-medium truncate">{lead.name}</div>
+                      <div className="text-gray-400 text-xs truncate">{lead.title} · {lead.company}</div>
+                    </div>
+                    <div className="text-gray-500 text-xs flex-shrink-0">{lead.email?.slice(0,20)}…</div>
+                    {isSelected && generating && (
+                      <span className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                    )}
+                  </div>
+                );
+              })}
+              {(validateResult?.valid ?? leadsPool).filter(l => l.email).length === 0 && (
+                <p className="text-gray-500 text-sm text-center py-4">No leads with emails available. Run validation first or generate leads.</p>
+              )}
+            </div>
+          </div>
+
+          {genError && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-300 text-sm">{genError}</div>
+          )}
+
+          {/* Generated sequence */}
+          {sequence && genLead && (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-white font-semibold">4-Step Sequence — {genLead.name}</h3>
+                  <p className="text-gray-500 text-xs">{genLead.title} · {genLead.company}</p>
+                </div>
+                <button
+                  onClick={() => {
+                    const text = sequence.map(s => `--- ${s.label} ---\nSubject: ${s.subject}\n\n${s.body}`).join('\n\n');
+                    navigator.clipboard.writeText(text);
+                    setCopiedField('all');
+                    setTimeout(() => setCopiedField(null), 1500);
+                  }}
+                  className="text-xs text-gray-400 hover:text-purple-400 transition-colors px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg">
+                  {copiedField === 'all' ? '✅ Copied' : '📋 Copy all'}
+                </button>
+              </div>
+
+              {/* Step selector */}
+              <div className="flex gap-1.5 flex-wrap">
+                {sequence.map((s, i) => (
+                  <button key={i} onClick={() => setActiveStep(i)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeStep === i ? 'bg-purple-600 text-white' : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white'}`}>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Active step */}
+              {sequence[activeStep] && (
+                <div className="space-y-3">
+                  <div className="bg-black/20 border border-white/10 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-gray-500 text-xs font-medium uppercase tracking-wide">Subject line</label>
+                      <button onClick={() => copyField(sequence[activeStep].subject, 'subj')}
+                        className="text-xs text-gray-500 hover:text-purple-400 transition-colors">
+                        {copiedField === 'subj' ? '✅' : '📋'}
+                      </button>
+                    </div>
+                    <p className="text-white font-semibold">{sequence[activeStep].subject}</p>
+                  </div>
+                  <div className="bg-black/20 border border-white/10 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-gray-500 text-xs font-medium uppercase tracking-wide">Email body</label>
+                      <button onClick={() => copyField(sequence[activeStep].body, 'body')}
+                        className="text-xs text-gray-500 hover:text-purple-400 transition-colors">
+                        {copiedField === 'body' ? '✅' : '📋'}
+                      </button>
+                    </div>
+                    <p className="text-gray-200 text-sm leading-relaxed whitespace-pre-wrap">{sequence[activeStep].body}</p>
+                  </div>
+                  <p className="text-gray-600 text-xs">
+                    💡 Replace <code className="text-purple-400">{'{{FIRST_NAME}}'}</code> with {genLead.name.split(' ')[0]} before sending.
+                  </p>
+                </div>
+              )}
+
+              <button onClick={() => setCampaignTab('export')}
+                className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm font-semibold hover:bg-white/10 transition-all">
+                🚀 Export to Instantly.ai →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Export tab ── */}
+      {campaignTab === 'export' && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+          <div>
+            <h3 className="text-white font-semibold mb-1">🚀 Export to Instantly.ai</h3>
+            <p className="text-gray-400 text-xs leading-relaxed">
+              Download a pre-formatted CSV ready to import directly into Instantly.ai campaigns.
+              Includes First Name, Last Name, Email, Company, Website, Title, ICP Score, and a personalisation line.
+            </p>
+          </div>
+
+          {/* Instantly setup guide */}
+          <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 space-y-2">
+            <p className="text-blue-300 text-xs font-semibold">📋 Instantly.ai import steps</p>
+            {[
+              'Download the CSV below',
+              'Go to Instantly.ai → Campaigns → New Campaign',
+              'Add Leads → Import CSV → map columns (First Name, Last Name, Email, Company, Personalization)',
+              'Paste your email sequences from the AI Sequences tab into each step',
+              'Enable sending warmup and launch 🚀',
+            ].map((step, i) => (
+              <div key={i} className="flex gap-2 text-xs text-gray-400">
+                <span className="text-blue-400 font-bold flex-shrink-0">{i + 1}.</span>
+                <span>{step}</span>
+              </div>
+            ))}
+            <a href="https://instantly.ai" target="_blank" rel="noopener noreferrer"
+              className="inline-block mt-2 text-xs text-blue-400 hover:underline">
+              Sign up at instantly.ai ($37/mo) →
+            </a>
+          </div>
+
+          {/* Export buttons */}
+          <div className="space-y-3">
+            {validateResult && (
+              <button onClick={() => exportList(validateResult.valid, 'instantly-validated')}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all">
+                ✅ Download {validateResult.valid.length} ZeroBounce-Validated Leads (Recommended)
+              </button>
+            )}
+            <button onClick={() => exportList(leadsPool, 'instantly-all-leads')}
+              className={`w-full py-3 rounded-xl font-bold text-sm transition-all ${validateResult ? 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10' : 'bg-gradient-to-r from-purple-600 to-violet-500 text-white hover:opacity-90'}`}>
+              ⬇️ Download All {leadsPool.length} Leads (Instantly CSV)
+            </button>
+          </div>
+
+          {/* Domain warning */}
+          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
+            <p className="text-amber-300 text-xs font-semibold mb-1">⚠️ Use a separate sending domain</p>
+            <p className="text-gray-400 text-xs leading-relaxed">
+              Never send cold email from your main domain (e.g. devcabin.tech).
+              Register a variant like <code className="text-amber-300">trycabinmind.com</code> or <code className="text-amber-300">devcabin.io</code>,
+              warm it up for 2–3 weeks in Instantly.ai, then launch campaigns.
+              This protects your transactional email deliverability.
+            </p>
+          </div>
+
+          {/* Warmup timeline */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+            <p className="text-gray-300 text-xs font-semibold mb-3">📅 Recommended warmup timeline</p>
+            <div className="space-y-2">
+              {[
+                { week: 'Week 1–2', vol: '10–20/day', note: 'Auto-warmup only — no campaigns yet' },
+                { week: 'Week 3–4', vol: '30–50/day', note: 'Start with your highest-grade A leads' },
+                { week: 'Week 5+',  vol: '100+/day',  note: 'Full campaign volume, B/C leads included' },
+              ].map((w, i) => (
+                <div key={i} className="flex items-center gap-3 text-xs">
+                  <span className="text-purple-400 font-medium w-20 flex-shrink-0">{w.week}</span>
+                  <span className="text-white font-bold w-20 flex-shrink-0">{w.vol}</span>
+                  <span className="text-gray-500">{w.note}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function LeadDashboard({ session, isPaid = false, initialPlan = 'starter' }) {
@@ -1057,8 +1522,9 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex gap-1.5 bg-white/5 border border-white/10 rounded-xl p-1">
           {[
-            { id: 'generate', label: '🔎 Research' },
-            { id: 'pipeline', label: `🗂️ Pipeline (${savedLeads.length})` },
+            { id: 'generate',  label: '🔎 Research' },
+            { id: 'pipeline',  label: `🗂️ Pipeline (${savedLeads.length})` },
+            { id: 'campaign',  label: '📣 Campaign' },
             ...(isPaid ? [{ id: 'settings', label: '🔑 API Keys' }] : []),
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
@@ -1407,6 +1873,16 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
               </>
             )}
           </motion.div>
+        )}
+
+        {/* ── Campaign tab ── */}
+        {tab === 'campaign' && (
+          <CampaignTab
+            leads={leads}
+            savedLeads={savedLeads}
+            zeroBounceApiKey={zeroBounceApiKey}
+            isPaid={isPaid}
+          />
         )}
 
         {/* ── API Keys / Settings tab (paid only) ── */}
