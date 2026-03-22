@@ -786,6 +786,12 @@ export default function PricingPage() {
               🔎 Try Free Demo →
             </Link>
             <Link
+              href="/compare"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl glass border border-white/15 text-white font-bold text-lg hover:border-brand-400/40 transition-all"
+            >
+              vs. Apollo & Others →
+            </Link>
+            <Link
               href="/agents"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl glass border border-white/15 text-white font-bold text-lg hover:border-brand-400/40 transition-all"
             >
