@@ -793,7 +793,7 @@ function IntegrationsModal({ leads, savedLeads, onClose }) {
 // ─── Campaign Tab ─────────────────────────────────────────────────────────────
 // ZeroBounce list validation + AI sequence generation + Instantly.ai export
 
-function CampaignTab({ leads, savedLeads, zeroBounceApiKey: zbKeyProp, isPaid }) {
+function CampaignTab({ leads, savedLeads, zeroBounceApiKey: zbKeyProp, isPaid, plan = 'starter', session }) {
   const leadsPool = savedLeads.length > 0 ? savedLeads : leads;
 
   // Validation state
@@ -829,7 +829,12 @@ function CampaignTab({ leads, savedLeads, zeroBounceApiKey: zbKeyProp, isPaid })
       const r = await fetch('/api/validate-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leads: leadsPool, zeroBounceApiKey: key || undefined }),
+        body: JSON.stringify({
+          leads: leadsPool,
+          zeroBounceApiKey: key || undefined,
+          plan,
+          subscriptionKey: session?.sessionId || `plan-${plan}`,
+        }),
       });
       const d = await r.json();
       if (!r.ok) { setValidateError(d.error || 'Validation failed'); return; }
@@ -1361,6 +1366,7 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
             plan,
             hunterApiKey:     hunterApiKey     || undefined,
             zeroBounceApiKey: zeroBounceApiKey || undefined,
+            subscriptionKey:  session?.sessionId || `plan-${plan}`,
           }),
         });
         const ct = r.headers.get('content-type') || '';
@@ -1882,6 +1888,8 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
             savedLeads={savedLeads}
             zeroBounceApiKey={zeroBounceApiKey}
             isPaid={isPaid}
+            plan={plan}
+            session={session}
           />
         )}
 

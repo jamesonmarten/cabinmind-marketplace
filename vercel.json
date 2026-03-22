@@ -1,10 +1,18 @@
 {
   "functions": {
-    "pages/api/chat.js":     { "maxDuration": 30 },
-    "pages/api/leads.js":    { "maxDuration": 60 },
-    "pages/api/audit.js":    { "maxDuration": 60 },
-    "pages/api/webhook.js":  { "maxDuration": 60 }
+    "pages/api/chat.js":                  { "maxDuration": 30 },
+    "pages/api/leads.js":                 { "maxDuration": 60 },
+    "pages/api/audit.js":                 { "maxDuration": 60 },
+    "pages/api/webhook.js":               { "maxDuration": 60 },
+    "pages/api/admin/clients.js":         { "maxDuration": 30 },
+    "pages/api/admin/weekly-report.js":   { "maxDuration": 30 }
   },
+  "crons": [
+    {
+      "path": "/api/admin/weekly-report",
+      "schedule": "0 9 * * 1"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",

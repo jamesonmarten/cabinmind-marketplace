@@ -45,10 +45,10 @@ export default function Header() {
           <span className="hidden sm:flex items-center gap-1.5">
             <span className="text-gray-500 text-[10px] uppercase tracking-widest leading-none">made by</span>
             <Image
-              src="/devcabin-logo.png"
+              src="/dev-cabin-logo.jpg"
               alt="Dev Cabin Technologies"
-              width={22}
-              height={22}
+              width={30}
+              height={30}
               className="rounded-sm opacity-90 group-hover:opacity-100 transition-opacity"
             />
             <span className="text-gray-400 text-xs font-medium leading-none hidden lg:inline">
