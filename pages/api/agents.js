@@ -45,8 +45,8 @@ export default function handler(req, res) {
       name: 'AI Lead Researcher',
       description: 'Discovers and qualifies prospects, validates emails, generates AI cold email sequences, and exports ready-to-send campaigns to Instantly.ai.',
       category: 'Sales',
-      price: 49,
-      priceLabel: 'from $49/mo',
+      price: 97,
+      priceLabel: 'from $97/mo',
       features: [
         'Prospect discovery',
         'A–D ICP scoring on 8 signals',

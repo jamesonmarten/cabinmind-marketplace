@@ -11,11 +11,11 @@ const AGENT_PRICES = {
   'receptionist':    { name: 'AI Receptionist',              amount: 7900  }, // $79/mo
   'sales-assistant': { name: 'AI Sales Assistant',           amount: 9900  }, // $99/mo
   // Lead Researcher — BYOK tiered plans
-  'lead-researcher': { name: 'AI Lead Researcher — Starter', amount: 4900  }, // $49/mo legacy redirect → Starter
-  'lead-starter':    { name: 'AI Lead Researcher — Starter', amount: 4900  }, // $49/mo  · platform keys · 100 leads
-  'lead-pro':        { name: 'AI Lead Researcher — Pro',     amount: 14900 }, // $149/mo · client Hunter key · 500 leads
-  'lead-scale':      { name: 'AI Lead Researcher — Scale',   amount: 29900 }, // $299/mo · full BYOK · unlimited
-  'lead-agency':     { name: 'AI Lead Researcher — Agency',  amount: 59900 }, // $599/mo · BYOK · 5 seats · white-label
+  'lead-researcher': { name: 'AI Lead Researcher — Starter', amount: 9700  }, // $97/mo  legacy redirect → Starter
+  'lead-starter':    { name: 'AI Lead Researcher — Starter', amount: 9700  }, // $97/mo  · platform keys · 100 leads
+  'lead-pro':        { name: 'AI Lead Researcher — Pro',     amount: 24700 }, // $247/mo · client Hunter key · 500 leads
+  'lead-scale':      { name: 'AI Lead Researcher — Scale',   amount: 49700 }, // $497/mo · full BYOK · unlimited
+  'lead-agency':     { name: 'AI Lead Researcher — Agency',  amount: 99700 }, // $997/mo · BYOK · 5 seats · white-label
 };
 
 export default async function handler(req, res) {
