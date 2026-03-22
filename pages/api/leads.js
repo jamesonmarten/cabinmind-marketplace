@@ -28,6 +28,7 @@
 import Groq from 'groq-sdk';
 import OpenAI from 'openai';
 import dns from 'dns/promises';
+import { checkUsage, recordUsage, PLAN_LIMITS } from '../../lib/usageStore';
 
 const groq       = process.env.GROQ_API_KEY        ? new Groq({ apiKey: process.env.GROQ_API_KEY })        : null;
 const openai     = process.env.OPENAI_API_KEY       ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })    : null;
@@ -678,6 +679,28 @@ export default async function handler(req, res) {
       });
     }
 
+    // ── Monthly quota enforcement ──────────────────────────────────────────
+    // subscriptionKey = session_id from client (passed by dashboard); falls back
+    // to a plan-level shared key for clients that don't send one.
+    // Scale/Agency use BYOK so platform costs are $0 — no cap needed.
+    const subscriptionKey = req.body.subscriptionKey || `plan-${plan}`;
+    const planForLimits   = isDemo ? 'demo' : (plan || 'starter');
+
+    if (planForLimits !== 'scale' && planForLimits !== 'agency') {
+      const batchCheck = checkUsage(subscriptionKey, planForLimits, 'leadBatches', 1);
+      if (!batchCheck.allowed) {
+        const limits = PLAN_LIMITS[planForLimits];
+        return res.status(429).json({
+          error: `Monthly lead limit reached. Your ${planForLimits} plan includes ${limits.leadBatches * 5} leads/month (${limits.leadBatches} batches). Upgrade for more.`,
+          quota: true,
+          used:      batchCheck.used,
+          limit:     batchCheck.limit,
+          remaining: batchCheck.remaining,
+          upgradeUrl: '/pricing',
+        });
+      }
+    }
+
     // Resolve which keys to use based on plan:
     //   Starter  — platform Hunter + platform ZB (both capped to keep your costs low)
     //   Pro      — client Hunter key + platform ZB key (client pays for Hunter)
@@ -723,6 +746,11 @@ export default async function handler(req, res) {
     };
 
     const { leads, meta } = await generateLeads(icp.trim(), filters, parseInt(batchNum) || 1, hunterKey, zbKey);
+
+    // Record successful batch usage (after work completes — failed calls don't count)
+    if (planForLimits !== 'scale' && planForLimits !== 'agency') {
+      recordUsage(subscriptionKey, planForLimits, 'leadBatches', 1);
+    }
 
     const finalLeads = isDemo ? maskForDemo(leads) : leads;
 

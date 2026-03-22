@@ -23,6 +23,8 @@
  *   - 15 second ZeroBounce per-request timeout
  */
 
+import { checkUsage, recordUsage, PLAN_LIMITS } from '../../lib/usageStore';
+
 const CONCURRENCY = 10;
 const MAX_LEADS   = 500;
 const ZB_TIMEOUT  = 15_000; // ms
@@ -91,8 +93,22 @@ async function pool(tasks, concurrency) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { leads = [], zeroBounceApiKey } = req.body || {};
+  const { leads = [], zeroBounceApiKey, plan = 'starter', subscriptionKey } = req.body || {};
+
+  // Determine which ZB key to use:
+  //   Scale/Agency — client MUST supply their own key; platform key not available
+  //   Pro          — platform key included (we cover ZB, client covers Hunter)
+  //   Starter      — platform key included, capped to 100 validations/mo
+  const usingPlatformKey = !zeroBounceApiKey?.trim();
   const apiKey = zeroBounceApiKey?.trim() || process.env.ZEROBOUNCE_API_KEY;
+
+  // Scale/Agency: require BYOK for ZeroBounce (we don't pay for their volume)
+  if ((plan === 'scale' || plan === 'agency') && usingPlatformKey) {
+    return res.status(400).json({
+      error: 'Scale/Agency plan requires your own ZeroBounce API key. Add it in Dashboard → API Keys.',
+      byok: true, missingKey: 'zerobounce',
+    });
+  }
 
   if (!apiKey) {
     return res.status(400).json({
@@ -107,10 +123,27 @@ export default async function handler(req, res) {
   }
 
   const capped = leads.slice(0, MAX_LEADS);
-
-  // Split leads: those that have an email vs. those that don't
   const withEmail    = capped.filter(l => l.email && l.email.includes('@'));
   const withoutEmail = capped.filter(l => !l.email || !l.email.includes('@'));
+
+  // ── Monthly ZB validation quota (platform-key plans only) ─────────────────
+  const subKey       = subscriptionKey || `plan-${plan}`;
+  const planForLimit = plan || 'starter';
+
+  if (usingPlatformKey && planForLimit !== 'scale' && planForLimit !== 'agency') {
+    const check = checkUsage(subKey, planForLimit, 'zbValidations', withEmail.length);
+    if (!check.allowed) {
+      const limits = PLAN_LIMITS[planForLimit];
+      return res.status(429).json({
+        error: `Monthly email validation limit reached. Your ${planForLimit} plan includes ${limits.zbValidations} validations/month. ${check.remaining} remaining this month. Upgrade or add your own ZeroBounce key.`,
+        quota:      true,
+        used:       check.used,
+        limit:      check.limit,
+        remaining:  check.remaining,
+        upgradeUrl: '/pricing',
+      });
+    }
+  }
 
   if (withEmail.length === 0) {
     return res.status(200).json({
@@ -185,6 +218,11 @@ export default async function handler(req, res) {
   // Leads with no email → also rejected
   for (const l of withoutEmail) {
     rejected.push({ ...l, _vz_status: 'no-email', _vz_reason: 'No email address' });
+  }
+
+  // Record platform-key ZB usage (only count emails that actually went to ZeroBounce)
+  if (usingPlatformKey && planForLimit !== 'scale' && planForLimit !== 'agency') {
+    recordUsage(subKey, planForLimit, 'zbValidations', withEmail.length);
   }
 
   const creditsAfter = await checkCredit(apiKey);
