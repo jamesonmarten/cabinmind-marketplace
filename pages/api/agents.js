@@ -43,13 +43,22 @@ export default function handler(req, res) {
     {
       id: 'lead-researcher',
       name: 'AI Lead Researcher',
-      description: 'Discovers and qualifies new prospects with ZeroBounce-verified emails.',
+      description: 'Discovers and qualifies prospects, validates emails, generates AI cold email sequences, and exports ready-to-send campaigns to Instantly.ai.',
       category: 'Sales',
       price: 49,
       priceLabel: 'from $49/mo',
-      features: ['Prospect discovery', 'Lead scoring', 'ZeroBounce email validation', 'LinkedIn profiles'],
-      tools: ['Hunter.io', 'ZeroBounce', 'Groq AI', 'CRM integration'],
-      actions: ['Generate lead list', 'Enrich data', 'Export to CRM']
+      features: [
+        'Prospect discovery',
+        'A–D ICP scoring on 8 signals',
+        'ZeroBounce email validation',
+        'Direct LinkedIn profiles',
+        'Campaign Builder — bulk list validation',
+        'AI 4-step cold email sequences',
+        'Instantly.ai CSV export',
+        'HubSpot / Airtable / CSV export',
+      ],
+      tools: ['Hunter.io', 'ZeroBounce', 'Groq AI', 'OpenAI', 'Instantly.ai (export)', 'HubSpot', 'Airtable'],
+      actions: ['Generate lead list', 'Validate email list', 'Generate email sequence', 'Export to Instantly.ai', 'Push to CRM']
     }
   ];
 
