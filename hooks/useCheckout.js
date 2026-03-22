@@ -1,5 +1,10 @@
 import { useState } from 'react';
 
+/** Read UTM params captured by _app.js on first page load */
+function getStoredUTMs() {
+  try { return JSON.parse(sessionStorage.getItem('cabinmind_utms') || '{}'); } catch { return {}; }
+}
+
 export function useCheckout() {
   // loading is either false or the agentId currently being checked out
   const [loading, setLoading] = useState(false);
@@ -12,7 +17,7 @@ export function useCheckout() {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId }),
+        body: JSON.stringify({ agentId, utms: getStoredUTMs() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Checkout failed');

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { gtmEvent, pixelEvent } from '../_app';
 
 const AGENT_NAMES = {
   receptionist:      'AI Receptionist',
@@ -58,13 +59,48 @@ export default function CheckoutSuccess() {
   const [loading, setLoading]   = useState(true);
 
   // Fetch real session details from Stripe to show customer name & email
+  // and fire conversion events once (guarded by sessionStorage dedup key)
   useEffect(() => {
     if (!router.isReady || !session_id) return;
     fetch(`/api/session?id=${session_id}`)
       .then(r => r.ok ? r.json() : null)
-      .then(data => { setSession(data); setLoading(false); })
+      .then(data => {
+        setSession(data);
+        setLoading(false);
+
+        // ── Fire conversion events once per session_id ──────────────────
+        const dedupKey = `cm_conv_${session_id}`;
+        if (typeof window !== 'undefined' && !sessionStorage.getItem(dedupKey)) {
+          sessionStorage.setItem(dedupKey, '1');
+
+          const agentId   = agent || data?.metadata?.agentId || 'unknown';
+          const amountUSD = data?.amount_total ? data.amount_total / 100 : 49;
+          const email     = data?.customer_details?.email || '';
+
+          // Google Tag Manager → GA4 purchase + Google Ads conversion
+          gtmEvent('purchase', {
+            transaction_id: session_id,
+            value:          amountUSD,
+            currency:       'USD',
+            items: [{
+              item_id:   agentId,
+              item_name: AGENT_NAMES[agentId] || agentId,
+              price:     amountUSD,
+              quantity:  1,
+            }],
+          });
+
+          // Meta Pixel — Purchase event
+          pixelEvent('Purchase', {
+            value:        amountUSD,
+            currency:     'USD',
+            content_ids:  [agentId],
+            content_type: 'product',
+          });
+        }
+      })
       .catch(() => setLoading(false));
-  }, [router.isReady, session_id]);
+  }, [router.isReady, session_id, agent]);
 
   const agentId   = agent || session?.metadata?.agentId || '';
   const agentName = AGENT_NAMES[agentId] || 'Your Agent';

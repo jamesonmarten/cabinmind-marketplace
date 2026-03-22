@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { agentId } = req.body;
+  const { agentId, utms = {} } = req.body;
   const agentPrice = AGENT_PRICES[agentId];
 
   if (!agentPrice) {
@@ -42,6 +42,17 @@ export default async function handler(req, res) {
   const cancelUrl  = `${baseUrl}/agents/${agentId}?cancelled=true`;
   console.log('[checkout] baseUrl:', baseUrl);
   console.log('[checkout] successUrl:', successUrl);
+
+  // Merge agentId + UTM attribution into Stripe session metadata
+  const metadata = {
+    agentId,
+    ...(utms.utm_source   && { utm_source:   String(utms.utm_source).slice(0,500)   }),
+    ...(utms.utm_medium   && { utm_medium:   String(utms.utm_medium).slice(0,500)   }),
+    ...(utms.utm_campaign && { utm_campaign: String(utms.utm_campaign).slice(0,500) }),
+    ...(utms.utm_content  && { utm_content:  String(utms.utm_content).slice(0,500)  }),
+    ...(utms.gclid        && { gclid:        String(utms.gclid).slice(0,500)        }),
+    ...(utms.fbclid       && { fbclid:       String(utms.fbclid).slice(0,500)       }),
+  };
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -62,8 +73,8 @@ export default async function handler(req, res) {
           quantity: 1,
         },
       ],
-      // Pass agentId so the webhook knows which product was purchased
-      metadata: { agentId },
+      // Pass agentId + UTM attribution so the webhook knows which product was purchased
+      metadata,
       success_url: successUrl,
       cancel_url:  cancelUrl,
       allow_promotion_codes: true,
