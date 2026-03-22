@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { gtmEvent, pixelEvent } from '../_app';
+import { gtagEvent, pixelEvent } from '../_app';
 
 const AGENT_NAMES = {
   receptionist:      'AI Receptionist',
@@ -77,8 +77,8 @@ export default function CheckoutSuccess() {
           const amountUSD = data?.amount_total ? data.amount_total / 100 : 49;
           const email     = data?.customer_details?.email || '';
 
-          // Google Tag Manager → GA4 purchase + Google Ads conversion
-          gtmEvent('purchase', {
+          // Google Analytics 4 — purchase event
+          gtagEvent('purchase', {
             transaction_id: session_id,
             value:          amountUSD,
             currency:       'USD',
