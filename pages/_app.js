@@ -4,8 +4,11 @@ import { useRouter } from 'next/router';
 import Script from 'next/script';
 
 // ─── Tracking IDs ────────────────────────────────────────────────────────────
-const GA4_ID     = process.env.NEXT_PUBLIC_GA4_ID     || '';   // G-V2TT0W7L2G
-const META_PIXEL = process.env.NEXT_PUBLIC_META_PIXEL || '';   // optional — add later
+const GA4_ID     = process.env.NEXT_PUBLIC_GA4_ID     || '';
+const META_PIXEL = process.env.NEXT_PUBLIC_META_PIXEL || '';
+
+// True when running with Stripe test keys — drives the banner
+const IS_TEST_MODE = (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').startsWith('pk_test_');
 
 // ─── Helpers (exported so success.js can fire conversion events) ─────────────
 
@@ -64,6 +67,29 @@ export default function App({ Component, pageProps }) {
 
   return (
     <>
+      {/* ── TEST MODE BANNER ── shown whenever pk_test_ key is active ── */}
+      {IS_TEST_MODE && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+          background: '#1a0a00', borderBottom: '1px solid #f59e0b',
+          padding: '6px 16px', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', gap: '12px',
+        }}>
+          <span style={{ fontSize: 14, color: '#fbbf24', fontWeight: 700 }}>
+            🧪 TEST MODE
+          </span>
+          <span style={{ fontSize: 13, color: '#d97706' }}>
+            No real charges. Use card{' '}
+            <code style={{ background: '#292000', padding: '1px 6px', borderRadius: 4, color: '#fde68a', fontFamily: 'monospace' }}>
+              4242 4242 4242 4242
+            </code>
+            {' '}· any future date · any CVC
+          </span>
+        </div>
+      )}
+
+      {/* Push page content down so banner doesn't overlap when in test mode */}
+      {IS_TEST_MODE && <div style={{ height: 37 }} />}
       {/* ── Google Analytics 4 — direct gtag (no GTM needed) ── */}
       {GA4_ID && (
         <>
