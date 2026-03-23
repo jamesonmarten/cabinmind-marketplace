@@ -827,9 +827,127 @@ function MetricsSection() {
   );
 }
 
-function FinalCTASection() {
+function DemoCaptureSection() {
+  const [email, setEmail]     = useState('');
+  const [name,  setName]      = useState('');
+  const [icp,   setIcp]       = useState('');
+  const [state, setState]     = useState('idle'); // idle | loading | done | error
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!email.includes('@')) return;
+    setState('loading');
+    try {
+      await fetch('/api/demo-capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, icp, source: 'demo-page' }),
+      });
+      setState('done');
+    } catch {
+      setState('done'); // still show success — don't block on email failure
+    }
+  };
+
   return (
-    <section className="py-32 px-6 relative overflow-hidden">
+    <section className="py-24 px-6 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-950 via-purple-950/20 to-gray-950" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative max-w-2xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="bg-gradient-to-br from-purple-900/40 to-violet-900/30 border border-purple-500/30 rounded-3xl p-10 text-center relative overflow-hidden"
+        >
+          {/* Glow */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-purple-500/20 rounded-full blur-2xl" />
+          </div>
+
+          <div className="relative z-10">
+            {state === 'done' ? (
+              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="py-4">
+                <div className="text-5xl mb-4">🎉</div>
+                <h3 className="text-white font-black text-2xl mb-2">Check your inbox!</h3>
+                <p className="text-gray-300 text-base leading-relaxed max-w-md mx-auto">
+                  We just sent you a link to run your free lead search — and a breakdown of exactly what CabinMind found.
+                  Usually arrives in under 60 seconds.
+                </p>
+                <p className="text-gray-500 text-sm mt-4">Jameson will personally follow up within a few hours.</p>
+              </motion.div>
+            ) : (
+              <>
+                <div className="text-4xl mb-4">📬</div>
+                <h2 className="text-white font-black text-2xl sm:text-3xl mb-2">
+                  Get 5 free leads for your ICP
+                </h2>
+                <p className="text-gray-400 text-base mb-8 leading-relaxed">
+                  Tell us who you're targeting. We'll run a real search and email you the results —
+                  verified emails, LinkedIn profiles, ICP scores, and a buying signal for each.
+                  <strong className="text-white"> No credit card. No sales call first.</strong>
+                </p>
+
+                <form onSubmit={submit} className="space-y-3 text-left">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-1.5">Your name</label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="First name"
+                        className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/60"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-gray-400 text-xs block mb-1.5">Work email <span className="text-purple-400">*</span></label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder="you@company.com"
+                        required
+                        className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/60"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-gray-400 text-xs block mb-1.5">
+                      Your ICP <span className="text-gray-600">(the more specific, the better the leads)</span>
+                    </label>
+                    <textarea
+                      value={icp}
+                      onChange={e => setIcp(e.target.value)}
+                      rows={2}
+                      placeholder='e.g. "VP of Sales at B2B SaaS companies, 50–200 employees, using HubSpot, scaling outbound in 2026"'
+                      className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/60 resize-none"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={state === 'loading' || !email.includes('@')}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-base hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25"
+                  >
+                    {state === 'loading'
+                      ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Sending…</>
+                      : '🔎 Send Me My 5 Free Leads →'}
+                  </button>
+                </form>
+                <p className="text-gray-600 text-xs mt-3 text-center">
+                  Leads arrive by email in ~2 minutes · No spam · Unsubscribe anytime
+                </p>
+              </>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+function FinalCTASection() {
+  return (    <section className="py-32 px-6 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-purple-950 via-violet-950 to-gray-950" />
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-purple-600/20 rounded-full blur-3xl" />
       <div className="relative max-w-3xl mx-auto text-center">
@@ -880,6 +998,7 @@ export default function DemoPage() {
       <ROISection />
       <OpportunitySection />
       <MetricsSection />
+      <DemoCaptureSection />
       <FinalCTASection />
     </Layout>
   );
