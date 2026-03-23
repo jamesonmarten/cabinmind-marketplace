@@ -361,167 +361,373 @@ function PipelineSection() {
   );
 }
 
-function LiveLeadsSection() {
-  const [expandedIdx, setExpandedIdx] = useState(0);
-  const [visibleCount, setVisibleCount] = useState(0);
+// ─── Lead card shared renderer (used by both static sample + live results) ────
 
+function LeadCard({ lead, i, expandedIdx, setExpandedIdx }) {
+  return (
+    <motion.div key={i} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35, delay: i * 0.07 }}
+      className="bg-gray-900/80 border border-white/10 hover:border-purple-500/40 rounded-2xl overflow-hidden transition-all cursor-pointer group"
+      onClick={() => setExpandedIdx(expandedIdx === i ? null : i)}>
+
+      {/* Collapsed row */}
+      <div className="p-4 flex items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-violet-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-lg">
+          {(lead.name || '?').split(' ').map(p => p[0]).join('').slice(0, 2)}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-white font-bold">{lead.name}</span>
+            {lead.linkedin_is_direct && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 font-medium">✅ Direct LinkedIn</span>
+            )}
+            {(lead.zb_status === 'valid' || lead.email_status === 'valid') && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 font-medium">🛡️ ZB Verified</span>
+            )}
+          </div>
+          <div className="text-gray-400 text-sm truncate">{lead.title} · {lead.company}</div>
+          {lead.signal && (
+            <div className="text-xs text-amber-300/70 bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5 inline-block mt-1 truncate max-w-xs">
+              🔥 {lead.signal}
+            </div>
+          )}
+        </div>
+        <div className={`flex-shrink-0 text-center px-4 py-2 rounded-xl border font-bold ${scoreBg(lead.score || 0)}`}>
+          <div className={`text-xl font-black ${scoreColor(lead.score || 0)}`}>{lead.score || '—'}</div>
+          <div className={`text-xs ${scoreColor(lead.score || 0)}`}>{lead.grade || '—'} · {lead.grade_label || 'Scored'}</div>
+        </div>
+        <div className="text-gray-600 text-sm group-hover:text-gray-400 transition-colors flex-shrink-0">
+          {expandedIdx === i ? '▲' : '▼'}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {expandedIdx === i && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+            className="border-t border-white/8">
+            <div className="p-5 grid sm:grid-cols-2 gap-5">
+              <div className="space-y-3">
+                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Contact Data</div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 bg-black/20 rounded-xl px-3 py-2.5">
+                    <span className="text-green-400 text-sm">✉️</span>
+                    <div>
+                      <div className="text-xs text-gray-500">Email {(lead.zb_status === 'valid' || lead.email_status === 'valid') ? '(ZeroBounce verified)' : ''}</div>
+                      <div className="text-gray-200 text-sm font-mono">{lead.email || 'Not found'}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 bg-black/20 rounded-xl px-3 py-2.5">
+                    <span className="text-blue-400 text-sm">🔗</span>
+                    <div>
+                      <div className="text-xs text-gray-500">LinkedIn{lead.linkedin_is_direct ? ' (direct /in/ URL)' : ' (People Search)'}</div>
+                      <div className={`text-sm font-medium ${lead.linkedin_is_direct ? 'text-green-400' : 'text-blue-400'}`}>
+                        {lead.linkedin_is_direct ? '✅ Direct profile link' : '🔍 People Search link'}
+                      </div>
+                    </div>
+                  </div>
+                  {lead.budget_range && (
+                    <div className="flex items-center gap-3 bg-black/20 rounded-xl px-3 py-2.5">
+                      <span className="text-purple-400 text-sm">💰</span>
+                      <div>
+                        <div className="text-xs text-gray-500">Estimated budget</div>
+                        <div className="text-gray-200 text-sm">{lead.budget_range}</div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 bg-black/20 rounded-xl px-3 py-2.5">
+                    <span className="text-gray-400 text-sm">🏢</span>
+                    <div>
+                      <div className="text-xs text-gray-500">Company · Industry · Size</div>
+                      <div className="text-gray-200 text-sm">{lead.company}{lead.industry ? ` · ${lead.industry}` : ''}{lead.size ? ` · ${lead.size}` : ''}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Score Breakdown</div>
+                {lead.score_signals?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {lead.score_signals.map((sig, j) => (
+                      <span key={j} className="text-xs px-2 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-300 font-medium">↑ {sig}</span>
+                    ))}
+                  </div>
+                )}
+                {lead.signal && (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mt-2">
+                    <div className="text-xs text-amber-400 font-semibold mb-1">⚡ Why reach out now</div>
+                    <div className="text-amber-200/80 text-xs leading-relaxed">{lead.signal}</div>
+                  </div>
+                )}
+                {lead.pain_points && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                    <div className="text-xs text-red-400 font-semibold mb-1">😤 Pain points</div>
+                    <div className="text-red-200/70 text-xs">{lead.pain_points}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+// ─── Live Leads Section ───────────────────────────────────────────────────────
+
+const EXAMPLE_ICPS = [
+  'VP of Sales at B2B SaaS, 50–200 employees, using HubSpot, scaling outbound',
+  'Head of Marketing at e-commerce brands, 10–50M revenue, Shopify-based',
+  'CTO at FinTech startups, Series A–B, building compliance infrastructure',
+  'Director of RevOps at PLG SaaS companies, 100–500 employees',
+];
+
+function LiveLeadsSection() {
+  const [icp, setIcp]               = useState('');
+  const [leads, setLeads]           = useState([]);
+  const [status, setStatus]         = useState('idle'); // idle | loading | done | error
+  const [errorMsg, setErrorMsg]     = useState('');
+  const [expandedIdx, setExpandedIdx] = useState(0);
+  const [elapsedMs, setElapsedMs]   = useState(null);
+  const [showSample, setShowSample] = useState(true); // show sample until first real run
+  const [sampleVisible, setSampleVisible] = useState(0);
+  const timerRef = useRef(null);
+  const resultsRef = useRef(null);
+
+  // Animate sample leads in on mount
   useEffect(() => {
     let i = 0;
     const iv = setInterval(() => {
       i++;
-      setVisibleCount(i);
+      setSampleVisible(i);
       if (i >= SAMPLE_LEADS.length) clearInterval(iv);
     }, 320);
     return () => clearInterval(iv);
   }, []);
 
+  const runSearch = async () => {
+    if (!icp.trim() || status === 'loading') return;
+    setStatus('loading');
+    setShowSample(false);
+    setLeads([]);
+    setErrorMsg('');
+    setExpandedIdx(null);
+    setElapsedMs(null);
+
+    const t0 = Date.now();
+    // Tick timer for live elapsed display
+    timerRef.current = setInterval(() => setElapsedMs(Date.now() - t0), 80);
+
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ icp: icp.trim(), limit: 5, demo: true }),
+      });
+      clearInterval(timerRef.current);
+      setElapsedMs(Date.now() - t0);
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const result = data.leads || data.results || data || [];
+      setLeads(Array.isArray(result) ? result : []);
+      setStatus('done');
+      setExpandedIdx(0);
+      // Scroll to results smoothly
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    } catch (err) {
+      clearInterval(timerRef.current);
+      setErrorMsg(err.message);
+      setStatus('error');
+    }
+  };
+
+  const displayLeads = showSample ? SAMPLE_LEADS.slice(0, sampleVisible) : leads;
+
+  // Derived stats from live leads
+  const liveStats = leads.length > 0 ? {
+    total: leads.length,
+    zbVerified: leads.filter(l => l.zb_status === 'valid' || l.email_status === 'valid').length,
+    directLinkedIn: leads.filter(l => l.linkedin_is_direct).length,
+    avgScore: Math.round(leads.reduce((s, l) => s + (l.score || 0), 0) / leads.length),
+  } : null;
+
   return (
     <section id="live-demo" className="py-24 px-6 bg-gray-900/40">
       <div className="max-w-5xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="text-center mb-12">
-          <div className="text-purple-400 text-sm font-semibold uppercase tracking-widest mb-3">Sample Output</div>
-          <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">Real leads. Real data.</h2>
+          className="text-center mb-10">
+          <div className="text-purple-400 text-sm font-semibold uppercase tracking-widest mb-3">Live Demo</div>
+          <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">Try it now — your ICP, real leads.</h2>
           <p className="text-gray-400 text-lg max-w-xl mx-auto">
-            These leads were generated in 2.5 seconds using our live pipeline. Every email is ZeroBounce-verified.
+            Type your ideal customer profile below and hit Run. Our live pipeline will return 5 real, scored, ZeroBounce-verified leads in under 3 seconds.
           </p>
         </motion.div>
 
-        {/* Stats bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-          {[
-            { label: 'Leads generated', val: '5', icon: '🔎' },
-            { label: 'ZeroBounce verified', val: '5/5', icon: '🛡️' },
-            { label: 'Direct LinkedIn', val: '4/5', icon: '🔗' },
-            { label: 'Avg score', val: '96 / A', icon: '📊' },
-          ].map((s, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
-              className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
-              <div className="text-xl mb-1">{s.icon}</div>
-              <div className="text-white font-bold text-lg">{s.val}</div>
-              <div className="text-gray-500 text-xs">{s.label}</div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Lead cards */}
-        <div className="space-y-3">
-          {SAMPLE_LEADS.slice(0, visibleCount).map((lead, i) => (
-            <motion.div key={i} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.35 }}
-              className="bg-gray-900/80 border border-white/10 hover:border-purple-500/40 rounded-2xl overflow-hidden transition-all cursor-pointer group"
-              onClick={() => setExpandedIdx(expandedIdx === i ? null : i)}>
-
-              {/* Collapsed row */}
-              <div className="p-4 flex items-center gap-4">
-                {/* Avatar */}
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-violet-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-lg">
-                  {lead.name.split(' ').map(p => p[0]).join('')}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-white font-bold">{lead.name}</span>
-                    {lead.linkedin_is_direct && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 font-medium">✅ Direct LinkedIn</span>
-                    )}
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 font-medium">🛡️ ZB Verified</span>
-                  </div>
-                  <div className="text-gray-400 text-sm truncate">{lead.title} · {lead.company}</div>
-                  <div className="text-xs text-amber-300/70 bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5 inline-block mt-1 truncate max-w-xs">
-                    🔥 {lead.signal}
-                  </div>
-                </div>
-
-                {/* Score */}
-                <div className={`flex-shrink-0 text-center px-4 py-2 rounded-xl border font-bold ${scoreBg(lead.score)}`}>
-                  <div className={`text-xl font-black ${scoreColor(lead.score)}`}>{lead.score}</div>
-                  <div className={`text-xs ${scoreColor(lead.score)}`}>{lead.grade} · {lead.grade_label}</div>
-                </div>
-
-                <div className="text-gray-600 text-sm group-hover:text-gray-400 transition-colors flex-shrink-0">
-                  {expandedIdx === i ? '▲' : '▼'}
-                </div>
-              </div>
-
-              {/* Expanded */}
-              <AnimatePresence>
-                {expandedIdx === i && (
-                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                    className="border-t border-white/8">
-                    <div className="p-5 grid sm:grid-cols-2 gap-5">
-
-                      {/* Contact data */}
-                      <div className="space-y-3">
-                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Contact Data</div>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-3 bg-black/20 rounded-xl px-3 py-2.5">
-                            <span className="text-green-400 text-sm">✉️</span>
-                            <div>
-                              <div className="text-xs text-gray-500">Email (ZeroBounce verified)</div>
-                              <div className="text-gray-200 text-sm font-mono">{lead.email}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 bg-black/20 rounded-xl px-3 py-2.5">
-                            <span className="text-blue-400 text-sm">🔗</span>
-                            <div>
-                              <div className="text-xs text-gray-500">LinkedIn{lead.linkedin_is_direct ? ' (direct /in/ URL)' : ' (People Search)'}</div>
-                              <div className={`text-sm font-medium ${lead.linkedin_is_direct ? 'text-green-400' : 'text-blue-400'}`}>
-                                {lead.linkedin_is_direct ? '✅ Direct profile link' : '🔍 People Search link'}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 bg-black/20 rounded-xl px-3 py-2.5">
-                            <span className="text-purple-400 text-sm">💰</span>
-                            <div>
-                              <div className="text-xs text-gray-500">Estimated budget</div>
-                              <div className="text-gray-200 text-sm">{lead.budget_range}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 bg-black/20 rounded-xl px-3 py-2.5">
-                            <span className="text-gray-400 text-sm">🏢</span>
-                            <div>
-                              <div className="text-xs text-gray-500">Company · Industry · Size</div>
-                              <div className="text-gray-200 text-sm">{lead.company} · {lead.industry} · {lead.size}</div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Score breakdown + intel */}
-                      <div className="space-y-3">
-                        <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Score Breakdown</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {lead.score_signals.map((sig, j) => (
-                            <span key={j} className="text-xs px-2 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-300 font-medium">
-                              ↑ {sig}
-                            </span>
-                          ))}
-                        </div>
-                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mt-2">
-                          <div className="text-xs text-amber-400 font-semibold mb-1">⚡ Why reach out now</div>
-                          <div className="text-amber-200/80 text-xs leading-relaxed">{lead.signal}</div>
-                        </div>
-                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
-                          <div className="text-xs text-red-400 font-semibold mb-1">😤 Pain points</div>
-                          <div className="text-red-200/70 text-xs">{lead.pain_points}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* CTA */}
+        {/* ── ICP input ── */}
         <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="mt-8 text-center">
-          <Link href="/agents/lead-researcher"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-lg hover:opacity-90 transition-all shadow-xl shadow-purple-500/25">
-            Try the live demo yourself →
-          </Link>
+          className="mb-8 bg-white/4 border border-white/10 rounded-2xl p-5">
+          <div className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-3">Your Ideal Customer Profile</div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              value={icp}
+              onChange={e => setIcp(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && runSearch()}
+              placeholder='e.g. "VP of Sales at B2B SaaS, 50–200 employees, using HubSpot"'
+              className="flex-1 bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/60"
+            />
+            <button
+              onClick={runSearch}
+              disabled={status === 'loading' || !icp.trim()}
+              className="flex-shrink-0 px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all disabled:opacity-40 flex items-center gap-2 whitespace-nowrap shadow-lg shadow-purple-500/20"
+            >
+              {status === 'loading'
+                ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Running…</>
+                : '🔎 Run Lead Search'}
+            </button>
+          </div>
+          {/* Example ICP chips */}
+          <div className="flex flex-wrap gap-2 mt-3">
+            <span className="text-gray-600 text-xs self-center">Try:</span>
+            {EXAMPLE_ICPS.map((ex, i) => (
+              <button key={i} onClick={() => setIcp(ex)}
+                className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-gray-400 hover:text-purple-300 hover:border-purple-500/30 transition-all truncate max-w-xs">
+                {ex.length > 50 ? ex.slice(0, 50) + '…' : ex}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* ── Loading state ── */}
+        {status === 'loading' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="mb-8 bg-purple-900/20 border border-purple-500/25 rounded-2xl p-6 text-center">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <span className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+              <span className="text-purple-300 font-bold">AI pipeline running…</span>
+              {elapsedMs !== null && (
+                <span className="text-purple-400/70 font-mono text-sm">{(elapsedMs / 1000).toFixed(1)}s</span>
+              )}
+            </div>
+            <div className="flex justify-center gap-6 text-xs text-gray-500">
+              {['🤖 Finding companies', '🔍 Fetching contacts', '🛡️ ZB validating', '📊 Scoring'].map((step, i) => (
+                <motion.span key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.6 }}
+                  className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />{step}
+                </motion.span>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Error state ── */}
+        {status === 'error' && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            className="mb-8 bg-red-900/20 border border-red-500/30 rounded-2xl p-5 flex items-start gap-3">
+            <span className="text-red-400 text-xl flex-shrink-0">⚠️</span>
+            <div>
+              <div className="text-red-300 font-bold text-sm">Search failed — showing sample leads instead</div>
+              <div className="text-red-400/60 text-xs mt-1">{errorMsg}</div>
+              <button onClick={() => { setStatus('idle'); setShowSample(true); }}
+                className="text-xs text-purple-400 mt-2 underline">Reset</button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Stats bar ── */}
+        {(status === 'done' && liveStats) ? (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            {[
+              { label: 'Leads found', val: String(liveStats.total), icon: '🔎' },
+              { label: 'ZeroBounce verified', val: `${liveStats.zbVerified}/${liveStats.total}`, icon: '🛡️' },
+              { label: 'Direct LinkedIn', val: `${liveStats.directLinkedIn}/${liveStats.total}`, icon: '🔗' },
+              { label: 'Avg score', val: liveStats.avgScore > 0 ? `${liveStats.avgScore} / A` : '—', icon: '📊' },
+            ].map((s, i) => (
+              <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+                <div className="text-xl mb-1">{s.icon}</div>
+                <div className="text-white font-bold text-lg">{s.val}</div>
+                <div className="text-gray-500 text-xs">{s.label}</div>
+              </div>
+            ))}
+          </motion.div>
+        ) : showSample ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            {[
+              { label: 'Sample leads', val: '5', icon: '🔎' },
+              { label: 'ZeroBounce verified', val: '5/5', icon: '🛡️' },
+              { label: 'Direct LinkedIn', val: '4/5', icon: '🔗' },
+              { label: 'Avg score', val: '96 / A', icon: '📊' },
+            ].map((s, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}
+                className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
+                <div className="text-xl mb-1">{s.icon}</div>
+                <div className="text-white font-bold text-lg">{s.val}</div>
+                <div className="text-gray-500 text-xs">{s.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        ) : null}
+
+        {/* ── Section label ── */}
+        {showSample && (
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-px flex-1 bg-white/10" />
+            <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Sample output · Run a search above to see your real leads</span>
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+        )}
+        {status === 'done' && leads.length > 0 && (
+          <div ref={resultsRef} className="flex items-center gap-3 mb-4">
+            <div className="h-px flex-1 bg-purple-500/30" />
+            <span className="text-xs text-purple-400 font-bold uppercase tracking-wider flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              Live results for: "{icp.slice(0, 60)}{icp.length > 60 ? '…' : ''}" · {elapsedMs ? `${(elapsedMs / 1000).toFixed(2)}s` : ''}
+            </span>
+            <div className="h-px flex-1 bg-purple-500/30" />
+          </div>
+        )}
+
+        {/* ── Lead cards ── */}
+        <div className="space-y-3">
+          {displayLeads.map((lead, i) => (
+            <LeadCard key={i} lead={lead} i={i} expandedIdx={expandedIdx} setExpandedIdx={setExpandedIdx} />
+          ))}
+        </div>
+
+        {/* ── Empty state after a run with no results ── */}
+        {status !== 'loading' && !showSample && leads.length === 0 && status !== 'error' && (
+          <div className="py-12 text-center text-gray-500">
+            <div className="text-4xl mb-3">🔍</div>
+            <div className="text-base font-semibold text-gray-400">No leads returned yet</div>
+            <div className="text-sm mt-1">Try a more specific ICP or check your API key status in the admin panel.</div>
+          </div>
+        )}
+
+        {/* ── Post-results CTA ── */}
+        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="mt-8 flex flex-col sm:flex-row gap-3 justify-center items-center">
+          {status === 'done' && leads.length > 0 ? (
+            <>
+              <button onClick={runSearch}
+                className="px-6 py-3 rounded-xl bg-white/5 border border-white/15 text-white font-bold text-sm hover:bg-white/10 transition-all flex items-center gap-2">
+                🔄 Run Another Search
+              </button>
+              <Link href="/pricing"
+                className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all shadow-xl shadow-purple-500/25 flex items-center gap-2">
+                🚀 Get Unlimited Leads → Plans from $97/mo
+              </Link>
+            </>
+          ) : (
+            <Link href="/agents/lead-researcher"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-lg hover:opacity-90 transition-all shadow-xl shadow-purple-500/25">
+              Try the full tool inside the dashboard →
+            </Link>
+          )}
         </motion.div>
       </div>
     </section>

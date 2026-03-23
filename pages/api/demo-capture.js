@@ -9,12 +9,13 @@
  * 3. Returns { ok: true }
  */
 import { Resend } from 'resend';
+import { withProtection } from '../../lib/rateLimit';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM   = process.env.RESEND_FROM_EMAIL || 'CabinMind <support@devcabin.tech>';
 const NOTIFY = process.env.NOTIFY_EMAIL || 'jameson@devcabin.tech';
 
-export default async function handler(req, res) {
+export default withProtection('demo-capture', async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
   const { email, name, icp, source = 'demo-page' } = req.body || {};
@@ -173,4 +174,4 @@ export default async function handler(req, res) {
     // Don't fail visibly — email capture failing shouldn't block the user
     return res.status(200).json({ ok: true, warn: err.message });
   }
-}
+});
