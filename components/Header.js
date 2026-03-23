@@ -105,13 +105,22 @@ export default function Header() {
             <Link
               key={href}
               href={href}
-              className={`font-medium flex items-center gap-2 ${accent ? 'text-brand-400' : 'text-gray-300 hover:text-white'}`}
+              className={`font-medium flex items-center gap-2 ${
+                router.pathname.startsWith(href) ? 'text-white' : accent ? 'text-brand-400' : 'text-gray-300 hover:text-white'
+              }`}
               onClick={() => setMenuOpen(false)}
             >
               {accent && <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />}
               {label}
             </Link>
           ))}
+          <Link
+            href="/pricing"
+            onClick={() => setMenuOpen(false)}
+            className="mt-1 py-3 rounded-xl bg-gradient-to-r from-brand-500 to-purple-600 text-white text-sm font-bold text-center hover:opacity-90 transition-opacity shadow-lg shadow-brand-500/30"
+          >
+            Get Started →
+          </Link>
         </div>
       )}
     </header>
