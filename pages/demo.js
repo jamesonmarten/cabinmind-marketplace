@@ -481,17 +481,22 @@ const EXAMPLE_ICPS = [
   'Director of RevOps at PLG SaaS companies, 100–500 employees',
 ];
 
+const DEMO_MAX_LEADS = 25; // 5 batches × 5 leads
+
 function LiveLeadsSection() {
-  const [icp, setIcp]               = useState('');
-  const [leads, setLeads]           = useState([]);
-  const [status, setStatus]         = useState('idle'); // idle | loading | done | error
-  const [errorMsg, setErrorMsg]     = useState('');
-  const [expandedIdx, setExpandedIdx] = useState(0);
-  const [elapsedMs, setElapsedMs]   = useState(null);
-  const [showSample, setShowSample] = useState(true); // show sample until first real run
+  const [icp, setIcp]                   = useState('');
+  const [leads, setLeads]               = useState([]);
+  const [status, setStatus]             = useState('idle'); // idle | loading | loading-more | done | error
+  const [errorMsg, setErrorMsg]         = useState('');
+  const [expandedIdx, setExpandedIdx]   = useState(0);
+  const [elapsedMs, setElapsedMs]       = useState(null);
+  const [showSample, setShowSample]     = useState(true);
   const [sampleVisible, setSampleVisible] = useState(0);
-  const timerRef = useRef(null);
+  const [batchNum, setBatchNum]         = useState(1);
+  const [lockedIcp, setLockedIcp]       = useState(''); // ICP used for subsequent batches
+  const timerRef  = useRef(null);
   const resultsRef = useRef(null);
+  const moreRef   = useRef(null);
 
   // Animate sample leads in on mount
   useEffect(() => {
@@ -504,6 +509,47 @@ function LiveLeadsSection() {
     return () => clearInterval(iv);
   }, []);
 
+  const fetchBatch = async (batch, currentIcp, append = false) => {
+    const t0 = Date.now();
+    timerRef.current = setInterval(() => setElapsedMs(Date.now() - t0), 80);
+
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ icp: currentIcp, batchNum: batch, isDemo: true }),
+      });
+      clearInterval(timerRef.current);
+      setElapsedMs(Date.now() - t0);
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (err.upgrade) {
+          // Hit the demo wall gracefully — show upgrade prompt instead of error
+          setStatus('done');
+          return;
+        }
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
+      const incoming = data.leads || data.results || [];
+      if (append) {
+        setLeads(prev => [...prev, ...incoming]);
+        setTimeout(() => moreRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+      } else {
+        setLeads(Array.isArray(incoming) ? incoming : []);
+        setExpandedIdx(0);
+        setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      }
+      setStatus('done');
+    } catch (err) {
+      clearInterval(timerRef.current);
+      setErrorMsg(err.message);
+      setStatus('error');
+    }
+  };
+
   const runSearch = async () => {
     if (!icp.trim() || status === 'loading') return;
     setStatus('loading');
@@ -512,40 +558,24 @@ function LiveLeadsSection() {
     setErrorMsg('');
     setExpandedIdx(null);
     setElapsedMs(null);
+    setBatchNum(1);
+    setLockedIcp(icp.trim());
+    await fetchBatch(1, icp.trim(), false);
+  };
 
-    const t0 = Date.now();
-    // Tick timer for live elapsed display
-    timerRef.current = setInterval(() => setElapsedMs(Date.now() - t0), 80);
-
-    try {
-      const res = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ icp: icp.trim(), limit: 5, demo: true }),
-      });
-      clearInterval(timerRef.current);
-      setElapsedMs(Date.now() - t0);
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-      const result = data.leads || data.results || data || [];
-      setLeads(Array.isArray(result) ? result : []);
-      setStatus('done');
-      setExpandedIdx(0);
-      // Scroll to results smoothly
-      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-    } catch (err) {
-      clearInterval(timerRef.current);
-      setErrorMsg(err.message);
-      setStatus('error');
-    }
+  const loadMore = async () => {
+    if (status === 'loading-more') return;
+    const nextBatch = batchNum + 1;
+    setBatchNum(nextBatch);
+    setStatus('loading-more');
+    setElapsedMs(null);
+    await fetchBatch(nextBatch, lockedIcp, true);
   };
 
   const displayLeads = showSample ? SAMPLE_LEADS.slice(0, sampleVisible) : leads;
+  const isLoadingAny = status === 'loading' || status === 'loading-more';
+  const canLoadMore  = status === 'done' && leads.length > 0 && leads.length < DEMO_MAX_LEADS;
+  const hitDemoWall  = status === 'done' && leads.length >= DEMO_MAX_LEADS;
 
   // Derived stats from live leads
   const liveStats = leads.length > 0 ? {
@@ -603,12 +633,14 @@ function LiveLeadsSection() {
         </motion.div>
 
         {/* ── Loading state ── */}
-        {status === 'loading' && (
+        {isLoadingAny && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="mb-8 bg-purple-900/20 border border-purple-500/25 rounded-2xl p-6 text-center">
             <div className="flex items-center justify-center gap-3 mb-3">
               <span className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-              <span className="text-purple-300 font-bold">AI pipeline running…</span>
+              <span className="text-purple-300 font-bold">
+                {status === 'loading-more' ? `Loading batch ${batchNum} of 5…` : 'AI pipeline running…'}
+              </span>
               {elapsedMs !== null && (
                 <span className="text-purple-400/70 font-mono text-sm">{(elapsedMs / 1000).toFixed(1)}s</span>
               )}
@@ -639,14 +671,14 @@ function LiveLeadsSection() {
         )}
 
         {/* ── Stats bar ── */}
-        {(status === 'done' && liveStats) ? (
+        {((status === 'done' || status === 'loading-more') && liveStats) ? (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
             {[
-              { label: 'Leads found', val: String(liveStats.total), icon: '🔎' },
+              { label: 'Leads found', val: `${liveStats.total} / ${DEMO_MAX_LEADS}`, icon: '🔎' },
               { label: 'ZeroBounce verified', val: `${liveStats.zbVerified}/${liveStats.total}`, icon: '🛡️' },
               { label: 'Direct LinkedIn', val: `${liveStats.directLinkedIn}/${liveStats.total}`, icon: '🔗' },
-              { label: 'Avg score', val: liveStats.avgScore > 0 ? `${liveStats.avgScore} / A` : '—', icon: '📊' },
+              { label: 'Avg score', val: liveStats.avgScore > 0 ? `${liveStats.avgScore} pts` : '—', icon: '📊' },
             ].map((s, i) => (
               <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
                 <div className="text-xl mb-1">{s.icon}</div>
@@ -681,12 +713,12 @@ function LiveLeadsSection() {
             <div className="h-px flex-1 bg-white/10" />
           </div>
         )}
-        {status === 'done' && leads.length > 0 && (
+        {(status === 'done' || status === 'loading-more') && leads.length > 0 && (
           <div ref={resultsRef} className="flex items-center gap-3 mb-4">
             <div className="h-px flex-1 bg-purple-500/30" />
             <span className="text-xs text-purple-400 font-bold uppercase tracking-wider flex items-center gap-2">
               <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              Live results for: "{icp.slice(0, 60)}{icp.length > 60 ? '…' : ''}" · {elapsedMs ? `${(elapsedMs / 1000).toFixed(2)}s` : ''}
+              Live results · "{lockedIcp.slice(0, 55)}{lockedIcp.length > 55 ? '…' : ''}" · {leads.length} leads
             </span>
             <div className="h-px flex-1 bg-purple-500/30" />
           </div>
@@ -700,7 +732,7 @@ function LiveLeadsSection() {
         </div>
 
         {/* ── Empty state after a run with no results ── */}
-        {status !== 'loading' && !showSample && leads.length === 0 && status !== 'error' && (
+        {!isLoadingAny && !showSample && leads.length === 0 && status !== 'error' && (
           <div className="py-12 text-center text-gray-500">
             <div className="text-4xl mb-3">🔍</div>
             <div className="text-base font-semibold text-gray-400">No leads returned yet</div>
@@ -708,27 +740,79 @@ function LiveLeadsSection() {
           </div>
         )}
 
-        {/* ── Post-results CTA ── */}
-        <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="mt-8 flex flex-col sm:flex-row gap-3 justify-center items-center">
-          {status === 'done' && leads.length > 0 ? (
-            <>
-              <button onClick={runSearch}
-                className="px-6 py-3 rounded-xl bg-white/5 border border-white/15 text-white font-bold text-sm hover:bg-white/10 transition-all flex items-center gap-2">
-                🔄 Run Another Search
-              </button>
-              <Link href="/pricing"
-                className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all shadow-xl shadow-purple-500/25 flex items-center gap-2">
-                🚀 Get Unlimited Leads → Plans from $97/mo
+        {/* ── Load more anchor (scrolled into view when new batch appended) ── */}
+        {leads.length > 5 && <div ref={moreRef} />}
+
+        {/* ── Load 5 More button ── */}
+        {canLoadMore && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="mt-6 flex flex-col items-center gap-2">
+            <div className="text-xs text-gray-500 mb-1">
+              {leads.length} of {DEMO_MAX_LEADS} demo leads · {DEMO_MAX_LEADS - leads.length} remaining
+            </div>
+            <div className="w-full bg-white/5 rounded-full h-1.5 mb-3 max-w-xs">
+              <div
+                className="bg-gradient-to-r from-purple-500 to-violet-400 h-1.5 rounded-full transition-all"
+                style={{ width: `${(leads.length / DEMO_MAX_LEADS) * 100}%` }}
+              />
+            </div>
+            <button
+              onClick={loadMore}
+              className="px-8 py-3 rounded-xl bg-white/8 border border-purple-500/30 text-purple-300 font-bold text-sm hover:bg-purple-500/15 hover:border-purple-400/50 transition-all flex items-center gap-2 shadow-lg shadow-purple-500/10"
+            >
+              ➕ Load 5 More Leads (batch {batchNum + 1} / 5)
+            </button>
+            <div className="text-xs text-gray-600">Emails blurred · unlock with any paid plan</div>
+          </motion.div>
+        )}
+
+        {/* ── Demo wall — hit 25 lead limit ── */}
+        {hitDemoWall && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+            className="mt-8 bg-gradient-to-br from-purple-900/40 to-violet-900/30 border border-purple-500/40 rounded-2xl p-8 text-center shadow-2xl shadow-purple-500/10">
+            <div className="text-4xl mb-3">🔓</div>
+            <div className="text-white font-black text-2xl mb-2">You've seen {DEMO_MAX_LEADS} real leads</div>
+            <p className="text-gray-300 text-sm mb-1">
+              Demo limit reached. Subscribe to unlock <strong className="text-white">full emails</strong>, direct LinkedIn
+              profiles, and <strong className="text-white">unlimited generation</strong>.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 mt-2 mb-6 text-xs text-gray-500">
+              <span>✅ Full unblurred emails</span>
+              <span>✅ Direct LinkedIn /in/ URLs</span>
+              <span>✅ Unlimited batches/month</span>
+              <span>✅ Export to CSV</span>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/agents/lead-researcher?plan=starter"
+                className="px-6 py-3 rounded-xl bg-white/8 border border-white/15 text-white font-bold text-sm hover:bg-white/12 transition-all">
+                Starter — $97/mo · 100 leads
               </Link>
-            </>
-          ) : (
-            <Link href="/agents/lead-researcher"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-lg hover:opacity-90 transition-all shadow-xl shadow-purple-500/25">
-              Try the full tool inside the dashboard →
+              <Link href="/agents/lead-researcher?plan=pro"
+                className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all shadow-xl shadow-purple-500/25 flex items-center gap-2">
+                🚀 Pro — $247/mo · 500 leads · Most popular
+              </Link>
+              <Link href="/pricing"
+                className="px-6 py-3 rounded-xl bg-white/8 border border-white/15 text-white font-bold text-sm hover:bg-white/12 transition-all">
+                See all plans →
+              </Link>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── Post-results CTA (before hitting wall) ── */}
+        {(status === 'done' || status === 'loading-more') && leads.length > 0 && !hitDemoWall && (
+          <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="mt-8 flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <button onClick={runSearch}
+              className="px-6 py-3 rounded-xl bg-white/5 border border-white/15 text-white font-bold text-sm hover:bg-white/10 transition-all flex items-center gap-2">
+              🔄 New ICP Search
+            </button>
+            <Link href="/pricing"
+              className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all shadow-xl shadow-purple-500/25 flex items-center gap-2">
+              🚀 Get Unlimited Leads → from $97/mo
             </Link>
-          )}
-        </motion.div>
+          </motion.div>
+        )}
       </div>
     </section>
   );

@@ -673,10 +673,12 @@ export default withProtection('leads', async function handler(req, res) {
     if (!icp?.trim()) return res.status(400).json({ error: 'icp is required' });
 
     // Demo gate — server-side enforcement
-    if (isDemo && parseInt(batchNum) > 1) {
+    const DEMO_MAX_BATCHES = 5; // 5 batches × 5 leads = 25 demo leads total (~$0.45 platform cost)
+    if (isDemo && parseInt(batchNum) > DEMO_MAX_BATCHES) {
       return res.status(403).json({
-        error: 'Demo limited to 1 batch of 5 leads. Purchase to unlock unlimited generation.',
+        error: `Demo limited to ${DEMO_MAX_BATCHES * 5} leads (${DEMO_MAX_BATCHES} batches). Subscribe to unlock unlimited lead generation.`,
         upgrade: true,
+        demoLimit: DEMO_MAX_BATCHES * 5,
       });
     }
 
