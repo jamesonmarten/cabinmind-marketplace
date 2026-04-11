@@ -64,7 +64,11 @@ function LiveChatTab({ session }) {
       const r = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages.slice(-10) }),
+        body: JSON.stringify({
+          messages: newMessages.slice(-10),
+          agentName: persona.name,
+          businessName: persona.business,
+        }),
       });
       const data = await r.json();
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply || 'Sorry, I had trouble responding.' }]);
@@ -186,30 +190,66 @@ function LiveChatTab({ session }) {
   );
 }
 
-function EmbedTab({ session }) {
-  const [copied, setCopied] = useState('');
-  const widgetId = `cm-${session?.sessionId?.slice(-8) || 'demo'}`;
+const THEME_PRESETS = [
+  { label: 'Violet',    color: '#6d28d9', bg: '#0f172a' },
+  { label: 'Ocean',     color: '#0284c7', bg: '#0c1a2e' },
+  { label: 'Forest',    color: '#16a34a', bg: '#0d1f14' },
+  { label: 'Rose',      color: '#e11d48', bg: '#1c0a10' },
+  { label: 'Amber',     color: '#d97706', bg: '#1c1208' },
+  { label: 'Slate',     color: '#475569', bg: '#0f172a' },
+  { label: 'Light',     color: '#6d28d9', bg: '#f8fafc' },
+];
 
-  const scriptCode = `<!-- CabinMind AI Receptionist Widget -->
+function EmbedTab({ session }) {
+  const [copied, setCopied]         = useState('');
+  const [agentName, setAgentName]   = useState('Aria');
+  const [bizName, setBizName]       = useState('');
+  const [greeting, setGreeting]     = useState('Hi! How can I help you today?');
+  const [context, setContext]       = useState('');
+  const [color, setColor]           = useState('#6d28d9');
+  const [bg, setBg]                 = useState('#0f172a');
+  const [position, setPosition]     = useState('bottom-right');
+  const [embedType, setEmbedType]   = useState('iframe');
+  const iframeRef = useRef(null);
+
+  const BASE = 'https://products.devcabin.tech';
+
+  const params = new URLSearchParams({
+    name:     agentName,
+    color:    color,
+    bg:       bg,
+    greeting: greeting,
+    ...(bizName  && { business: bizName }),
+    ...(context  && { context  }),
+  }).toString();
+
+  const previewSrc = `${BASE}/embed/chat?${params}`;
+
+  const iframeCode =
+`<iframe
+  src="${previewSrc}"
+  width="380"
+  height="580"
+  frameborder="0"
+  allow="clipboard-write"
+  style="border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.25);"
+></iframe>`;
+
+  const scriptCode =
+`<!-- CabinMind AI Receptionist -->
 <script>
   window.CabinMindConfig = {
-    widgetId: "${widgetId}",
-    agentName: "Aria",
-    primaryColor: "#6d28d9",
-    position: "bottom-right",
-    greeting: "Hi! How can I help you today?",
-    apiEndpoint: "https://products.devcabin.tech/api/chat"
+    agentName: "${agentName}",
+    primaryColor: "${color}",
+    bgColor: "${bg}",
+    position: "${position}",
+    greeting: "${greeting}",
+    businessName: "${bizName}",
+    businessContext: \`${context.replace(/`/g, "'")}\`,
+    apiBase: "${BASE}",
   };
 </script>
-<script src="https://products.devcabin.tech/widget.js" async></script>`;
-
-  const iframeCode = `<iframe
-  src="https://products.devcabin.tech/embed/chat?id=${widgetId}"
-  width="400"
-  height="600"
-  frameborder="0"
-  style="border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);"
-></iframe>`;
+<script src="${BASE}/widget.js" async defer></script>`;
 
   const copy = (text, key) => {
     navigator.clipboard.writeText(text);
@@ -217,48 +257,152 @@ function EmbedTab({ session }) {
     setTimeout(() => setCopied(''), 2000);
   };
 
-  return (
-    <div className="space-y-6 max-w-3xl">
-      <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-blue-300 text-sm">
-        📌 Add the script tag below to your website's <code className="bg-white/10 px-1 rounded">&lt;/body&gt;</code> tag. Your widget ID is unique to your account.
-      </div>
+  // Reload iframe when settings change
+  useEffect(() => {
+    if (iframeRef.current) {
+      iframeRef.current.src = previewSrc;
+    }
+  }, [previewSrc]);
 
-      {[
-        { label: 'Script Tag (recommended)', key: 'script', code: scriptCode, desc: 'Floating chat bubble in the corner of your site' },
-        { label: 'iFrame Embed', key: 'iframe', code: iframeCode, desc: 'Embed the chat directly in a page section' },
-      ].map(({ label, key, code, desc }) => (
-        <div key={key} className="bg-white/5 border border-white/10 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-2">
+  return (
+    <div className="grid xl:grid-cols-2 gap-6">
+
+      {/* ── Left: Settings ──────────────────────────────────────────── */}
+      <div className="space-y-5">
+
+        {/* Identity */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+          <h3 className="text-white font-semibold text-sm">🤖 Agent Identity</h3>
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <h3 className="text-white font-semibold text-sm">{label}</h3>
-              <p className="text-gray-500 text-xs mt-0.5">{desc}</p>
+              <label className="text-gray-400 text-xs block mb-1">Agent Name</label>
+              <input value={agentName} onChange={e => setAgentName(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50" />
             </div>
-            <button onClick={() => copy(code, key)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-gray-300 hover:bg-white/20 transition-all">
-              {copied === key ? '✅ Copied!' : '📋 Copy'}
+            <div>
+              <label className="text-gray-400 text-xs block mb-1">Your Business Name</label>
+              <input value={bizName} onChange={e => setBizName(e.target.value)}
+                placeholder="e.g. Oakwood Plumbing"
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500/50" />
+            </div>
+          </div>
+          <div>
+            <label className="text-gray-400 text-xs block mb-1">Opening Greeting</label>
+            <input value={greeting} onChange={e => setGreeting(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50" />
+          </div>
+          <div>
+            <label className="text-gray-400 text-xs block mb-1">
+              Business Context <span className="text-gray-600 font-normal">(optional — helps Aria answer specific questions)</span>
+            </label>
+            <textarea value={context} onChange={e => setContext(e.target.value)}
+              rows={3}
+              placeholder="e.g. We are a plumbing company in Austin, TX. We offer emergency callouts 24/7, boiler servicing, and bathroom installations. Our phone number is 512-555-0100."
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 resize-none focus:outline-none focus:border-blue-500/50" />
+          </div>
+        </div>
+
+        {/* Theme */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+          <h3 className="text-white font-semibold text-sm">🎨 Theme</h3>
+
+          {/* Presets */}
+          <div>
+            <label className="text-gray-400 text-xs block mb-2">Quick Presets</label>
+            <div className="flex flex-wrap gap-2">
+              {THEME_PRESETS.map(p => (
+                <button key={p.label}
+                  onClick={() => { setColor(p.color); setBg(p.bg); }}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-white/10 text-gray-300 hover:bg-white/10 transition-all"
+                  style={{ borderColor: color === p.color ? p.color : undefined }}>
+                  <span style={{ width:10, height:10, borderRadius:'50%', background:p.color, display:'inline-block', flexShrink:0 }} />
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom pickers */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-gray-400 text-xs block mb-1">Primary Colour</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={color} onChange={e => setColor(e.target.value)}
+                  className="w-9 h-9 rounded-lg border border-white/10 bg-transparent cursor-pointer" />
+                <input value={color} onChange={e => setColor(e.target.value)}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500/50" />
+              </div>
+            </div>
+            <div>
+              <label className="text-gray-400 text-xs block mb-1">Background Colour</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={bg} onChange={e => setBg(e.target.value)}
+                  className="w-9 h-9 rounded-lg border border-white/10 bg-transparent cursor-pointer" />
+                <input value={bg} onChange={e => setBg(e.target.value)}
+                  className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-xs text-white font-mono focus:outline-none focus:border-blue-500/50" />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-gray-400 text-xs block mb-1">Widget Position (script tag)</label>
+            <div className="flex gap-2">
+              {['bottom-right','bottom-left'].map(p => (
+                <button key={p} onClick={() => setPosition(p)}
+                  className={`flex-1 text-xs py-2 rounded-lg border transition-all ${position === p ? 'border-blue-500/60 bg-blue-500/10 text-blue-300' : 'border-white/10 text-gray-400 hover:bg-white/5'}`}>
+                  {p === 'bottom-right' ? '↘ Bottom Right' : '↙ Bottom Left'}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Embed code */}
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+          <h3 className="text-white font-semibold text-sm">📋 Embed Code</h3>
+          <div className="flex gap-2">
+            {[['iframe','iFrame (inline)'],['script','Script tag (floating bubble)']].map(([k,l]) => (
+              <button key={k} onClick={() => setEmbedType(k)}
+                className={`flex-1 text-xs py-2 rounded-lg border transition-all ${embedType===k ? 'border-blue-500/60 bg-blue-500/10 text-blue-300' : 'border-white/10 text-gray-400 hover:bg-white/5'}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+          <div className="relative">
+            <pre className="bg-black/40 rounded-xl p-4 text-xs text-green-300 overflow-x-auto leading-relaxed border border-white/5 pr-20">
+              {embedType === 'iframe' ? iframeCode : scriptCode}
+            </pre>
+            <button
+              onClick={() => copy(embedType === 'iframe' ? iframeCode : scriptCode, 'code')}
+              className="absolute top-3 right-3 text-xs px-3 py-1.5 rounded-lg bg-white/10 border border-white/10 text-gray-300 hover:bg-white/20 transition-all">
+              {copied === 'code' ? '✅ Copied!' : '📋 Copy'}
             </button>
           </div>
-          <pre className="bg-black/40 rounded-xl p-4 text-xs text-green-300 overflow-x-auto leading-relaxed border border-white/5">
-            {code}
-          </pre>
-        </div>
-      ))}
-
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-        <h3 className="text-white font-semibold mb-3 text-sm">🔑 Your Widget Credentials</h3>
-        <div className="space-y-2 font-mono text-xs">
-          {[
-            ['Widget ID', widgetId],
-            ['API Endpoint', 'https://products.devcabin.tech/api/chat'],
-            ['Account', session?.customerEmail || '—'],
-          ].map(([k, v]) => (
-            <div key={k} className="flex justify-between bg-black/30 rounded-lg px-3 py-2">
-              <span className="text-gray-500">{k}</span>
-              <span className="text-gray-200">{v}</span>
-            </div>
-          ))}
+          {embedType === 'script' && (
+            <p className="text-xs text-amber-400/80">⚠️ The floating bubble script (<code>widget.js</code>) is coming soon. Use the iFrame for now — it works on any site today.</p>
+          )}
         </div>
       </div>
+
+      {/* ── Right: Live Preview ──────────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-white font-semibold text-sm">👁️ Live Preview</h3>
+          <span className="text-xs text-gray-500">Updates as you type</span>
+        </div>
+        <div className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl" style={{ height: 560 }}>
+          <iframe
+            ref={iframeRef}
+            src={previewSrc}
+            width="100%"
+            height="100%"
+            frameBorder="0"
+            title="Widget Preview"
+          />
+        </div>
+        <p className="text-xs text-gray-600 text-center">This is a live conversation — try it!</p>
+      </div>
+
     </div>
   );
 }
