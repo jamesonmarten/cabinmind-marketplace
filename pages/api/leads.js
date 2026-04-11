@@ -208,47 +208,55 @@ function scoreLead({ title, emailVerified, emailSource, zbStatus, hunterConfiden
   }
 
   // Email verification tier
-  // Priority: ZeroBounce verified > Hunter status 'valid' > Hunter confidence ≥90 > ≥80 > unverified
+  // Priority: ZeroBounce verified > Hunter status='valid' > confidence ≥90 > ≥80 > unverified
   if (emailVerified && zbStatus === 'valid') {
     score += 22; signals.push('ZeroBounce verified email (+22)');
   } else if (emailVerified && hunterStatus === 'valid') {
-    score += 18; signals.push('Hunter verified email (+18)');
+    score += 20; signals.push('Hunter verified email (+20)');
   } else if (emailVerified) {
-    score += 15; signals.push('Verified email (+15)');
+    score += 17; signals.push('Verified email (+17)');
   } else if (hunterStatus === 'valid') {
-    // Hunter says valid but ZB unavailable — strong signal
-    score += 16; signals.push('Hunter status: valid (+16)');
+    score += 18; signals.push('Hunter status: valid (+18)');
   } else if (typeof hunterConfidence === 'number' && hunterConfidence >= 90) {
-    score += 14; signals.push(`Hunter confidence ${hunterConfidence} (+14)`);
+    score += 16; signals.push(`Hunter confidence ${hunterConfidence} (+16)`);
   } else if (typeof hunterConfidence === 'number' && hunterConfidence >= 80) {
-    score += 10; signals.push(`Hunter confidence ${hunterConfidence} (+10)`);
+    score += 12; signals.push(`Hunter confidence ${hunterConfidence} (+12)`);
+  } else if (typeof hunterConfidence === 'number' && hunterConfidence >= 70) {
+    score += 8;  signals.push(`Hunter confidence ${hunterConfidence} (+8)`);
   } else if (emailSource === 'hunter' && hunterStatus !== 'invalid') {
-    score += 6;  signals.push('Hunter email (unverified) (+6)');
+    score += 5;  signals.push('Hunter email, low confidence (+5)');
   } else if (emailSource && emailSource.startsWith('pattern')) {
     score += 3;  signals.push('Pattern email (+3)');
   } else if (!emailSource || emailSource === 'none') {
     score -= 15; signals.push('No email found (−15)');
   }
 
-  // Catch-all domain — more punishing since deliverability is unreliable
-  if (catchAll) { score -= 8; signals.push('Catch-all domain (−8)'); }
+  // Catch-all domain — less reliable delivery
+  if (catchAll) { score -= 6; signals.push('Catch-all domain (−6)'); }
 
-  // LinkedIn direct profile URL from Hunter
+  // LinkedIn direct /in/ profile from Hunter
   if (linkedInDirect) { score += 8; signals.push('Direct LinkedIn profile (+8)'); }
 
-  // Company size sweet spot (51-500 = most reachable decision-makers)
+  // Company size bonus
   const sz = (companySize || '').replace(/\s/g, '').replace('–', '-');
   if (['51-200','101-200','201-500','51-500'].some(s => sz.includes(s) || sz === s)) {
-    score += 6; signals.push('Company size 51–500 (+6)');
+    score += 5; signals.push('Company size 51–500 (+5)');
+  } else if (['1-10','1-50','11-50','solo','1'].some(s => sz.toLowerCase().includes(s))) {
+    score += 3; signals.push('Small/solo team (+3)');
   }
 
   return { score: Math.min(Math.max(Math.round(score), 40), 99), signals };
 }
 
+// Grade thresholds:
+//   A ≥ 88  — verified email + strong title signal
+//   B ≥ 72  — high-confidence Hunter email + good title (reachable without ZB)
+//   C ≥ 58  — present but lower confidence
+//   D  < 58 — filtered out before returning to client
 function scoreLabel(score) {
-  if (score >= 90) return { grade: 'A', label: 'Hot',  color: 'green'  };
-  if (score >= 75) return { grade: 'B', label: 'Warm', color: 'blue'   };
-  if (score >= 60) return { grade: 'C', label: 'Cool', color: 'yellow' };
+  if (score >= 88) return { grade: 'A', label: 'Hot',  color: 'green'  };
+  if (score >= 72) return { grade: 'B', label: 'Warm', color: 'blue'   };
+  if (score >= 58) return { grade: 'C', label: 'Cool', color: 'yellow' };
   return              { grade: 'D', label: 'Cold', color: 'gray'   };
 }
 
