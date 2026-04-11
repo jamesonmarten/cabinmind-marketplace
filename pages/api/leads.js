@@ -28,7 +28,7 @@
 import Groq from 'groq-sdk';
 import OpenAI from 'openai';
 import dns from 'dns/promises';
-import { checkUsage, recordUsage, PLAN_LIMITS } from '../../lib/usageStore';
+import { checkUsage, recordUsage, PLAN_LIMITS, getSeenLeads, recordSeenLeads } from '../../lib/usageStore';
 import { withProtection } from '../../lib/rateLimit';
 
 const groq       = process.env.GROQ_API_KEY        ? new Groq({ apiKey: process.env.GROQ_API_KEY })        : null;
@@ -443,7 +443,7 @@ async function getCompanyDomains(icp, filters, batchNum) {
   const prompt = creatorMode
     ? `You are a digital media research expert with encyclopedic knowledge of real, named content creators and bloggers worldwide.
 
-List exactly 5 REAL, NAMED, VERIFIABLE individual creators or creator-owned sites that match this ICP.
+List exactly 8 REAL, NAMED, VERIFIABLE individual creators or creator-owned sites that match this ICP.
 
 ICP: "${icp}"
 ${extras}
@@ -454,7 +454,7 @@ CRITICAL — you MUST return REAL PEOPLE with REAL NAMES who actually exist:
 - Use your training knowledge of well-known bloggers, Substackers, YouTubers, podcasters
 - If a location is specified (e.g. Milwaukee, Wisconsin, Midwest), prioritise creators FROM that location first
   Examples for Wisconsin/Milwaukee food bloggers: Erin Clarke (Well Plated by Erin - wellplated.com), etc.
-  Expand to nearby region (Midwest, US) only if you cannot find 5 in the specified location
+  Expand to nearby region (Midwest, US) only if you cannot find 8 in the specified location
 - Include a mix of sub-niches within the ICP (e.g. recipe, restaurant review, vegan, baking, meal-prep for food)
 - Focus on mid-tier creators (10K–500K followers/readers) who are actively monetised and reachable
 
@@ -474,9 +474,9 @@ CRITICAL domain rules:
 - Correct: "wellplated.com", "pinchofyum.com", "sallysbakingaddiction.com", "minimalistbaker.com"
 - Wrong: "youtube.com/c/FoodChannel", "instagram.com/foodblogger"
 
-Return ONLY a JSON array of exactly 5 objects, no markdown:
+Return ONLY a JSON array of exactly 8 objects, no markdown:
 [{"company":"Well Plated by Erin","domain":"wellplated.com","industry":"Food Blog","size":"1-10","location":"Milwaukee, WI","why_fits":"Erin Clarke runs one of the top healthy recipe blogs with 1M+ monthly readers, actively partners with food brands","signal":"Spring recipe content push — ideal timing for ingredient/kitchen brand sponsorships","pain_points":"managing brand deal pipeline, scaling newsletter revenue","budget_range":"$2K-$10K/project","tech":"WordPress, Mediavine"}]`
-    : `You are a B2B sales intelligence expert. List exactly 5 REAL, existing companies whose employees match this ICP.
+    : `You are a B2B sales intelligence expert. List exactly 8 REAL, existing companies whose employees match this ICP.
 
 ICP: "${icp}"
 ${extras}
@@ -495,7 +495,7 @@ CRITICAL domain rules:
 - Correct: "close.com", "pipedrive.com", "outreach.io"
 - Wrong: "kairosventures.co", "acme.co"
 
-Return ONLY a JSON array of exactly 5 objects, no markdown:
+Return ONLY a JSON array of exactly 8 objects, no markdown:
 [{"company":"Acme Corp","domain":"acmecorp.com","industry":"B2B SaaS","size":"51-200","location":"Austin, TX","why_fits":"Why employees here fit the ICP","signal":"Concrete reason to reach out this week","pain_points":"pain 1, pain 2","budget_range":"$20K-$60K/yr","tech":"HubSpot, Stripe"}]`;
 
   let raw, aiProvider;
@@ -530,7 +530,7 @@ Return ONLY a JSON array of exactly 5 objects, no markdown:
   }
 
   if (!raw?.length) throw new Error('AI failed to generate company list');
-  return { companies: raw.slice(0, 5), aiProvider };
+  return { companies: raw.slice(0, 8), aiProvider };
 }
 
 // Step 2: Hunter domain search -> real contacts
@@ -538,7 +538,7 @@ async function hunterDomainSearch(domain, apiKey) {
   const key = apiKey || null;
   if (!key) return null;
   try {
-    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&limit=5&type=personal&api_key=${key}`;
+    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&limit=10&type=personal&api_key=${key}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
@@ -597,24 +597,32 @@ Return ONLY valid JSON: {"name":"Full Name","title":"Job Title","score_reason":"
 }
 
 // Main pipeline
-async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
+// Strategy:
+//   1. Ask AI for 8 candidates (buffer) — process until we have exactly 5 good leads
+//   2. Server-side dedup via seen-leads set (persisted per subscriptionKey)
+//   3. Hunter domain-search gives up to 10 contacts per domain
+//   4. ZeroBounce called on every email — conserved by stopping at first valid pattern
+//   5. D-grade leads dropped before output; keeps trying next candidate
+async function generateLeads(icp, filters, batchNum, hunterKey, zbKey, subscriptionKey) {
   const { companies, aiProvider } = await getCompanyDomains(icp, filters, batchNum);
   const leads = [];
+  const seenIds = subscriptionKey ? getSeenLeads(subscriptionKey) : new Set();
   let hunterQuotaExceeded = false;
   const creatorMode = isCreatorICP(icp);
 
   for (const companyMeta of companies) {
-    if (leads.length >= 5) break;
+    if (leads.length >= 5) break;  // got enough — stop early
 
     const domain = await sanitiseDomain(companyMeta.domain);
-    if (!domain) continue;
+    if (!domain) { console.log(`[leads] Skip — bad domain: ${companyMeta.domain}`); continue; }
 
+    // ── Step 2: Hunter domain-search ────────────────────────────────────────
     let hunterData = null;
     if (hunterKey && !hunterQuotaExceeded) {
       const result = await hunterDomainSearch(domain, hunterKey);
       if (result === 'quota_exceeded') {
         hunterQuotaExceeded = true;
-        console.warn('[leads] Hunter quota exceeded — AI fallback for remaining');
+        console.warn('[leads] Hunter quota exceeded — switching to AI pattern fallback');
       } else {
         hunterData = result;
       }
@@ -623,34 +631,34 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
     const emails = hunterData?.emails || [];
 
     if (emails.length > 0) {
-      // REAL DATA PATH — Hunter found contacts
-      // In creator mode, any contact is relevant (small team / solo operator)
+      // ── REAL DATA PATH — Hunter found contacts ──────────────────────────
+      // For creator mode accept any contact (tiny team); for B2B filter to decision-makers first
       const senior = creatorMode ? emails : emails.filter(e =>
         ['executive','senior','director'].includes(e.seniority) ||
         ['ceo','cto','coo','cfo','vp','founder','director','head','chief','president','owner','partner']
           .some(k => (e.position || '').toLowerCase().includes(k))
       );
-      const candidates = (senior.length ? senior : emails).slice(0, 5);
+      // Use senior if available, otherwise fall back to all contacts — up to 10 candidates
+      const candidates = (senior.length ? senior : emails).slice(0, 10);
 
       for (const c of candidates) {
         if (leads.length >= 5) break;
+
         const hunterStatus = c.verification?.status || null;
 
-        // 6-layer validation
+        // ── ZeroBounce validation on every Hunter email ──────────────────
         const validation = await validateEmail(c.value, c.confidence, hunterStatus, zbKey, hunterKey);
         if (!validation.pass) {
-          console.warn(`[leads] Skip ${c.value}: ${validation.reason}`);
+          console.log(`[leads] ZB/validation reject ${c.value}: ${validation.reason}`);
           continue;
         }
 
-        // LinkedIn URL validation
         const linkedIn = await buildLinkedIn(
           `${c.first_name || ''} ${c.last_name || ''}`.trim(),
           companyMeta.company,
           c.linkedin || null,
         );
 
-        // Deterministic score
         const { score, signals } = scoreLead({
           title:            c.position || '',
           emailVerified:    validation.verified || hunterStatus === 'valid',
@@ -664,14 +672,13 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
           catchAll:         validation.catchAll,
         });
 
-        // Drop D-grade leads — only C, B, A go through
-        const { grade: hunterGrade } = scoreLabel(score);
-        if (hunterGrade === 'D') {
-          console.log(`[leads] Drop D-grade: ${c.position || 'unknown'} at ${companyMeta.company} (score ${score})`);
+        const { grade } = scoreLabel(score);
+        if (grade === 'D') {
+          console.log(`[leads] Drop D: ${c.position || 'unknown'} at ${companyMeta.company} (${score})`);
           continue;
         }
 
-        leads.push(buildLead({
+        const lead = buildLead({
           name:            `${c.first_name || ''} ${c.last_name || ''}`.trim(),
           title:           c.position || c.department || '',
           email:           c.value,
@@ -687,18 +694,30 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
           scoreSignals:    signals,
           scoreReason:     `${c.position || 'Decision maker'} at ${companyMeta.company} — ${companyMeta.why_fits || icp.slice(0, 80)}`,
           dataSource:      (validation.verified || hunterStatus === 'valid') ? 'hunter-verified' : 'hunter',
-        }));
+        });
+
+        // ── Cross-batch dedup ──────────────────────────────────────────────
+        if (seenIds.has(lead._id)) {
+          console.log(`[leads] Dedup skip: ${lead._id}`);
+          continue;
+        }
+
+        seenIds.add(lead._id);
+        leads.push(lead);
       }
+
     } else {
-      // FALLBACK PATH — No Hunter contacts — AI synthesises person for real company
+      // ── AI PATTERN FALLBACK — Hunter found no contacts ──────────────────
       const s = await synthesisePerson(companyMeta, icp, aiProvider);
       const nameParts = (s.name || 'Contact').trim().split(/\s+/);
       const firstName = nameParts[0];
       const lastName  = nameParts.slice(1).join(' ');
 
-      // Try all common email patterns in order — use first one ZeroBounce says is valid.
-      // For solo bloggers/creators, firstname@ is by far the most common pattern.
-      const candidateEmails = allPatterns(firstName, lastName, domain);
+      // Try email patterns in order — stop at first ZeroBounce-valid result.
+      // firstname@ tried first for creators; firstname.lastname@ for B2B.
+      const candidateEmails = creatorMode
+        ? allPatterns(firstName, lastName, domain)           // firstname@ first
+        : [...allPatterns(firstName, lastName, domain)].reverse();  // firstname.lastname@ first
 
       let finalEmail    = null;
       let emailVerified = false;
@@ -714,11 +733,10 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
           catchAll      = validation.catchAll;
           emailVerified = validation.verified || false;
           emailSource   = emailVerified ? 'pattern-verified' : 'pattern';
-          console.log(`[leads] Pattern found: ${candidate} (zb=${zbStatus}, verified=${emailVerified})`);
+          console.log(`[leads] Pattern hit: ${candidate} zb=${zbStatus} verified=${emailVerified}`);
           break;
-        } else {
-          console.log(`[leads] Pattern skip: ${candidate} (${validation.reason})`);
         }
+        console.log(`[leads] Pattern miss: ${candidate} (${validation.reason})`);
       }
 
       const linkedIn = await buildLinkedIn(s.name || 'Contact', companyMeta.company, null);
@@ -736,44 +754,55 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
         catchAll,
       });
 
-      // Drop D-grade leads from AI fallback path too
-      const { grade: aiGrade } = scoreLabel(score);
-      if (aiGrade === 'D') {
-        console.log(`[leads] Drop D-grade (AI fallback): ${s.title || 'unknown'} at ${companyMeta.company} (score ${score})`);
-      } else {
-        leads.push(buildLead({
-          name:         s.name || 'Contact',
-          title:        s.title || '',
-          email:        finalEmail,
-          linkedIn,
-          emailVerified,
-          emailSource,
-          zbStatus,
-          catchAll,
-          companyMeta,
-          domain,
-          score,
-          scoreSignals: signals,
-          scoreReason:  s.score_reason || companyMeta.why_fits || '',
-          dataSource:   'ai-pattern',
-        }));
+      const { grade } = scoreLabel(score);
+      if (grade === 'D') {
+        console.log(`[leads] Drop D (pattern): ${s.title} at ${companyMeta.company} (${score})`);
+        continue;
       }
+
+      const lead = buildLead({
+        name:         s.name || 'Contact',
+        title:        s.title || '',
+        email:        finalEmail,
+        linkedIn,
+        emailVerified,
+        emailSource,
+        zbStatus,
+        catchAll,
+        companyMeta,
+        domain,
+        score,
+        scoreSignals: signals,
+        scoreReason:  s.score_reason || companyMeta.why_fits || '',
+        dataSource:   'ai-pattern',
+      });
+
+      // ── Cross-batch dedup ────────────────────────────────────────────────
+      if (seenIds.has(lead._id)) {
+        console.log(`[leads] Dedup skip: ${lead._id}`);
+        continue;
+      }
+
+      seenIds.add(lead._id);
+      leads.push(lead);
     }
   }
 
-  // Sort: verified A first, then verified B, then unverified A/B, then C — highest score within each tier
+  console.log(`[leads] Pipeline complete: ${leads.length}/5 leads from ${companies.length} candidates`);
+
+  // Sort: ZB-verified A first → verified B → unverified A/B → C, then by score desc within tier
   leads.sort((a, b) => {
-    const verA = a.email_verified ? 1 : 0;
-    const verB = b.email_verified ? 1 : 0;
-    if (verB !== verA) return verB - verA;   // verified first
-    return b.score - a.score;               // then by score descending
+    const zbA = a.zb_status === 'valid' ? 2 : a.email_verified ? 1 : 0;
+    const zbB = b.zb_status === 'valid' ? 2 : b.email_verified ? 1 : 0;
+    if (zbB !== zbA) return zbB - zbA;
+    return b.score - a.score;
   });
 
   // Aggregate stats
-  const hotLeads        = leads.filter(l => l.score >= 90).length;
-  const warmLeads       = leads.filter(l => l.score >= 75 && l.score < 90).length;
+  const hotLeads        = leads.filter(l => l.grade === 'A').length;
+  const warmLeads       = leads.filter(l => l.grade === 'B').length;
   const avgScore        = leads.length ? Math.round(leads.reduce((s, l) => s + l.score, 0) / leads.length) : 0;
-  const realCount       = leads.filter(l => l.email_source === 'hunter').length;
+  const realCount       = leads.filter(l => l.email_source === 'hunter' || l.email_source === 'hunter-verified').length;
   const verifiedCount   = leads.filter(l => l.email_verified).length;
   const directLinkedIn  = leads.filter(l => l.linkedin_is_direct).length;
   const zbVerified      = leads.filter(l => l.zb_status === 'valid').length;
@@ -781,6 +810,7 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
 
   return {
     leads: leads.slice(0, 5),
+    seenIds,
     meta: {
       aiProvider, hunterQuotaExceeded,
       zbAvailable: !!(zbKey),
@@ -901,11 +931,16 @@ export default withProtection('leads', async function handler(req, res) {
       exclude:     excludeCompanies || '',
     };
 
-    const { leads, meta } = await generateLeads(icp.trim(), filters, parseInt(batchNum) || 1, hunterKey, zbKey);
+    const { leads, meta } = await generateLeads(icp.trim(), filters, parseInt(batchNum) || 1, hunterKey, zbKey, subscriptionKey);
 
     // Record successful batch usage (after work completes — failed calls don't count)
     if (planForLimits !== 'scale' && planForLimits !== 'agency') {
       recordUsage(subscriptionKey, planForLimits, 'leadBatches', 1);
+    }
+
+    // Persist seen lead IDs for cross-batch dedup
+    if (leads.length) {
+      recordSeenLeads(subscriptionKey, leads.map(l => l._id));
     }
 
     const finalLeads = isDemo ? maskForDemo(leads) : leads;
