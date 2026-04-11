@@ -272,29 +272,29 @@ export default function TrialPage({ slug, valid }) {
 
       <div className="min-h-screen bg-gray-950 text-white">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-violet-500 px-4 py-5">
+        <div className="bg-gradient-to-r from-brand-600 to-brand-500 px-4 py-5">
           <div className="max-w-3xl mx-auto flex items-center justify-between flex-wrap gap-3">
             <div>
               <a
                 href="https://devcabin.tech?utm_source=productsDemo"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-purple-200 text-xs font-medium uppercase tracking-wider mb-0.5 hover:text-white transition block"
+                className="text-brand-300 text-xs font-medium uppercase tracking-wider mb-0.5 hover:text-white transition block"
               >
                 Dev Cabin Technologies
               </a>
               <h1 className="text-xl font-black text-white">🔎 AI Lead Researcher</h1>
-              <p className="text-purple-200 text-xs mt-0.5 opacity-80">Complimentary Trial</p>
+              <p className="text-brand-300 text-xs mt-0.5 opacity-80">Complimentary Trial</p>
             </div>
             <div className="text-right">
-              <p className="text-purple-200 text-xs">Trial leads</p>
+              <p className="text-brand-300 text-xs">Trial leads</p>
               <p className="text-white font-bold text-lg">{totalGenerated} / {TOTAL_LIMIT}</p>
             </div>
           </div>
 
           {/* Progress bar */}
           <div className="max-w-3xl mx-auto mt-3">
-            <div className="h-1.5 bg-purple-400/30 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-brand-600/30 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-white rounded-full"
                 initial={{ width: 0 }}
@@ -317,7 +317,7 @@ export default function TrialPage({ slug, valid }) {
                 value={icp}
                 onChange={e => setIcp(e.target.value)}
                 placeholder="e.g. VP of Sales at B2B SaaS companies, 50–200 employees, Series A/B, using Salesforce…"
-                className="w-full bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:border-purple-500 transition"
+                className="w-full bg-gray-800 border border-gray-600 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:border-brand-500 transition"
                 rows={3}
               />
             </div>
@@ -330,7 +330,7 @@ export default function TrialPage({ slug, valid }) {
                   onClick={() => setIcp(p.value)}
                   className={`text-xs px-3 py-1.5 rounded-lg border transition ${
                     icp === p.value
-                      ? 'bg-purple-600/30 text-purple-300 border-purple-500/60'
+                      ? 'bg-brand-600/30 text-brand-300 border-brand-500/60'
                       : 'bg-gray-800/60 text-gray-400 border-gray-700/50 hover:border-gray-500'
                   }`}
                 >
@@ -344,7 +344,7 @@ export default function TrialPage({ slug, valid }) {
               <button
                 onClick={handleGenerate}
                 disabled={generating || limitHit || totalGenerated >= TOTAL_LIMIT || !icp.trim()}
-                className="flex-1 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl transition text-sm flex items-center justify-center gap-2"
+                className="flex-1 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl transition text-sm flex items-center justify-center gap-2"
               >
                 {generating ? (
                   <>
@@ -372,7 +372,7 @@ export default function TrialPage({ slug, valid }) {
             {error && (
               <div className={`rounded-lg px-4 py-3 text-sm border ${
                 limitHit
-                  ? 'bg-purple-500/10 border-purple-500/30 text-purple-300'
+                  ? 'bg-brand-500/10 border-brand-500/30 text-brand-300'
                   : 'bg-red-500/10 border-red-500/30 text-red-300'
               }`}>
                 {error}
@@ -380,7 +380,7 @@ export default function TrialPage({ slug, valid }) {
                   <div className="mt-2">
                     <a
                       href="https://products.devcabin.tech/pricing"
-                      className="font-semibold underline text-purple-300 hover:text-white"
+                      className="font-semibold underline text-brand-300 hover:text-white"
                     >
                       Subscribe for unlimited leads →
                     </a>
@@ -438,7 +438,7 @@ export default function TrialPage({ slug, valid }) {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-br from-purple-900/40 to-violet-900/30 border border-purple-500/30 rounded-2xl p-6 text-center"
+              className="bg-gradient-to-br from-brand-900/40 to-brand-900/30 border border-brand-500/30 rounded-2xl p-6 text-center"
             >
               <div className="text-4xl mb-3">🎉</div>
               <h3 className="text-lg font-bold text-white mb-1">You've used all 50 trial leads!</h3>
@@ -447,7 +447,7 @@ export default function TrialPage({ slug, valid }) {
               </p>
               <a
                 href="https://products.devcabin.tech/pricing"
-                className="inline-block bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-3 rounded-xl transition text-sm"
+                className="inline-block bg-brand-600 hover:bg-brand-500 text-white font-bold px-6 py-3 rounded-xl transition text-sm"
               >
                 See Plans & Pricing →
               </a>
