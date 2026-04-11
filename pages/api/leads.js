@@ -200,21 +200,23 @@ function scoreLead({ title, emailVerified, emailSource, zbStatus, hunterConfiden
     score += bonus; signals.push(`Title matches ICP keywords (+${bonus})`);
   }
 
-  // Email verification tier
+  // Email verification tier — verified emails get a large boost to push into A/B territory
   if (emailVerified && zbStatus === 'valid') {
-    score += 15; signals.push('ZeroBounce verified email (+15)');
+    score += 22; signals.push('ZeroBounce verified email (+22)');
   } else if (emailVerified && hunterStatus === 'valid') {
-    score += 12; signals.push('Hunter verified email (+12)');
+    score += 18; signals.push('Hunter verified email (+18)');
+  } else if (emailVerified) {
+    score += 15; signals.push('Verified email (+15)');
   } else if (emailSource === 'hunter' && hunterStatus !== 'invalid') {
-    score += 8;  signals.push('Hunter email (unverified) (+8)');
+    score += 6;  signals.push('Hunter email (unverified) (+6)');
   } else if (emailSource && emailSource.startsWith('pattern')) {
-    score += 6;  signals.push('Pattern email (+6)');
+    score += 3;  signals.push('Pattern email (+3)');
   } else if (!emailSource || emailSource === 'none') {
-    score -= 10; signals.push('No email found (−10)');
+    score -= 15; signals.push('No email found (−15)');
   }
 
-  // Catch-all domain (emails may accept anything — less reliable)
-  if (catchAll) { score -= 5; signals.push('Catch-all domain (−5)'); }
+  // Catch-all domain — more punishing since deliverability is unreliable
+  if (catchAll) { score -= 8; signals.push('Catch-all domain (−8)'); }
 
   // LinkedIn direct profile URL from Hunter
   if (linkedInDirect) { score += 8; signals.push('Direct LinkedIn profile (+8)'); }
@@ -228,6 +230,8 @@ function scoreLead({ title, emailVerified, emailSource, zbStatus, hunterConfiden
   // Hunter confidence bonus
   if (typeof hunterConfidence === 'number' && hunterConfidence >= 90) {
     score += 5; signals.push('Hunter confidence ≥90 (+5)');
+  } else if (typeof hunterConfidence === 'number' && hunterConfidence >= 70) {
+    score += 2; signals.push('Hunter confidence ≥70 (+2)');
   }
 
   return { score: Math.min(Math.max(Math.round(score), 40), 99), signals };
@@ -631,6 +635,13 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
           catchAll:         validation.catchAll,
         });
 
+        // Drop D-grade leads — only C, B, A go through
+        const { grade: hunterGrade } = scoreLabel(score);
+        if (hunterGrade === 'D') {
+          console.log(`[leads] Drop D-grade: ${c.position || 'unknown'} at ${companyMeta.company} (score ${score})`);
+          continue;
+        }
+
         leads.push(buildLead({
           name:            `${c.first_name || ''} ${c.last_name || ''}`.trim(),
           title:           c.position || c.department || '',
@@ -688,27 +699,38 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
         catchAll,
       });
 
-      leads.push(buildLead({
-        name:         s.name || 'Contact',
-        title:        s.title || '',
-        email:        finalEmail,
-        linkedIn,
-        emailVerified,
-        emailSource,
-        zbStatus,
-        catchAll,
-        companyMeta,
-        domain,
-        score,
-        scoreSignals: signals,
-        scoreReason:  s.score_reason || companyMeta.why_fits || '',
-        dataSource:   'ai-pattern',
-      }));
+      // Drop D-grade leads from AI fallback path too
+      const { grade: aiGrade } = scoreLabel(score);
+      if (aiGrade === 'D') {
+        console.log(`[leads] Drop D-grade (AI fallback): ${s.title || 'unknown'} at ${companyMeta.company} (score ${score})`);
+      } else {
+        leads.push(buildLead({
+          name:         s.name || 'Contact',
+          title:        s.title || '',
+          email:        finalEmail,
+          linkedIn,
+          emailVerified,
+          emailSource,
+          zbStatus,
+          catchAll,
+          companyMeta,
+          domain,
+          score,
+          scoreSignals: signals,
+          scoreReason:  s.score_reason || companyMeta.why_fits || '',
+          dataSource:   'ai-pattern',
+        }));
+      }
     }
   }
 
-  // Sort highest score first
-  leads.sort((a, b) => b.score - a.score);
+  // Sort: verified A first, then verified B, then unverified A/B, then C — highest score within each tier
+  leads.sort((a, b) => {
+    const verA = a.email_verified ? 1 : 0;
+    const verB = b.email_verified ? 1 : 0;
+    if (verB !== verA) return verB - verA;   // verified first
+    return b.score - a.score;               // then by score descending
+  });
 
   // Aggregate stats
   const hotLeads        = leads.filter(l => l.score >= 90).length;
