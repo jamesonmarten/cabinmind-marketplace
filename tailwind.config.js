@@ -8,18 +8,20 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          50:  '#eef2ff',
-          100: '#e0e7ff',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          900: '#1e1b4b',
+          50:  '#fff7ed',
+          100: '#ffedd5',
+          300: '#fdba74',
+          400: '#fb923c',
+          500: '#f97316',
+          600: '#ea580c',
+          700: '#c2410c',
+          900: '#431407',
         },
+        // keep purple alias pointing at orange so existing purple- classes stay warm
         purple: {
-          400: '#c084fc',
-          500: '#a855f7',
-          600: '#9333ea',
+          400: '#fb923c',
+          500: '#f97316',
+          600: '#ea580c',
         },
         dark: {
           800: '#0d0d14',
