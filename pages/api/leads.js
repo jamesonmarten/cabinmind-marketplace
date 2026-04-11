@@ -68,17 +68,23 @@ async function domainHasMX(domain) {
 // Free tier: 100 validations/month | Starter: $16/2K | Growth: $25/5K
 // Detects: spam traps, disposables, hard bounces, catch-all domains, role addresses
 async function zeroBounceValidate(email, apiKey) {
-  const key = apiKey || null;
+  // Strip any accidental whitespace/newlines from the key (env var corruption defence)
+  const key = (apiKey || '').trim() || null;
   if (!key || key === 'your_zerobounce_api_key_here') return { available: false, reason: 'no-zb-key' };
   try {
     const url = `https://api.zerobounce.net/v2/validate?api_key=${key}&email=${encodeURIComponent(email)}&ip_address=`;
     const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!r.ok) {
       const body = await r.json().catch(() => ({}));
-      if (r.status === 400 || r.status === 429 ||
-          (body?.error && (body.error.includes('Invalid API Key') || body.error.includes('quota')))) {
+      if (r.status === 429 || (body?.error && body.error.includes('quota'))) {
+        console.warn('[zb] Quota exhausted');
         return { available: false, reason: 'zb-quota' };
       }
+      if (r.status === 400 && body?.error?.includes('Invalid API Key')) {
+        console.error('[zb] Invalid API key — check ZEROBOUNCE_API_KEY env var for trailing whitespace');
+        return { available: false, reason: 'zb-invalid-key' };
+      }
+      console.warn(`[zb] HTTP ${r.status}:`, JSON.stringify(body).slice(0, 120));
       return { available: false, reason: `zb-http-${r.status}` };
     }
     const d = await r.json();
@@ -86,10 +92,10 @@ async function zeroBounceValidate(email, apiKey) {
     const subStatus = (d.sub_status || '').toLowerCase();
     const catchAll  = status === 'catch-all';
     const valid     = status === 'valid';
-    // Definitely bad statuses
     const bad = ['invalid', 'spamtrap', 'abuse', 'do_not_mail'].includes(status);
     return { available: true, status, subStatus, valid, catchAll, bad, reason: subStatus || status };
   } catch (e) {
+    console.warn('[zb] Error:', e.message);
     return { available: false, reason: e.message };
   }
 }
