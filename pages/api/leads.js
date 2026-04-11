@@ -291,7 +291,14 @@ function allPatterns(first, last, domain) {
   const f = (first || '').toLowerCase().replace(/[^a-z]/g, '');
   const l = (last  || '').toLowerCase().replace(/[^a-z]/g, '');
   if (!f || !domain) return [];
-  return [`${f}.${l}@${domain}`, `${f}${l}@${domain}`, `${f[0]||'x'}${l}@${domain}`, `${f}@${domain}`];
+  // Order matters — ZeroBounce is called for each until one passes.
+  // firstname@ is most common for solo creators/bloggers; firstname.lastname@ for corporates.
+  const patterns = [];
+  if (f) patterns.push(`${f}@${domain}`);                        // erin@wellplated.com
+  if (f && l) patterns.push(`${f}.${l}@${domain}`);              // erin.clarke@wellplated.com
+  if (f && l) patterns.push(`${f}${l}@${domain}`);               // erinclarke@wellplated.com
+  if (f && l) patterns.push(`${f[0]}${l}@${domain}`);            // eclarke@wellplated.com
+  return patterns;
 }
 
 // Domain sanitiser — strips protocol/path, corrects .co -> .com when .com has MX records
@@ -686,24 +693,32 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
       // FALLBACK PATH — No Hunter contacts — AI synthesises person for real company
       const s = await synthesisePerson(companyMeta, icp, aiProvider);
       const nameParts = (s.name || 'Contact').trim().split(/\s+/);
-      const patternEmail = emailPattern(nameParts[0], nameParts.slice(1).join(' '), domain);
+      const firstName = nameParts[0];
+      const lastName  = nameParts.slice(1).join(' ');
 
-      let finalEmail    = patternEmail;
+      // Try all common email patterns in order — use first one ZeroBounce says is valid.
+      // For solo bloggers/creators, firstname@ is by far the most common pattern.
+      const candidateEmails = allPatterns(firstName, lastName, domain);
+
+      let finalEmail    = null;
       let emailVerified = false;
-      let emailSource   = 'pattern';
+      let emailSource   = 'pattern-invalid';
       let zbStatus      = null;
       let catchAll      = false;
 
-      const validation = await validateEmail(patternEmail, null, null, zbKey, hunterKey);
-      if (!validation.pass) {
-        console.warn(`[leads] Pattern email ${patternEmail} failed: ${validation.reason}`);
-        finalEmail   = null;
-        emailSource  = 'pattern-invalid';
-      } else {
-        zbStatus      = validation.zbStatus;
-        catchAll      = validation.catchAll;
-        emailVerified = validation.verified || false;
-        emailSource   = emailVerified ? 'pattern-verified' : 'pattern';
+      for (const candidate of candidateEmails) {
+        const validation = await validateEmail(candidate, null, null, zbKey, hunterKey);
+        if (validation.pass) {
+          finalEmail    = candidate;
+          zbStatus      = validation.zbStatus;
+          catchAll      = validation.catchAll;
+          emailVerified = validation.verified || false;
+          emailSource   = emailVerified ? 'pattern-verified' : 'pattern';
+          console.log(`[leads] Pattern found: ${candidate} (zb=${zbStatus}, verified=${emailVerified})`);
+          break;
+        } else {
+          console.log(`[leads] Pattern skip: ${candidate} (${validation.reason})`);
+        }
       }
 
       const linkedIn = await buildLinkedIn(s.name || 'Contact', companyMeta.company, null);

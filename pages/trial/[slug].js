@@ -36,10 +36,13 @@ const ICP_PRESETS = [
   { label: '🏢 Agency Owners',     value: 'Digital marketing agency owners, 5–30 employees, serving SMB clients, looking to productise services and reduce churn' },
   { label: '👥 HR Directors',      value: 'HR Directors or VP People at companies with 100–500 employees in tech or finance, managing rapid headcount growth' },
   { label: '⚙️ RevOps Leaders',    value: 'Revenue Operations Managers or Directors at B2B SaaS companies 50–300 employees using Salesforce, managing complex sales stack' },
+  { label: '🍕 Food Bloggers',     value: 'Independent food bloggers and recipe content creators with 10K–500K monthly readers, monetising through ads, sponsorships, or digital products, publishing on their own domain' },
+  { label: '✍️ Newsletter Creators', value: 'Solo newsletter writers and Substack authors with 5K–100K subscribers, covering niche topics, looking for brand sponsorships or course sales' },
 ];
 
+// Must match scoreLabel() thresholds in /api/leads.js — A≥88, B≥72, C≥58
 const SCORE_STYLE = (score, grade) => {
-  const g = grade || (score >= 90 ? 'A' : score >= 75 ? 'B' : score >= 60 ? 'C' : 'D');
+  const g = grade || (score >= 88 ? 'A' : score >= 72 ? 'B' : score >= 58 ? 'C' : 'D');
   if (g === 'A') return { badge: 'bg-green-500/20 text-green-300 border-green-500/40',   label: 'Hot',  dot: 'bg-green-400'  };
   if (g === 'B') return { badge: 'bg-blue-500/20 text-blue-300 border-blue-500/40',     label: 'Warm', dot: 'bg-blue-400'   };
   if (g === 'C') return { badge: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40', label: 'Cool', dot: 'bg-yellow-400' };
