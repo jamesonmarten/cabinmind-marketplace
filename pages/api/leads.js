@@ -133,10 +133,22 @@ async function validateEmail(email, hunterConfidence = null, hunterStatus = null
     return { pass: false, reason: `low-confidence-${hunterConfidence}` };
   }
 
-  // Layer 5: Hunter domain-search status
+  // Layer 5: Hunter domain-search status (from the free data already in the response)
   if (hunterStatus === 'invalid') return { pass: false, reason: 'hunter-invalid' };
+  // Hunter's own confidence >=80 is a strong verification signal — trust it directly.
+  // This covers the common case where ZeroBounce quota is exhausted.
+  if (hunterStatus === 'valid' || (hunterConfidence !== null && hunterConfidence >= 80)) {
+    const verified = hunterStatus === 'valid' || hunterConfidence >= 90;
+    // Still run ZeroBounce if available (use remaining quota on high-value leads)
+    const zb = await zeroBounceValidate(email, zbKey);
+    if (zb.available) {
+      if (zb.bad) return { pass: false, reason: `zb-${zb.status}`, zbStatus: zb.status };
+      return { pass: true, reason: zb.status, zbStatus: zb.status, catchAll: zb.catchAll, verified: zb.valid && !zb.catchAll };
+    }
+    return { pass: true, reason: hunterStatus === 'valid' ? 'hunter-valid' : `hunter-confidence-${hunterConfidence}`, zbStatus: null, catchAll: false, verified };
+  }
 
-  // Layer 6a: ZeroBounce (primary)
+  // Layer 6a: ZeroBounce (primary) for lower-confidence emails
   const zb = await zeroBounceValidate(email, zbKey);
   if (zb.available) {
     if (zb.bad) {
@@ -145,15 +157,10 @@ async function validateEmail(email, hunterConfidence = null, hunterStatus = null
     return { pass: true, reason: zb.status, zbStatus: zb.status, catchAll: zb.catchAll, verified: zb.valid && !zb.catchAll };
   }
 
-  // Layer 6b: Hunter verifier fallback
-  if (hunterStatus === 'valid') {
-    return { pass: true, reason: 'hunter-valid', zbStatus: null, catchAll: false, verified: true };
-  }
-  const hv = await hunterVerify(email, hunterKey);
-  if (hv.status === 'invalid') {
-    return { pass: false, reason: 'hunter-verifier-invalid', zbStatus: null };
-  }
-  return { pass: true, reason: hv.status || 'mx-ok', zbStatus: null, catchAll: false, verified: hv.status === 'valid' };
+  // Layer 6b: ZeroBounce unavailable (quota exhausted) — pass on MX + confidence alone.
+  // Do NOT call hunterVerify() here — it burns Hunter credits and rarely returns 'valid'.
+  // A contact that passed layers 1-5 is worth including; the score reflects the uncertainty.
+  return { pass: true, reason: 'mx-confidence-ok', zbStatus: null, catchAll: false, verified: false };
 }
 
 // LinkedIn URL validator
@@ -200,13 +207,21 @@ function scoreLead({ title, emailVerified, emailSource, zbStatus, hunterConfiden
     score += bonus; signals.push(`Title matches ICP keywords (+${bonus})`);
   }
 
-  // Email verification tier — verified emails get a large boost to push into A/B territory
+  // Email verification tier
+  // Priority: ZeroBounce verified > Hunter status 'valid' > Hunter confidence ≥90 > ≥80 > unverified
   if (emailVerified && zbStatus === 'valid') {
     score += 22; signals.push('ZeroBounce verified email (+22)');
   } else if (emailVerified && hunterStatus === 'valid') {
     score += 18; signals.push('Hunter verified email (+18)');
   } else if (emailVerified) {
     score += 15; signals.push('Verified email (+15)');
+  } else if (hunterStatus === 'valid') {
+    // Hunter says valid but ZB unavailable — strong signal
+    score += 16; signals.push('Hunter status: valid (+16)');
+  } else if (typeof hunterConfidence === 'number' && hunterConfidence >= 90) {
+    score += 14; signals.push(`Hunter confidence ${hunterConfidence} (+14)`);
+  } else if (typeof hunterConfidence === 'number' && hunterConfidence >= 80) {
+    score += 10; signals.push(`Hunter confidence ${hunterConfidence} (+10)`);
   } else if (emailSource === 'hunter' && hunterStatus !== 'invalid') {
     score += 6;  signals.push('Hunter email (unverified) (+6)');
   } else if (emailSource && emailSource.startsWith('pattern')) {
@@ -225,13 +240,6 @@ function scoreLead({ title, emailVerified, emailSource, zbStatus, hunterConfiden
   const sz = (companySize || '').replace(/\s/g, '').replace('–', '-');
   if (['51-200','101-200','201-500','51-500'].some(s => sz.includes(s) || sz === s)) {
     score += 6; signals.push('Company size 51–500 (+6)');
-  }
-
-  // Hunter confidence bonus
-  if (typeof hunterConfidence === 'number' && hunterConfidence >= 90) {
-    score += 5; signals.push('Hunter confidence ≥90 (+5)');
-  } else if (typeof hunterConfidence === 'number' && hunterConfidence >= 70) {
-    score += 2; signals.push('Hunter confidence ≥70 (+2)');
   }
 
   return { score: Math.min(Math.max(Math.round(score), 40), 99), signals };
