@@ -231,6 +231,9 @@ function scoreLead({ title, emailVerified, emailSource, zbStatus, hunterConfiden
     score += 8;  signals.push(`Hunter confidence ${hunterConfidence} (+8)`);
   } else if (emailSource === 'hunter' && hunterStatus !== 'invalid') {
     score += 5;  signals.push('Hunter email, low confidence (+5)');
+  } else if (emailSource === 'pattern-creator') {
+    // firstname@ on a personal creator domain — very likely correct, MX confirmed
+    score += 12; signals.push('Creator pattern email, MX confirmed (+12)');
   } else if (emailSource && emailSource.startsWith('pattern')) {
     score += 3;  signals.push('Pattern email (+3)');
   } else if (!emailSource || emailSource === 'none') {
@@ -732,8 +735,11 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey, subscript
           zbStatus      = validation.zbStatus;
           catchAll      = validation.catchAll;
           emailVerified = validation.verified || false;
-          emailSource   = emailVerified ? 'pattern-verified' : 'pattern';
-          console.log(`[leads] Pattern hit: ${candidate} zb=${zbStatus} verified=${emailVerified}`);
+          // Creator mode: firstname@ on their own domain is high-signal even without ZB
+          emailSource   = emailVerified
+            ? 'pattern-verified'
+            : (creatorMode ? 'pattern-creator' : 'pattern');
+          console.log(`[leads] Pattern hit: ${candidate} zb=${zbStatus} verified=${emailVerified} source=${emailSource}`);
           break;
         }
         console.log(`[leads] Pattern miss: ${candidate} (${validation.reason})`);
