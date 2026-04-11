@@ -10,10 +10,10 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const QUICK_STARTERS = [
-  "What are your business hours?",
-  "I'd like to book a call",
-  "Tell me about your pricing",
-  "What services do you offer?",
+  "I'd like to book an appointment",
+  "Can I get a quote?",
+  "What are your opening hours?",
+  "I need to speak to someone urgently",
 ];
 
 function ChatBubble({ msg }) {
@@ -44,7 +44,7 @@ function ChatBubble({ msg }) {
 
 function LiveChatTab({ session }) {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: `Hi! I'm Aria, your AI receptionist. I'm live and ready to help your visitors 24/7. How can I assist you today?` }
+    { role: 'assistant', content: `Hi there! I'm Aria, your AI receptionist. How can I help you today?` }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
