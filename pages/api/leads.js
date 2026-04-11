@@ -668,6 +668,8 @@ export default withProtection('leads', async function handler(req, res) {
       zeroBounceApiKey: clientZbKey,
       // Plan tier sent by the client (dashboard knows its own plan)
       plan = 'starter',
+      // For gifted client-trial sessions: a short slug that acts as the subscription key
+      trialSlug,
     } = req.body || {};
 
     if (!icp?.trim()) return res.status(400).json({ error: 'icp is required' });
@@ -686,7 +688,10 @@ export default withProtection('leads', async function handler(req, res) {
     // subscriptionKey = session_id from client (passed by dashboard); falls back
     // to a plan-level shared key for clients that don't send one.
     // Scale/Agency use BYOK so platform costs are $0 — no cap needed.
-    const subscriptionKey = req.body.subscriptionKey || `plan-${plan}`;
+    // client-trial: keyed by trialSlug so each gifted client has their own counter.
+    const subscriptionKey = trialSlug
+      ? `trial-${trialSlug}`
+      : (req.body.subscriptionKey || `plan-${plan}`);
     const planForLimits   = isDemo ? 'demo' : (plan || 'starter');
 
     if (planForLimits !== 'scale' && planForLimits !== 'agency') {
@@ -734,6 +739,10 @@ export default withProtection('leads', async function handler(req, res) {
     } else if (plan === 'pro') {
       // Client brings Hunter; platform supplies ZB
       hunterKey = clientHunterKey || PLATFORM_HUNTER;
+      zbKey     = PLATFORM_ZEROBOUNCE || null;
+    } else if (plan === 'client-trial') {
+      // Gifted trial — platform supplies both keys, same as Starter
+      hunterKey = PLATFORM_HUNTER;
       zbKey     = PLATFORM_ZEROBOUNCE || null;
     } else {
       // Starter — platform supplies both (low-volume fallback)
