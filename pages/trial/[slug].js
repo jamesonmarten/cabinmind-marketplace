@@ -275,8 +275,16 @@ export default function TrialPage({ slug, valid }) {
         <div className="bg-gradient-to-r from-purple-600 to-violet-500 px-4 py-5">
           <div className="max-w-3xl mx-auto flex items-center justify-between flex-wrap gap-3">
             <div>
-              <p className="text-purple-200 text-xs font-medium uppercase tracking-wider mb-0.5">CabinMind · Complimentary Trial</p>
+              <a
+                href="https://devcabin.tech?utm_source=productsDemo"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-200 text-xs font-medium uppercase tracking-wider mb-0.5 hover:text-white transition block"
+              >
+                Dev Cabin Technologies
+              </a>
               <h1 className="text-xl font-black text-white">🔎 AI Lead Researcher</h1>
+              <p className="text-purple-200 text-xs mt-0.5 opacity-80">Complimentary Trial</p>
             </div>
             <div className="text-right">
               <p className="text-purple-200 text-xs">Trial leads</p>
@@ -448,9 +456,20 @@ export default function TrialPage({ slug, valid }) {
 
           {/* Footer */}
           <div className="text-center text-gray-600 text-xs pt-4 pb-8">
-            Powered by <a href="https://products.devcabin.tech" className="text-gray-500 hover:text-gray-400">CabinMind</a>
+            Powered by{' '}
+            <a
+              href="https://devcabin.tech?utm_source=productsDemo"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-500 hover:text-gray-400 transition"
+            >
+              Dev Cabin Technologies
+            </a>
             {' · '}
-            Questions? <a href="mailto:support@devcabin.tech" className="text-gray-500 hover:text-gray-400">support@devcabin.tech</a>
+            Questions?{' '}
+            <a href="mailto:support@devcabin.tech" className="text-gray-500 hover:text-gray-400 transition">
+              support@devcabin.tech
+            </a>
           </div>
         </div>
       </div>
