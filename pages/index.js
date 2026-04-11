@@ -298,7 +298,7 @@ export default function Home() {
               <span className="text-white font-bold text-xs">CM</span>
             </div>
             <span className="text-white font-semibold">Cabin<span className="gradient-text">Mind</span></span>
-            <span className="text-gray-600 text-xs ml-2">by Dev Cabin Technologies</span>
+            <a href="https://devcabin.tech?utm_source=productsDemo" target="_blank" rel="noopener noreferrer" className="text-gray-600 text-xs ml-2 hover:text-gray-400 transition-colors">by Dev Cabin Technologies</a>
           </div>
           <nav className="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
             <Link href="/demo"           className="hover:text-white transition-colors">Live Demo</Link>
@@ -308,7 +308,7 @@ export default function Home() {
             <Link href="/agents/builder" className="hover:text-white transition-colors">Build an Agent</Link>
             <a href="mailto:jameson@devcabin.tech" className="hover:text-white transition-colors">Support</a>
           </nav>
-          <p className="text-gray-600 text-xs">© {new Date().getFullYear()} Dev Cabin Technologies</p>
+          <p className="text-gray-600 text-xs">© {new Date().getFullYear()} <a href="https://devcabin.tech?utm_source=productsDemo" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors">Dev Cabin Technologies</a></p>
         </div>
       </footer>
 
