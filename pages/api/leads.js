@@ -179,10 +179,14 @@ function scoreLead({ title, emailVerified, emailSource, zbStatus, hunterConfiden
   const t    = (title || '').toLowerCase();
   const icpL = (icp   || '').toLowerCase();
 
-  // Title tier
-  if (['ceo','founder','cto','coo','cfo','chief','president','owner','managing director','md'].some(k => t.includes(k))) {
-    score += 20; signals.push('C-suite / Founder title (+20)');
-  } else if (['vp','vice president','director','head of','partner'].some(k => t.includes(k))) {
+  // Title tier — includes creator/blogger equivalents
+  const isCreatorTitle = ['blogger','content creator','creator','influencer','youtuber',
+    'podcaster','newsletter author','recipe developer','food writer','food blogger',
+    'social media','freelance'].some(k => t.includes(k));
+
+  if (['ceo','founder','cto','coo','cfo','chief','president','owner','managing director','md'].some(k => t.includes(k)) || isCreatorTitle) {
+    score += 20; signals.push(isCreatorTitle ? 'Creator / Owner title (+20)' : 'C-suite / Founder title (+20)');
+  } else if (['vp','vice president','director','head of','partner','editor'].some(k => t.includes(k))) {
     score += 14; signals.push('VP / Director title (+14)');
   } else if (['manager','senior','lead','principal','supervisor'].some(k => t.includes(k))) {
     score += 8;  signals.push('Manager / Senior title (+8)');
@@ -363,16 +367,83 @@ function maskForDemo(leads) {
   });
 }
 
+// Detect creator / blogger / influencer ICPs so we can switch prompt framing
+function isCreatorICP(icp) {
+  const t = (icp || '').toLowerCase();
+  return [
+    'blog', 'blogger', 'food blog', 'recipe', 'creator', 'content creator',
+    'influencer', 'youtuber', 'podcaster', 'newsletter', 'substack',
+    'instagram', 'tiktok creator', 'solo', 'solopreneur',
+  ].some(k => t.includes(k));
+}
+
+// Extract location hints directly from the ICP text (e.g. "in Milwaukee" / "Wisconsin")
+function extractLocationFromICP(icp) {
+  const patterns = [
+    /\bin\s+([A-Z][a-zA-Z\s]+(?:,\s*[A-Z]{2})?)/,           // "in Milwaukee, WI"
+    /\bbased\s+in\s+([A-Z][a-zA-Z\s]+(?:,\s*[A-Z]{2})?)/,   // "based in Wisconsin"
+    /\b([A-Z][a-zA-Z\s]+),?\s*(WI|MN|IL|TX|CA|NY|FL|OH|CO|WA|OR|GA|NC|VA|MA|AZ|NV|MI|PA|NJ|MD|CT|MO|TN|IN|KY|SC|AL|LA|AR|MS|OK|KS|NE|SD|ND|MT|ID|UT|WY|NM|AK|HI|DE|RI|NH|VT|ME|WV)\b/i,
+    /\b(Milwaukee|Madison|Wisconsin|Chicago|Minneapolis|Austin|Denver|Seattle|Portland|Atlanta|Boston|Dallas|Houston|Phoenix|Detroit|Nashville|Indianapolis|Columbus|Charlotte|Raleigh|San Francisco|Los Angeles|New York|Miami)\b/i,
+  ];
+  for (const re of patterns) {
+    const m = icp.match(re);
+    if (m) return m[1] || m[0];
+  }
+  return null;
+}
+
 // Step 1: AI generates real company domains
 async function getCompanyDomains(icp, filters, batchNum) {
+  // Merge explicit filters with location inferred from the ICP text itself
+  const icpLocation = extractLocationFromICP(icp);
+  const locationHint = filters.location || icpLocation || null;
+
   const extras = [
     filters.industry    ? `Industry: ${filters.industry}` : '',
-    filters.location    ? `Location: ${filters.location}` : '',
+    locationHint        ? `Location: ${locationHint}` : '',
     filters.companySize ? `Company size: ${filters.companySize}` : '',
     filters.exclude     ? `Exclude: ${filters.exclude}` : '',
   ].filter(Boolean).join('\n');
 
-  const prompt = `You are a B2B sales intelligence expert. List exactly 5 REAL, existing companies whose employees match this ICP.
+  const creatorMode = isCreatorICP(icp);
+
+  const prompt = creatorMode
+    ? `You are a digital media research expert with encyclopedic knowledge of real, named content creators and bloggers worldwide.
+
+List exactly 5 REAL, NAMED, VERIFIABLE individual creators or creator-owned sites that match this ICP.
+
+ICP: "${icp}"
+${extras}
+${batchNum > 1 ? `Batch ${batchNum} — return DIFFERENT creators from all previous batches.` : ''}
+
+CRITICAL — you MUST return REAL PEOPLE with REAL NAMES who actually exist:
+- These must be specific, identifiable people — NOT generic descriptions
+- Use your training knowledge of well-known bloggers, Substackers, YouTubers, podcasters
+- If a location is specified (e.g. Milwaukee, Wisconsin, Midwest), prioritise creators FROM that location first
+  Examples for Wisconsin/Milwaukee food bloggers: Erin Clarke (Well Plated by Erin - wellplated.com), etc.
+  Expand to nearby region (Midwest, US) only if you cannot find 5 in the specified location
+- Include a mix of sub-niches within the ICP (e.g. recipe, restaurant review, vegan, baking, meal-prep for food)
+- Focus on mid-tier creators (10K–500K followers/readers) who are actively monetised and reachable
+
+Field rules:
+- "company" = the creator's brand/site name (e.g. "Well Plated by Erin")
+- "domain" = the creator's OWN website domain — NOT youtube.com, instagram.com, twitter.com
+  - Personal site: use that domain (e.g. wellplated.com)
+  - Substack-only: use their-handle.substack.com
+  - NEVER use a social platform URL
+- "location" = the creator's actual city/state (e.g. "Milwaukee, WI")
+- "why_fits" = specifically why THIS named person fits the ICP
+- "signal" = a concrete, current reason to reach out (new cookbook, recent brand deal, seasonal campaign, etc.)
+
+CRITICAL domain rules:
+- NEVER use youtube.com, instagram.com, tiktok.com, twitter.com, x.com, facebook.com
+- NEVER use .co unless it is literally the only domain they own
+- Correct: "wellplated.com", "pinchofyum.com", "sallysbakingaddiction.com", "minimalistbaker.com"
+- Wrong: "youtube.com/c/FoodChannel", "instagram.com/foodblogger"
+
+Return ONLY a JSON array of exactly 5 objects, no markdown:
+[{"company":"Well Plated by Erin","domain":"wellplated.com","industry":"Food Blog","size":"1-10","location":"Milwaukee, WI","why_fits":"Erin Clarke runs one of the top healthy recipe blogs with 1M+ monthly readers, actively partners with food brands","signal":"Spring recipe content push — ideal timing for ingredient/kitchen brand sponsorships","pain_points":"managing brand deal pipeline, scaling newsletter revenue","budget_range":"$2K-$10K/project","tech":"WordPress, Mediavine"}]`
+    : `You are a B2B sales intelligence expert. List exactly 5 REAL, existing companies whose employees match this ICP.
 
 ICP: "${icp}"
 ${extras}
@@ -452,7 +523,14 @@ async function hunterDomainSearch(domain, apiKey) {
 
 // AI person synthesiser (fallback when Hunter has no contacts for a company)
 async function synthesisePerson(companyMeta, icp, aiProvider) {
-  const prompt = `For this REAL company, generate 1 realistic senior decision-maker that fits the ICP.
+  const creatorMode = isCreatorICP(icp);
+  const prompt = creatorMode
+    ? `For this REAL creator-owned site, return the ACTUAL real person who runs it — use your knowledge of who owns/founded this brand.
+Site: ${companyMeta.company} (${companyMeta.domain})
+ICP: "${icp}"
+Return the real founder/creator's actual name and title (e.g. "Blogger & Recipe Developer", "Food Blogger & Author", "Content Creator").
+Return ONLY valid JSON: {"name":"Real Full Name","title":"Job Title","score_reason":"Why they fit the ICP"}`
+    : `For this REAL company, generate 1 realistic senior decision-maker that fits the ICP.
 Company: ${companyMeta.company} (${companyMeta.domain})
 ICP: "${icp}"
 Return ONLY valid JSON: {"name":"Full Name","title":"Job Title","score_reason":"Why they fit"}`;
@@ -476,7 +554,12 @@ Return ONLY valid JSON: {"name":"Full Name","title":"Job Title","score_reason":"
     }
     return safeJSON(content || '{}');
   } catch {
-    return { name: 'Decision Maker', title: 'Director', score_reason: companyMeta.why_fits };
+    const creatorFallback = isCreatorICP(icp);
+    return {
+      name: creatorFallback ? 'Site Owner' : 'Decision Maker',
+      title: creatorFallback ? 'Blogger & Content Creator' : 'Director',
+      score_reason: companyMeta.why_fits,
+    };
   }
 }
 
@@ -485,6 +568,7 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
   const { companies, aiProvider } = await getCompanyDomains(icp, filters, batchNum);
   const leads = [];
   let hunterQuotaExceeded = false;
+  const creatorMode = isCreatorICP(icp);
 
   for (const companyMeta of companies) {
     if (leads.length >= 5) break;
@@ -507,7 +591,8 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey) {
 
     if (emails.length > 0) {
       // REAL DATA PATH — Hunter found contacts
-      const senior = emails.filter(e =>
+      // In creator mode, any contact is relevant (small team / solo operator)
+      const senior = creatorMode ? emails : emails.filter(e =>
         ['executive','senior','director'].includes(e.seniority) ||
         ['ceo','cto','coo','cfo','vp','founder','director','head','chief','president','owner','partner']
           .some(k => (e.position || '').toLowerCase().includes(k))
