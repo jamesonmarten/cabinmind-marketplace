@@ -12,6 +12,7 @@ import AuditDashboard from '../../components/dashboards/AuditDashboard';
 import BlogDashboard from '../../components/dashboards/BlogDashboard';
 import SalesDashboard from '../../components/dashboards/SalesDashboard';
 import LeadDashboard from '../../components/dashboards/LeadDashboard';
+import SocialDashboard from '../../components/dashboards/SocialDashboard';
 import { motion } from 'framer-motion';
 
 const DASHBOARDS = {
@@ -25,6 +26,8 @@ const DASHBOARDS = {
   'lead-pro':        LeadDashboard,
   'lead-scale':      LeadDashboard,
   'lead-agency':     LeadDashboard,
+  // Social Media Hub
+  'social-hub':      SocialDashboard,
 };
 
 const AGENT_META = {
@@ -37,6 +40,7 @@ const AGENT_META = {
   'lead-pro':        { name: 'AI Lead Researcher — Pro',     icon: '🔎', color: 'from-purple-500 to-violet-400' },
   'lead-scale':      { name: 'AI Lead Researcher — Scale',   icon: '🔎', color: 'from-purple-600 to-fuchsia-500'},
   'lead-agency':     { name: 'AI Lead Researcher — Agency',  icon: '🔎', color: 'from-violet-600 to-purple-500' },
+  'social-hub':      { name: 'AI Social Media Hub',          icon: '📱', color: 'from-pink-500 to-orange-400'  },
 };
 
 export default function DashboardPage() {

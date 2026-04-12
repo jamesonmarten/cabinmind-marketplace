@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import Link from 'next/link';
 import { useCheckout } from '../../hooks/useCheckout';
+import SocialDashboard from '../../components/dashboards/SocialDashboard';
 
 // ─── Per-agent rich content ────────────────────────────────────────────────
 const AGENT_CONTENT = {
@@ -85,6 +86,24 @@ const AGENT_CONTENT = {
     ],
     demoTitle: 'Find Real Leads — Live AI Demo',
     demoDesc: 'Describe your ideal customer and the agent generates 5 fully-enriched, scored prospects in seconds. Click any lead to save them to your CRM.',
+    showChat: false,
+  },
+  'social-hub': {
+    gradient: 'from-pink-500 via-orange-400 to-yellow-400',
+    bg: 'from-pink-900/30 to-orange-900/10',
+    icon: '📱',
+    tagline: 'One composer. Five platforms. Zero tab-switching.',
+    heroDesc: 'Write once, publish everywhere. Toggle Instagram, Facebook, X, LinkedIn, and TikTok per post — with AI-generated captions, image/video upload, draft queuing, and a live post history.',
+    benefits: [
+      { icon: '⚡', title: 'Simultaneous Publishing', desc: 'One click sends your post to every enabled platform concurrently — no copy-paste, no switching apps.' },
+      { icon: '✨', title: 'AI Caption Generator', desc: 'Describe what you want to say and GPT-4o mini writes an engaging, hashtag-rich caption in seconds.' },
+      { icon: '🎬', title: 'Image & Video Support', desc: 'Upload JPG, PNG, GIF, MP4, or MOV — the hub routes each file to the correct platform API automatically.' },
+      { icon: '📋', title: 'Draft Queue & History', desc: 'Save posts as drafts, schedule them, and track published/failed status per platform in one view.' },
+      { icon: '🔐', title: 'Secure Credential Vault', desc: 'Platform tokens are stored only in your browser — never in our database. Full privacy by design.' },
+      { icon: '📊', title: 'Publishing Analytics', desc: 'See total posts, success rates, and failures per platform at a glance.' },
+    ],
+    demoTitle: 'Live Composer Preview',
+    demoDesc: 'See the full Social Media Hub — compose a post, toggle platforms, and use AI to generate a caption. Connect your accounts in the Connect tab to start publishing.',
     showChat: false,
   },
 };
@@ -1241,6 +1260,7 @@ const DEMO_COMPONENTS = {
   'blog-writer': BlogDemo,
   'sales-assistant': SalesDemo,
   'lead-researcher': LeadDemo,
+  'social-hub': SocialDashboard,
 };
 
 // ─── Main page ─────────────────────────────────────────────────────────────

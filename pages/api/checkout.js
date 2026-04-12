@@ -10,6 +10,7 @@ const AGENT_PRICES = {
   'blog-writer':     { name: 'AI Blog Writer',               amount: 4900  }, // $49/mo
   'receptionist':    { name: 'AI Receptionist',              amount: 7900  }, // $79/mo
   'sales-assistant': { name: 'AI Sales Assistant',           amount: 9900  }, // $99/mo
+  'social-hub':      { name: 'AI Social Media Hub',          amount: 4900  }, // $49/mo
   // Lead Researcher — BYOK tiered plans
   'lead-researcher': { name: 'AI Lead Researcher — Starter', amount: 9700  }, // $97/mo  legacy redirect → Starter
   'lead-starter':    { name: 'AI Lead Researcher — Starter', amount: 9700  }, // $97/mo  · platform keys · 100 leads

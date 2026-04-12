@@ -59,6 +59,26 @@ export default function handler(req, res) {
       ],
       tools: ['Hunter.io', 'ZeroBounce', 'Groq AI', 'OpenAI', 'Instantly.ai (export)', 'HubSpot', 'Airtable'],
       actions: ['Generate lead list', 'Validate email list', 'Generate email sequence', 'Export to Instantly.ai', 'Push to CRM']
+    },
+    {
+      id: 'social-hub',
+      name: 'AI Social Media Hub',
+      description: 'Publish images, videos, and posts to Instagram, Facebook, X, LinkedIn, and TikTok simultaneously — with AI-generated captions.',
+      category: 'Marketing',
+      price: 49,
+      priceLabel: '$49/mo',
+      features: [
+        'Post to 5 platforms simultaneously',
+        'AI caption generator (GPT-4o mini)',
+        'Image & video upload',
+        'Scheduling & draft queue',
+        'Per-platform toggle on/off',
+        'Post history & status tracking',
+        'localStorage credential vault',
+        'Publish analytics dashboard',
+      ],
+      tools: ['Meta Graph API', 'X API v2', 'LinkedIn UGC API', 'TikTok Content API', 'GPT-4o mini'],
+      actions: ['Compose & publish post', 'Generate AI caption', 'Upload media', 'Save draft', 'View post history']
     }
   ];
 
