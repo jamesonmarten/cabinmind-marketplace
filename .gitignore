@@ -7,3 +7,4 @@ node_modules/
 .vercel
 *.tmp
 test-e2e-leads.mjs
+.sfdx/
