@@ -136,11 +136,17 @@ function LeadCard({ lead, index }) {
                   </a>
                 )}
                 {lead.email && (
-                  <a href={`mailto:${lead.email}`}
+                  <button
                     className="text-xs px-3 py-1.5 bg-brand-500/20 text-brand-300 border border-brand-500/30 rounded-lg hover:bg-brand-500/30 transition"
-                    onClick={e => e.stopPropagation()}>
-                    Email →
-                  </a>
+                    onClick={e => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(lead.email);
+                      const btn = e.currentTarget;
+                      btn.textContent = 'Copied ✓';
+                      setTimeout(() => { btn.textContent = 'Copy Email'; }, 1500);
+                    }}>
+                    Copy Email
+                  </button>
                 )}
               </div>
               {lead.score_signals?.length > 0 && (
