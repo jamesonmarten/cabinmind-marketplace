@@ -23,7 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Each slug gets its own independent 50-lead counter.
 const VALID_SLUGS = [
   'acme2026',
-  // add more as needed: 'client-xyz', 'prospectco', etc.
+  'defiantcnc2026',
 ];
 
 const TOTAL_LIMIT     = 50;  // leads per slug (10 batches × 5)
