@@ -13,6 +13,7 @@ import BlogDashboard from '../../components/dashboards/BlogDashboard';
 import SalesDashboard from '../../components/dashboards/SalesDashboard';
 import LeadDashboard from '../../components/dashboards/LeadDashboard';
 import SocialDashboard from '../../components/dashboards/SocialDashboard';
+import TrainingDashboard from '../../components/dashboards/TrainingDashboard';
 import { motion } from 'framer-motion';
 
 const DASHBOARDS = {
@@ -28,6 +29,8 @@ const DASHBOARDS = {
   'lead-agency':     LeadDashboard,
   // Social Media Hub
   'social-hub':      SocialDashboard,
+  // 1-on-1 AI Training
+  'ai-training':     TrainingDashboard,
 };
 
 const AGENT_META = {
@@ -41,6 +44,7 @@ const AGENT_META = {
   'lead-scale':      { name: 'AI Lead Researcher — Scale',   icon: '🔎', color: 'from-purple-600 to-fuchsia-500'},
   'lead-agency':     { name: 'AI Lead Researcher — Agency',  icon: '🔎', color: 'from-violet-600 to-purple-500' },
   'social-hub':      { name: 'AI Social Media Hub',          icon: '📱', color: 'from-pink-500 to-orange-400'  },
+  'ai-training':     { name: '1-on-1 AI Training',            icon: '🎓', color: 'from-emerald-500 to-teal-400'  },
 };
 
 export default function DashboardPage() {
@@ -50,6 +54,7 @@ export default function DashboardPage() {
   const [session, setSession] = useState(null);
   const [loading, setLoading]  = useState(true);
   const [error, setError]      = useState(null);
+  const [cancelState, setCancelState] = useState(null); // null | 'confirming' | 'cancelling' | { cancelAt }
 
   useEffect(() => {
     if (!router.isReady || !token) return;
@@ -107,7 +112,7 @@ export default function DashboardPage() {
             <div className="ml-auto text-right hidden sm:block">
               <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur px-3 py-1.5 rounded-full text-white text-xs font-medium">
                 <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                Active subscription
+                {cancelState?.cancelAt ? 'Cancels at period end' : 'Active subscription'}
               </div>
             </div>
           </motion.div>
@@ -130,6 +135,64 @@ export default function DashboardPage() {
         ) : (
           <div className="text-center py-24 text-gray-500">Dashboard coming soon.</div>
         )}
+
+        {/* Manage Subscription */}
+        <div className="mt-16 border-t border-white/10 pt-8">
+          <h3 className="text-gray-500 text-xs uppercase tracking-widest font-semibold mb-4">Manage Subscription</h3>
+          {cancelState?.cancelAt ? (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-sm">
+              <p className="text-amber-300 font-medium">Your subscription is set to cancel on {new Date(cancelState.cancelAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.</p>
+              <p className="text-gray-400 mt-1">You'll retain full access until then. Contact <a href="mailto:support@devcabin.tech" className="text-brand-400 hover:underline">support@devcabin.tech</a> to reactivate.</p>
+            </div>
+          ) : cancelState === 'confirming' ? (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+              <p className="text-red-300 font-medium text-sm mb-3">Are you sure you want to cancel?</p>
+              <p className="text-gray-400 text-xs mb-4">Your subscription will remain active until the end of your current billing period. No further charges will be made.</p>
+              <div className="flex gap-3">
+                <button
+                  onClick={async () => {
+                    setCancelState('cancelling');
+                    try {
+                      const r = await fetch('/api/dashboard/cancel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token }),
+                      });
+                      const data = await r.json();
+                      if (data.success) {
+                        setCancelState({ cancelAt: data.cancelAt });
+                      } else {
+                        alert(data.error || 'Failed to cancel');
+                        setCancelState(null);
+                      }
+                    } catch {
+                      alert('Something went wrong. Please try again.');
+                      setCancelState(null);
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg transition"
+                >
+                  Yes, cancel my subscription
+                </button>
+                <button
+                  onClick={() => setCancelState(null)}
+                  className="px-4 py-2 bg-white/5 border border-white/10 text-gray-400 text-xs font-bold rounded-lg hover:bg-white/10 transition"
+                >
+                  Nevermind, keep it
+                </button>
+              </div>
+            </div>
+          ) : cancelState === 'cancelling' ? (
+            <p className="text-gray-500 text-sm">Cancelling…</p>
+          ) : (
+            <button
+              onClick={() => setCancelState('confirming')}
+              className="text-xs text-gray-600 hover:text-red-400 transition underline underline-offset-2"
+            >
+              Cancel subscription
+            </button>
+          )}
+        </div>
       </div>
     </Layout>
   );
