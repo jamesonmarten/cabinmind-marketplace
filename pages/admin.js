@@ -87,7 +87,7 @@ function ClientRow({ client, i }) {
                 : <span className="text-green-500 text-xs">✓ OK</span>}
         </td>
         <td className="px-4 py-3 text-gray-600 text-xs">
-          {new Date(client.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          {client.createdAt ? new Date(client.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
         </td>
         <td className="px-4 py-3 text-gray-700 text-xs">{open ? '▲' : '▼'}</td>
       </tr>
@@ -107,7 +107,7 @@ function ClientRow({ client, i }) {
               </div>
               <div>
                 <div className="text-gray-600 uppercase tracking-wide mb-1">Next Billing</div>
-                <div className="text-gray-300">{new Date(client.nextBilling).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                <div className="text-gray-300">{client.nextBilling ? new Date(client.nextBilling).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</div>
               </div>
               <div>
                 <div className="text-gray-600 uppercase tracking-wide mb-1">Dashboard Link</div>
@@ -363,7 +363,7 @@ export default function AdminPage() {
                     <PlanBadge plan={c.plan} />
                     <div className="text-red-400 font-bold text-sm">-${c.mrr}/mo</div>
                     <div className="text-gray-600 text-xs">
-                      {new Date(c.canceledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {c.canceledAt ? new Date(c.canceledAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
                     </div>
                     <a href={`mailto:${c.email}?subject=We%20miss%20you%20at%20CabinMind`}
                       className="text-purple-400 text-xs hover:underline">Win-back →</a>

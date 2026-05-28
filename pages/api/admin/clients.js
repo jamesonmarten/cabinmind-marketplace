@@ -132,8 +132,8 @@ export default async function handler(req, res) {
           dashboardUrl:   token ? `https://products.devcabin.tech/dashboard/${token}` : null,
           mrr,
           status:         sub.status,
-          createdAt:      new Date(customer.created * 1000).toISOString(),
-          nextBilling:    new Date(sub.current_period_end * 1000).toISOString(),
+          createdAt:      customer.created ? new Date(customer.created * 1000).toISOString() : null,
+          nextBilling:    sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
           usage: {
             leadBatches:   { used: monthUsage.leadBatches   || 0, limit: limits.leadBatches   === Infinity ? '∞' : limits.leadBatches   },
             zbValidations: { used: monthUsage.zbValidations || 0, limit: limits.zbValidations === Infinity ? '∞' : limits.zbValidations },
