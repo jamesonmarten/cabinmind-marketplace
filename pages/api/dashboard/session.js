@@ -16,6 +16,22 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid token' });
   }
 
+  // ─── Superadmin bypass ───────────────────────────────────────────────────
+  // When the token equals ADMIN_SECRET, return a synthetic session so the
+  // owner can access any dashboard variant. Pass ?as=lead-researcher (or any
+  // agentId from DASHBOARDS) to choose which dashboard to render.
+  if (token === process.env.ADMIN_SECRET) {
+    const agentId = (req.query.as || 'lead-researcher').toString();
+    return res.status(200).json({
+      agentId,
+      customerEmail: 'superadmin@devcabin.tech',
+      customerName:  'Superadmin',
+      sessionId:     'superadmin',
+      token,
+      isSuperadmin:  true,
+    });
+  }
+
   // 1. Try the local file store first (fast path)
   const local = getToken(token);
   if (local) {
