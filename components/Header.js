@@ -15,11 +15,10 @@ export default function Header() {
   }, []);
 
   const navLinks = [
-    { href: '/agents',  label: 'Marketplace'   },
-    { href: '/demo',    label: 'Live Demo', accent: true },
+    { href: '/demo',    label: 'Try It Free', accent: true },
     { href: '/pricing', label: 'Pricing'        },
-    { href: '/compare', label: 'Compare vs Others' },
-    { href: '/agents/builder', label: 'Build an Agent' },
+    { href: '/agency',  label: 'For Agencies'   },
+    { href: '/compare', label: 'Compare' },
   ];
 
   return (
@@ -85,10 +84,10 @@ export default function Header() {
             </Link>
           ))}
           <Link
-            href="/agents"
+            href="/demo"
             className="px-4 py-2 rounded-lg bg-gradient-to-r from-brand-500 to-purple-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-brand-500/30"
           >
-            Get Started
+            Get Leads Free →
           </Link>
         </nav>
 
@@ -122,11 +121,11 @@ export default function Header() {
             </Link>
           ))}
           <Link
-            href="/pricing"
+            href="/demo"
             onClick={() => setMenuOpen(false)}
             className="mt-1 py-3 rounded-xl bg-gradient-to-r from-brand-500 to-purple-600 text-white text-sm font-bold text-center hover:opacity-90 transition-opacity shadow-lg shadow-brand-500/30"
           >
-            Get Started →
+            Get Leads Free →
           </Link>
         </div>
       )}
