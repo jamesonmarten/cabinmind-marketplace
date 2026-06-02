@@ -6,7 +6,7 @@ node_modules/
 .DS_Store
 .vercel
 *.tmp
-test-e2e-leads.mjs
+test-*.mjs
 .sfdx/
 
 # Standalone sub-project (separate repo, not deployed with marketplace)
