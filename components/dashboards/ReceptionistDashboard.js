@@ -379,7 +379,7 @@ function EmbedTab({ session }) {
             </button>
           </div>
           {embedType === 'script' && (
-            <p className="text-xs text-amber-400/80">⚠️ The floating bubble script (<code>widget.js</code>) is coming soon. Use the iFrame for now — it works on any site today.</p>
+            <p className="text-xs text-gray-500">Paste this one snippet before <code className="text-gray-400">&lt;/body&gt;</code>. The floating bubble will appear on your site immediately — no other changes needed.</p>
           )}
         </div>
       </div>

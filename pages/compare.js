@@ -181,9 +181,9 @@ function PriceCalculator() {
         <div className="text-gray-600 text-2xl hidden sm:block">→</div>
         <div className="flex-1 text-center sm:text-right">
           <div className="text-gray-400 text-xs mb-1">CabinMind Starter replaces this for</div>
-          <div className="text-4xl font-black text-green-400">$97<span className="text-xl text-gray-500">/mo</span></div>
+          <div className="text-4xl font-black text-green-400">$100<span className="text-xl text-gray-500">/mo</span></div>
           <div className="text-emerald-400 text-sm font-semibold mt-1">
-            {total > 97 ? `Save $${total - 97}/mo ($${((total - 97) * 12).toLocaleString()}/yr)` : 'All-in-one — no juggling tabs'}
+            {total > 100 ? `Save $${total - 100}/mo ($${((total - 100) * 12).toLocaleString()}/yr)` : 'All-in-one — no juggling tabs'}
           </div>
         </div>
       </div>
@@ -341,13 +341,13 @@ export default function ComparePage() {
                   <tr className="border-t border-white/10 bg-white/5">
                     <td className="p-4 text-gray-400 font-semibold text-xs">Starting price</td>
                     {[
-                      { label: '$97/mo', highlight: true  },
-                      { label: '$49/mo', highlight: false },
-                      { label: '$49/mo', highlight: false },
-                      { label: '$149/mo',highlight: false },
-                      { label: '$15K/yr',highlight: false },
-                      { label: '$49/mo', highlight: false },
-                      { label: '$99/mo', highlight: false },
+                      { label: '$100/mo', highlight: true  },
+                      { label: '$49/mo',  highlight: false },
+                      { label: '$49/mo',  highlight: false },
+                      { label: '$149/mo', highlight: false },
+                      { label: '$15K/yr', highlight: false },
+                      { label: '$49/mo',  highlight: false },
+                      { label: '$99/mo',  highlight: false },
                     ].map((p, i) => (
                       <td key={i} className={`p-4 text-center font-bold text-sm ${p.highlight ? 'text-purple-300 bg-purple-500/10' : 'text-gray-400'}`}>
                         {p.label}
@@ -487,7 +487,7 @@ export default function ComparePage() {
                   { step: 'Write cold email sequences',        competitor: 'Instantly $37 + your time',  cm: 'AI writes 4-step sequence per lead' },
                   { step: 'Export to your sending tool',       competitor: 'Manual CSV formatting',      cm: 'One-click Instantly.ai CSV export' },
                 ],
-                footer: 'Competitor stack total: $250+/mo and hours of manual work. CabinMind Starter: $97/mo. Zero setup.',
+                footer: 'Competitor stack total: $250+/mo and hours of manual work. CabinMind Starter: $100/mo. Zero setup.',
               },
               {
                 icon: '🎯',
@@ -540,10 +540,10 @@ export default function ComparePage() {
                 color: 'border-violet-500/30 from-violet-500/10 to-purple-500/5',
                 accent: 'text-violet-400',
                 tiers: [
-                  { plan: 'Starter $97/mo',  desc: 'Platform covers everything. Just subscribe, get 100 validated leads. Zero API accounts.', perLead: '$0.97/lead' },
-                  { plan: 'Pro $247/mo',      desc: 'Bring your own Hunter key. Platform covers ZeroBounce. 500 leads/mo.', perLead: '$0.59/lead' },
-                  { plan: 'Scale $497/mo',    desc: 'Bring both keys. Unlimited leads flat — no per-lead fees ever again.', perLead: 'Unlimited' },
-                  { plan: 'Agency $997/mo',   desc: 'One subscription. 5 client seats. White-label dashboard. Bill clients at any margin.', perLead: 'Your margin' },
+                  { plan: 'Starter $100/mo', desc: 'Platform covers everything. Just subscribe, get 100 validated leads. Zero API accounts.', perLead: '$1.00/lead' },
+                  { plan: 'Pro $250/mo',     desc: 'Bring your own Hunter key. Platform covers ZeroBounce. 500 leads/mo.', perLead: '$0.50/lead' },
+                  { plan: 'Scale $500/mo',   desc: 'Bring both keys. Unlimited leads flat — no per-lead fees ever again.', perLead: 'Unlimited' },
+                  { plan: 'Agency $1000/mo', desc: 'One subscription. 5 client seats. White-label dashboard. Bill clients at any margin.', perLead: 'Your margin' },
                 ],
                 footer: 'Every other tool charges more as you use more. CabinMind flips it — the more serious and high-volume the client, the better value they get. That\'s a trust signal.',
               },
@@ -721,7 +721,7 @@ export default function ComparePage() {
                   disabled={!!checkoutLoading}
                   className="px-10 py-4 rounded-xl bg-white/10 border border-white/20 text-white font-bold text-lg hover:bg-white/15 transition-all disabled:opacity-50"
                 >
-                  {checkoutLoading ? 'Redirecting…' : 'Start Starter — $97/mo'}
+                  {checkoutLoading ? 'Redirecting…' : 'Start Starter — $100/mo'}
                 </button>
               </div>
               <p className="text-gray-600 text-xs mt-4">Cancel anytime · No annual contract · Setup in 5 minutes</p>

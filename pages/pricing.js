@@ -2,13 +2,13 @@
  * /pricing — CabinMind AI Agent Marketplace
  *
  * Pricing strategy:
- *   Starter  $97/mo  — Platform keys, 100 leads/mo
- *   Pro      $247/mo — Client brings Hunter key; platform ZB
- *   Scale    $497/mo — Full BYOK; unlimited
- *   Agency   $997/mo — Full BYOK, 5 seats, white-label
+ *   Starter  $100/mo — Platform keys, 100 leads/mo
+ *   Pro      $250/mo — Client brings Hunter key; platform ZB
+ *   Scale    $500/mo — Full BYOK; unlimited
+ *   Agency   $1000/mo — Full BYOK, 5 seats, white-label
  *
  * Other agents:
- *   Website Auditor $29 · Blog Writer $49 · Receptionist $79 · Sales Assistant $99
+ *   Website Auditor $50 · Blog Writer $50 · Receptionist $80 · Sales Assistant $100
  */
 import Layout from '../components/Layout';
 import Link from 'next/link';
@@ -22,7 +22,7 @@ const LEAD_TIERS = [
   {
     id: 'lead-starter',
     name: 'Starter',
-    price: 97,
+    price: 100,
     badge: null,
     color: 'border-white/10',
     btnClass: 'glass border border-white/10 text-white hover:border-brand-400/40 hover:text-brand-300',
@@ -42,18 +42,18 @@ const LEAD_TIERS = [
       'Email support',
     ],
     costBreakdown: [
-      { label: 'CabinMind subscription', amount: '$97', included: true, note: 'you → us' },
+      { label: 'CabinMind subscription', amount: '$100', included: true, note: 'you → us' },
       { label: 'Hunter.io (email finder)', amount: 'Included', included: true, note: 'we cover it' },
       { label: 'ZeroBounce (validation)', amount: 'Included', included: true, note: 'we cover it' },
     ],
-    totalCost: '$97 / mo — all in',
-    perLead: '$0.97 / lead',
+    totalCost: '$100 / mo — all in',
+    perLead: '$1.00 / lead',
     setupNote: null,
   },
   {
     id: 'lead-pro',
     name: 'Pro',
-    price: 247,
+    price: 250,
     badge: 'Most Popular',
     color: 'border-brand-500/50 shadow-2xl shadow-brand-500/20',
     btnClass: 'bg-gradient-to-r from-brand-500 to-purple-600 text-white shadow-lg shadow-brand-500/30 hover:opacity-90',
@@ -76,18 +76,18 @@ const LEAD_TIERS = [
       'Priority support',
     ],
     costBreakdown: [
-      { label: 'CabinMind subscription', amount: '$247', included: true, note: 'you → us' },
+      { label: 'CabinMind subscription', amount: '$250', included: true, note: 'you → us' },
       { label: 'Hunter.io Starter (500 searches)', amount: '$49', included: false, note: 'you → Hunter.io' },
       { label: 'ZeroBounce (email validation)', amount: 'Included', included: true, note: 'we cover it' },
     ],
-    totalCost: '~$296 / mo total',
-    perLead: '$0.59 / lead',
+    totalCost: '~$299 / mo total',
+    perLead: '$0.60 / lead',
     setupNote: 'You need a Hunter.io account. Sign up free at hunter.io, then upgrade to their Starter plan ($49/mo) for 500 searches. Takes 5 minutes — paste your API key into your CabinMind dashboard under API Keys.',
   },
   {
     id: 'lead-scale',
     name: 'Scale',
-    price: 497,
+    price: 500,
     badge: 'Best Value',
     color: 'border-purple-500/40',
     btnClass: 'glass border border-purple-500/40 text-purple-300 hover:bg-purple-500/10',
@@ -110,7 +110,7 @@ const LEAD_TIERS = [
       'Slack support + onboarding call',
     ],
     costBreakdown: [
-      { label: 'CabinMind subscription', amount: '$497', included: true, note: 'you → us' },
+      { label: 'CabinMind subscription', amount: '$500', included: true, note: 'you → us' },
       { label: 'Hunter.io Growth (2,000 searches)', amount: '$99', included: false, note: 'you → Hunter.io' },
       { label: 'ZeroBounce (5,000 validations)', amount: '$25', included: false, note: 'you → ZeroBounce' },
     ],
@@ -121,7 +121,7 @@ const LEAD_TIERS = [
   {
     id: 'lead-agency',
     name: 'Agency',
-    price: 997,
+    price: 1000,
     badge: 'White-Label',
     color: 'border-violet-500/40',
     btnClass: 'glass border border-violet-500/40 text-violet-300 hover:bg-violet-500/10',
@@ -143,7 +143,7 @@ const LEAD_TIERS = [
       'SLA-backed priority support',
     ],
     costBreakdown: [
-      { label: 'CabinMind subscription', amount: '$997', included: true, note: 'you → us' },
+      { label: 'CabinMind subscription', amount: '$1000', included: true, note: 'you → us' },
       { label: 'Hunter.io (any plan)', amount: 'Your key', included: false, note: 'you → Hunter.io' },
       { label: 'ZeroBounce (any plan)', amount: 'Your key', included: false, note: 'you → ZeroBounce' },
     ],
@@ -158,7 +158,7 @@ const OTHER_PLANS = [
     id: 'website-audit',
     icon: '📈',
     name: 'AI Website Auditor',
-    price: 29,
+    price: 50,
     desc: 'Full SEO & Core Web Vitals audit on demand. Outrank competitors.',
     features: ['Unlimited audits', 'Core Web Vitals report', 'SEO scorecard + fixes', 'PDF export', 'Competitor comparison'],
     highlight: false,
@@ -167,7 +167,7 @@ const OTHER_PLANS = [
     id: 'blog-writer',
     icon: '✍️',
     name: 'AI Blog Writer',
-    price: 49,
+    price: 50,
     desc: 'SEO-optimised long-form articles published on autopilot every week.',
     features: ['20 articles / month', 'Keyword research included', 'WordPress auto-publish', '2,400-word output', 'SEO meta generation'],
     highlight: false,
@@ -176,7 +176,7 @@ const OTHER_PLANS = [
     id: 'receptionist',
     icon: '🤖',
     name: 'AI Receptionist',
-    price: 79,
+    price: 80,
     desc: 'Answers every visitor, qualifies every lead, books meetings 24/7.',
     features: ['Unlimited conversations', 'Lead qualification flows', 'Appointment booking', 'CRM push', 'Custom persona & tone'],
     highlight: true,
@@ -186,7 +186,7 @@ const OTHER_PLANS = [
     id: 'sales-assistant',
     icon: '💼',
     name: 'AI Sales Assistant',
-    price: 99,
+    price: 100,
     desc: 'Personalised multi-step outreach sequences that actually convert.',
     features: ['500 prospects / month', '5-step follow-up sequences', 'CRM auto-logging', 'Reply detection', 'Open-rate analytics'],
     highlight: false,
@@ -239,7 +239,7 @@ const FAQ = [
   },
   {
     q: 'Do you offer agency or reseller pricing?',
-    a: "The Agency plan ($997/mo) is built for that — 5 seats, white-label reports, per-client ICP templates. Email support@devcabin.tech to discuss volume deals for higher seat counts.",
+    a: "The Agency plan ($1000/mo) is built for that — 5 seats, white-label reports, per-client ICP templates. Email support@devcabin.tech to discuss volume deals for higher seat counts.",
   },
 ];
 

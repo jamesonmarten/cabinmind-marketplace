@@ -80,8 +80,94 @@ function IssueList({ issues }) {
   );
 }
 
+const CONFIDENCE_STYLE = {
+  high:   'bg-green-500/15 border-green-500/30 text-green-400',
+  medium: 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400',
+  low:    'bg-gray-500/15 border-gray-600/30 text-gray-400',
+};
+
+const CATEGORY_COLOR = {
+  CMS:        'text-blue-400',
+  Hosting:    'text-orange-400',
+  CDN:        'text-cyan-400',
+  Analytics:  'text-purple-400',
+  Framework:  'text-pink-400',
+  'E-commerce': 'text-green-400',
+  Marketing:  'text-yellow-400',
+  Security:   'text-red-400',
+  Font:       'text-indigo-400',
+  Payment:    'text-emerald-400',
+  Chat:       'text-teal-400',
+  Email:      'text-rose-400',
+  Other:      'text-gray-400',
+};
+
+function TechStackSection({ techStack }) {
+  const [expanded, setExpanded] = useState(null);
+  if (!techStack?.technologies?.length) return null;
+
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+      <div className="px-5 py-4 border-b border-white/10 flex items-center gap-3">
+        <span className="text-lg">🔬</span>
+        <span className="text-white font-semibold text-sm">Tech Stack</span>
+        <span className="text-gray-500 text-xs ml-auto">{techStack.technologies.length} technologies detected</span>
+      </div>
+      <div className="divide-y divide-white/5">
+        {techStack.technologies.map((tech, i) => (
+          <div key={i}>
+            <button
+              onClick={() => setExpanded(expanded === i ? null : i)}
+              className="w-full px-5 py-3.5 flex items-center gap-3 hover:bg-white/5 transition text-left"
+            >
+              <span className="text-xl w-7 flex-shrink-0">{tech.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-white text-sm font-semibold">{tech.name}</span>
+                  <span className={`text-[10px] font-semibold uppercase ${CATEGORY_COLOR[tech.category] || 'text-gray-400'}`}>
+                    {tech.category}
+                  </span>
+                </div>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded border font-medium flex-shrink-0 ${CONFIDENCE_STYLE[tech.confidence] || CONFIDENCE_STYLE.low}`}>
+                {tech.confidence}
+              </span>
+              <span className="text-gray-500 text-xs flex-shrink-0">{expanded === i ? '▲' : '▼'}</span>
+            </button>
+            <AnimatePresence>
+              {expanded === i && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                  <div className="px-5 pb-4 pt-1 grid sm:grid-cols-3 gap-3">
+                    <div className="bg-green-500/8 border border-green-500/15 rounded-xl p-3">
+                      <p className="text-[10px] font-bold text-green-400 uppercase tracking-wider mb-2">✅ Pros</p>
+                      <ul className="space-y-1">
+                        {tech.pros?.map((p, j) => <li key={j} className="text-xs text-gray-300">• {p}</li>)}
+                      </ul>
+                    </div>
+                    <div className="bg-red-500/8 border border-red-500/15 rounded-xl p-3">
+                      <p className="text-[10px] font-bold text-red-400 uppercase tracking-wider mb-2">⚠️ Cons</p>
+                      <ul className="space-y-1">
+                        {tech.cons?.map((c, j) => <li key={j} className="text-xs text-gray-300">• {c}</li>)}
+                      </ul>
+                    </div>
+                    <div className="bg-blue-500/8 border border-blue-500/15 rounded-xl p-3">
+                      <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider mb-2">💡 Recommendation</p>
+                      <p className="text-xs text-gray-300">{tech.recommendation}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AuditReport({ data, url }) {
-  const { results, trafficGain, source } = data;
+  const { results, trafficGain, source, techStack } = data;
   const cats = Object.entries(results);
 
   const avgScore    = Math.round(cats.reduce((a, [, c]) => a + (c.score ?? 0), 0) / cats.length);
@@ -162,6 +248,9 @@ function AuditReport({ data, url }) {
           ⬇️ Export Report
         </button>
       </div>
+
+      {/* Tech Stack */}
+      <TechStackSection techStack={techStack} />
 
       {/* Issue panels per category */}
       {cats.map(([key, cat]) => (

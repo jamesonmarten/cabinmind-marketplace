@@ -5,18 +5,20 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // Map agent IDs to Stripe price data.
 // In production, store real Stripe Price IDs here after creating them in your dashboard.
 const AGENT_PRICES = {
-  // Flat-rate agents (no external API cost)
-  'website-audit':   { name: 'AI Website Auditor',           amount: 2900  }, // $29/mo
-  'blog-writer':     { name: 'AI Blog Writer',               amount: 4900  }, // $49/mo
-  'receptionist':    { name: 'AI Receptionist',              amount: 7900  }, // $79/mo
-  'sales-assistant': { name: 'AI Sales Assistant',           amount: 9900  }, // $99/mo
-  'social-hub':      { name: 'AI Social Media Hub',          amount: 4900  }, // $49/mo
+  // Flat-rate agents
+  'website-audit':   { name: 'AI Website Auditor',           amount: 5000  }, // $50/mo
+  'blog-writer':     { name: 'AI Blog Writer',               amount: 5000  }, // $50/hr (treated as first session)
+  'receptionist':    { name: 'AI Receptionist',              amount: 8000  }, // $80/mo
+  'sales-assistant': { name: 'AI Sales Assistant',           amount: 10000 }, // $100/mo
+  'social-hub':      { name: 'AI Social Media Hub',          amount: 5000  }, // $50/mo
+  'ai-training':     { name: '1-on-1 AI Training (1 hr)',    amount: 5000 },  // $50/hr
+  'ai-training-lifetime': { name: '1-on-1 AI Training — Lifetime Pass', amount: 50000 }, // $500 once
   // Lead Researcher — BYOK tiered plans
-  'lead-researcher': { name: 'AI Lead Researcher — Starter', amount: 9700  }, // $97/mo  legacy redirect → Starter
-  'lead-starter':    { name: 'AI Lead Researcher — Starter', amount: 9700  }, // $97/mo  · platform keys · 100 leads
-  'lead-pro':        { name: 'AI Lead Researcher — Pro',     amount: 24700 }, // $247/mo · client Hunter key · 500 leads
-  'lead-scale':      { name: 'AI Lead Researcher — Scale',   amount: 49700 }, // $497/mo · full BYOK · unlimited
-  'lead-agency':     { name: 'AI Lead Researcher — Agency',  amount: 99700 }, // $997/mo · BYOK · 5 seats · white-label
+  'lead-researcher': { name: 'AI Lead Researcher — Starter', amount: 10000 }, // $100/mo  legacy redirect → Starter
+  'lead-starter':    { name: 'AI Lead Researcher — Starter', amount: 10000 }, // $100/mo  · platform keys · 100 leads
+  'lead-pro':        { name: 'AI Lead Researcher — Pro',     amount: 25000 }, // $250/mo · client Hunter key · 500 leads
+  'lead-scale':      { name: 'AI Lead Researcher — Scale',   amount: 50000 }, // $500/mo · full BYOK · unlimited
+  'lead-agency':     { name: 'AI Lead Researcher — Agency',  amount: 100000}, // $1000/mo · BYOK · 5 seats · white-label
 };
 
 export default async function handler(req, res) {

@@ -393,6 +393,10 @@ function maskForDemo(leads) {
       email:              maskedEmail,
       email_verified:     l.email_verified, // keep — shows validation worked
       zb_status:          l.zb_status,      // keep — shows ZeroBounce ran
+      email_source:       l.email_source,   // keep — shows where the email came from
+      email_confidence:   l.email_confidence, // keep — shows Hunter confidence %
+      catch_all:          l.catch_all,      // keep — shows catch-all detection ran
+      domain:             l.domain,         // keep — enables live MX verification in demo
       score_signals:      l.score_signals,  // keep — shows scoring quality
       linkedin:           l.linkedin_is_direct ? null : l.linkedin, // search link OK, /in/ locked
       linkedin_is_direct: false,
@@ -606,10 +610,11 @@ Return ONLY valid JSON: {"name":"Full Name","title":"Job Title","score_reason":"
 //   3. Hunter domain-search gives up to 10 contacts per domain
 //   4. ZeroBounce called on every email — conserved by stopping at first valid pattern
 //   5. D-grade leads dropped before output; keeps trying next candidate
-async function generateLeads(icp, filters, batchNum, hunterKey, zbKey, subscriptionKey) {
+async function generateLeads(icp, filters, batchNum, hunterKey, zbKey, subscriptionKey, { allowMultiplePerCompany = false } = {}) {
   const { companies, aiProvider } = await getCompanyDomains(icp, filters, batchNum);
   const leads = [];
   const seenIds = subscriptionKey ? getSeenLeads(subscriptionKey) : new Set();
+  const seenCompanies = new Set(); // Company diversity — 1 lead per company by default
   let hunterQuotaExceeded = false;
   const creatorMode = isCreatorICP(icp);
 
@@ -705,8 +710,19 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey, subscript
           continue;
         }
 
+        // ── Company diversity — 1 best lead per company (unless opted in) ─
+        const companyKey = (lead.company || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (!allowMultiplePerCompany && companyKey && seenCompanies.has(companyKey)) {
+          console.log(`[leads] Company diversity skip: already have lead from ${lead.company}`);
+          continue;
+        }
+
         seenIds.add(lead._id);
+        if (companyKey) seenCompanies.add(companyKey);
         leads.push(lead);
+
+        // When enforcing 1-per-company, break out of this company's candidates
+        if (!allowMultiplePerCompany) break;
       }
 
     } else {
@@ -789,7 +805,15 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey, subscript
         continue;
       }
 
+      // ── Company diversity (AI pattern path) ──────────────────────────────
+      const companyKey2 = (lead.company || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (!allowMultiplePerCompany && companyKey2 && seenCompanies.has(companyKey2)) {
+        console.log(`[leads] Company diversity skip: already have lead from ${lead.company}`);
+        continue;
+      }
+
       seenIds.add(lead._id);
+      if (companyKey2) seenCompanies.add(companyKey2);
       leads.push(lead);
     }
   }
@@ -843,6 +867,8 @@ export default withProtection('leads', async function handler(req, res) {
     const {
       icp, industry, location, companySize, excludeCompanies,
       batchNum = 1, isDemo = false,
+      // Company diversity: false = 1 best lead per company (default), true = allow multiple
+      allowMultiplePerCompany = false,
       // Client-supplied BYOK keys (Pro / Scale / Agency plans)
       hunterApiKey: clientHunterKey,
       zeroBounceApiKey: clientZbKey,
@@ -937,7 +963,7 @@ export default withProtection('leads', async function handler(req, res) {
       exclude:     excludeCompanies || '',
     };
 
-    const { leads, meta } = await generateLeads(icp.trim(), filters, parseInt(batchNum) || 1, hunterKey, zbKey, subscriptionKey);
+    const { leads, meta } = await generateLeads(icp.trim(), filters, parseInt(batchNum) || 1, hunterKey, zbKey, subscriptionKey, { allowMultiplePerCompany: !!allowMultiplePerCompany });
 
     // Record successful batch usage (after work completes — failed calls don't count)
     if (planForLimits !== 'scale' && planForLimits !== 'agency') {

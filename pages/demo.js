@@ -785,11 +785,11 @@ function LiveLeadsSection() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link href="/agents/lead-researcher?plan=starter"
                 className="px-6 py-3 rounded-xl bg-white/8 border border-white/15 text-white font-bold text-sm hover:bg-white/12 transition-all">
-                Starter — $97/mo · 100 leads
+                Starter — $100/mo · 100 leads
               </Link>
               <Link href="/agents/lead-researcher?plan=pro"
                 className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all shadow-xl shadow-purple-500/25 flex items-center gap-2">
-                🚀 Pro — $247/mo · 500 leads · Most popular
+                🚀 Pro — $250/mo · 500 leads · Most popular
               </Link>
               <Link href="/pricing"
                 className="px-6 py-3 rounded-xl bg-white/8 border border-white/15 text-white font-bold text-sm hover:bg-white/12 transition-all">
@@ -809,7 +809,7 @@ function LiveLeadsSection() {
             </button>
             <Link href="/pricing"
               className="px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all shadow-xl shadow-purple-500/25 flex items-center gap-2">
-              🚀 Get Unlimited Leads → from $97/mo
+              🚀 Get Unlimited Leads → from $100/mo
             </Link>
           </motion.div>
         )}
@@ -879,7 +879,7 @@ function CostComparisonSection() {
           <div className="text-purple-400 text-sm font-semibold uppercase tracking-widest mb-3">Cost Analysis</div>
           <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">$0.49 per verified lead</h2>
           <p className="text-gray-400 text-lg max-w-xl mx-auto">
-            Starter plan: 100 leads for $49/mo. Compare what you're spending today vs. what CabinMind costs — including data quality.
+            Starter plan: 100 leads for $100/mo. Compare what you're spending today vs. what CabinMind costs — including data quality.
           </p>
         </motion.div>
 
@@ -959,7 +959,7 @@ function ROISection() {
           className="text-center mb-12">
           <div className="text-purple-400 text-sm font-semibold uppercase tracking-widest mb-3">ROI Calculator</div>
           <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">Your actual return on investment</h2>
-          <p className="text-gray-400 text-lg max-w-xl mx-auto">Pick your scenario — see exactly what CabinMind pays back. Plans from $49/mo.</p>
+          <p className="text-gray-400 text-lg max-w-xl mx-auto">Pick your scenario — see exactly what CabinMind pays back. Plans from $100/mo.</p>
         </motion.div>
 
         {/* Scenario selector */}

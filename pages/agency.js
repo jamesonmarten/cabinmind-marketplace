@@ -11,17 +11,21 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useCheckout } from '../hooks/useCheckout';
 
+// ─── Math helpers ─────────────────────────────────────────────────────────────
+
 function calcROI(numClients, monthlyChargePerClient) {
   const monthlyRevenue = numClients * monthlyChargePerClient;
-  const agencyCost = 997;
+  const agencyCost = 997; // CabinMind Agency tier
   const profit = monthlyRevenue - agencyCost;
   const annualProfit = profit * 12;
-  return { monthlyRevenue, profit, annualProfit, marginPct: monthlyRevenue ? Math.round((profit / monthlyRevenue) * 100) : 0 };
+  return { monthlyRevenue, profit, annualProfit, marginPct: Math.round((profit / monthlyRevenue) * 100) };
 }
+
+// ─── Testimonials ─────────────────────────────────────────────────────────────
 
 const TESTIMONIALS = [
   {
-    quote: "We rebranded CabinMind as our own 'LeadPilot Pro' product. Charging clients $397/mo each — we are at 8 clients and netting $2,179/mo profit. It paid for itself in week one.",
+    quote: "We rebranded CabinMind as our own 'LeadPilot Pro' product. Charging clients $397/mo each — we're at 8 clients and netting $2,179/mo profit. It paid for itself in week one.",
     name: 'Jordan Reyes',
     title: 'Founder, Northwind Growth',
     initials: 'JR',
@@ -29,7 +33,7 @@ const TESTIMONIALS = [
     color: 'from-purple-500 to-fuchsia-500',
   },
   {
-    quote: "Our clients see our logo, our colors, our domain. They never know it is CabinMind underneath. Closed 3 new retainers at $500/mo within a week of launching.",
+    quote: "Our clients see our logo, our colors, our domain. They never know it's CabinMind underneath. Closed 3 new retainers at $500/mo within a week of launching.",
     name: 'Maya Chen',
     title: 'Director of Demand Gen, Apex Labs',
     initials: 'MC',
@@ -45,6 +49,8 @@ const TESTIMONIALS = [
     color: 'from-emerald-500 to-teal-400',
   },
 ];
+
+// ─── Components ───────────────────────────────────────────────────────────────
 
 function Feature({ icon, title, desc }) {
   return (
@@ -70,13 +76,15 @@ function ComparisonRow({ label, you, them, highlight }) {
   );
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function AgencyPage() {
   const [numClients, setNumClients] = useState(10);
   const [charge, setCharge] = useState(297);
   const roi = calcROI(numClients, charge);
   const { handleCheckout, loading } = useCheckout();
 
-  const buyAgency = () => handleCheckout('lead-agency-white-label', { plan: 'agency-whitelabel' });
+  const buyAgency = () => handleCheckout('lead-agency-white-label');
 
   return (
     <Layout>
@@ -85,85 +93,130 @@ export default function AgencyPage() {
         <meta name="description" content="Resell AI-powered lead generation under your own brand. $997/mo gets you 10 client seats and 2,000 leads/mo. 96% margin." />
       </Head>
 
+      {/* ─── Hero ───────────────────────────────────────────────────────────── */}
       <section className="pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-950 via-purple-950/20 to-gray-950">
         <div className="max-w-5xl mx-auto text-center">
-          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 bg-brand-500/10 border border-brand-500/30 rounded-full px-4 py-1.5 text-xs font-bold text-brand-300 uppercase tracking-wider mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 bg-brand-500/10 border border-brand-500/30 rounded-full px-4 py-1.5 text-xs font-bold text-brand-300 uppercase tracking-wider mb-6"
+          >
             <span className="w-1.5 h-1.5 bg-brand-400 rounded-full animate-pulse" />
             For Agencies Only · White-Label
           </motion.div>
 
-          <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="text-4xl sm:text-6xl font-black text-white leading-tight mb-6">
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl sm:text-6xl font-black text-white leading-tight mb-6"
+          >
             Resell AI Lead Generation<br />
             <span className="bg-gradient-to-r from-brand-400 via-purple-400 to-fuchsia-400 bg-clip-text text-transparent">
               Under Your Own Brand
             </span>
           </motion.h1>
 
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-            className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-4">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto mb-4"
+          >
             Add a $300/mo recurring product line to your agency in under an hour. Your logo, your colors, your domain — we power the engine.
           </motion.p>
 
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-            className="text-sm text-gray-500 mb-10">
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-sm text-gray-500 mb-10"
+          >
             10 client seats included · 2,000 leads/mo pooled · 96% profit margin
           </motion.p>
 
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-            className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-            <button onClick={buyAgency} disabled={loading}
-              className="bg-brand-600 hover:bg-brand-500 text-white font-bold px-8 py-4 rounded-2xl text-lg transition shadow-xl shadow-brand-600/30 disabled:opacity-50">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="flex flex-col sm:flex-row gap-3 justify-center items-center"
+          >
+            <button
+              onClick={buyAgency}
+              disabled={loading}
+              className="bg-brand-600 hover:bg-brand-500 text-white font-bold px-8 py-4 rounded-2xl text-lg transition shadow-xl shadow-brand-600/30 disabled:opacity-50"
+            >
               {loading ? 'Loading…' : 'Get Started — $997/mo →'}
             </button>
-            <a href="#calculator" className="text-gray-400 hover:text-white text-sm font-medium px-6 py-4 transition">
+            <a
+              href="#calculator"
+              className="text-gray-400 hover:text-white text-sm font-medium px-6 py-4 transition"
+            >
               See profit calculator ↓
             </a>
           </motion.div>
 
-          <p className="text-xs text-gray-600 mt-6">No setup fees · Cancel anytime · 14-day money-back guarantee</p>
+          <p className="text-xs text-gray-600 mt-6">
+            No setup fees · Cancel anytime · 14-day money-back guarantee
+          </p>
         </div>
       </section>
 
+      {/* ─── Profit Calculator ─────────────────────────────────────────────── */}
       <section id="calculator" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-950">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Your profit, your math</h2>
-            <p className="text-gray-400">Drag the sliders to see how much you would net every month.</p>
+            <p className="text-gray-400">Drag the sliders to see how much you'd net every month.</p>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-10">
             <div className="grid sm:grid-cols-2 gap-8 mb-10">
               <div>
-                <label className="block text-gray-400 text-xs uppercase tracking-widest font-semibold mb-3">Clients you will resell to</label>
+                <label className="block text-gray-400 text-xs uppercase tracking-widest font-semibold mb-3">
+                  Clients you'll resell to
+                </label>
                 <div className="flex items-baseline gap-3 mb-3">
                   <span className="text-5xl font-black text-white">{numClients}</span>
                   <span className="text-gray-500 text-sm">clients</span>
                 </div>
-                <input type="range" min="1" max="10" value={numClients}
+                <input
+                  type="range"
+                  min="1"
+                  max="10"
+                  value={numClients}
                   onChange={e => setNumClients(parseInt(e.target.value))}
-                  className="w-full accent-brand-500" />
+                  className="w-full accent-brand-500"
+                />
                 <div className="flex justify-between text-xs text-gray-600 mt-1">
                   <span>1</span><span>10 (max included)</span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-gray-400 text-xs uppercase tracking-widest font-semibold mb-3">Monthly fee per client</label>
+                <label className="block text-gray-400 text-xs uppercase tracking-widest font-semibold mb-3">
+                  Monthly fee per client
+                </label>
                 <div className="flex items-baseline gap-3 mb-3">
                   <span className="text-5xl font-black text-white">${charge}</span>
                   <span className="text-gray-500 text-sm">/ mo each</span>
                 </div>
-                <input type="range" min="100" max="700" step="50" value={charge}
+                <input
+                  type="range"
+                  min="100"
+                  max="700"
+                  step="50"
+                  value={charge}
                   onChange={e => setCharge(parseInt(e.target.value))}
-                  className="w-full accent-brand-500" />
+                  className="w-full accent-brand-500"
+                />
                 <div className="flex justify-between text-xs text-gray-600 mt-1">
                   <span>$100</span><span>$700</span>
                 </div>
               </div>
             </div>
 
+            {/* Result */}
             <div className="border-t border-white/10 pt-8">
               <div className="grid sm:grid-cols-3 gap-4">
                 <div className="bg-gray-900/60 border border-white/5 rounded-2xl p-5 text-center">
@@ -182,13 +235,14 @@ export default function AgencyPage() {
                   <div className="text-emerald-500 text-xs mt-1">${roi.annualProfit.toLocaleString()} / yr · {roi.marginPct}% margin</div>
                 </div>
               </div>
-              {roi.profit > 0 ? (
+              {roi.profit > 0 && (
                 <p className="text-center text-gray-500 text-sm mt-6">
-                  💡 That is <strong className="text-white">${Math.round(roi.profit / 30)}/day</strong> in profit, hands-off.
+                  💡 That's <strong className="text-white">${Math.round(roi.profit / 30)}/day</strong> in profit, hands-off.
                 </p>
-              ) : (
+              )}
+              {roi.profit <= 0 && (
                 <p className="text-center text-amber-400 text-sm mt-6">
-                  ⚠️ At this price you are losing money. Try charging at least $100/mo per client.
+                  ⚠️ At this price you're losing money. Try charging at least $100/mo per client.
                 </p>
               )}
             </div>
@@ -196,6 +250,7 @@ export default function AgencyPage() {
         </div>
       </section>
 
+      {/* ─── How It Works ──────────────────────────────────────────────────── */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-950 to-purple-950/20">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
@@ -205,8 +260,8 @@ export default function AgencyPage() {
 
           <div className="grid sm:grid-cols-3 gap-6">
             {[
-              { step: '1', title: 'Subscribe & brand', desc: 'Pick your agency slug. Upload your logo and brand color in 2 minutes.' },
-              { step: '2', title: 'Spin up client URLs', desc: 'Generate a unique URL for each client: yoursite.com/c/yourbrand/clientname. Lead caps configurable.' },
+              { step: '1', title: 'Subscribe & brand', desc: 'Pick your agency slug (e.g. yourbrand). Upload your logo and brand color in 2 minutes.' },
+              { step: '2', title: 'Spin up client URLs', desc: 'Generate a unique URL for each client: yoursite.com/c/yourbrand/clientname. Their lead cap is configurable.' },
               { step: '3', title: 'Charge & profit', desc: 'Bill your clients $200–$500/mo (their card, your invoice). You pocket the difference.' },
             ].map(s => (
               <div key={s.step} className="bg-white/5 border border-white/10 rounded-2xl p-6">
@@ -221,6 +276,7 @@ export default function AgencyPage() {
         </div>
       </section>
 
+      {/* ─── What's Included ───────────────────────────────────────────────── */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-950">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
@@ -229,20 +285,21 @@ export default function AgencyPage() {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-x-12 gap-y-8 bg-white/5 border border-white/10 rounded-3xl p-8 sm:p-12">
-            <Feature icon="🎨" title="Your brand, not ours" desc="Custom logo, brand color, agency name. Clients never see CabinMind anywhere." />
+            <Feature icon="🎨" title="Your brand, not ours" desc="Custom logo, brand color, agency name. Clients never see 'CabinMind' anywhere." />
             <Feature icon="👥" title="10 client seats included" desc="Add up to 10 sub-clients out of the box. Extra seats $49/mo each." />
-            <Feature icon="🔎" title="2,000 leads/mo pooled" desc="Real verified leads with email + LinkedIn, scored A–D. Allocate across all clients." />
+            <Feature icon="🔎" title="2,000 leads/mo pooled" desc="Real verified leads with email + LinkedIn, scored A–D. Allocate across all clients however you like." />
             <Feature icon="🔗" title="Branded client URLs" desc="Each client gets yourbrand.com/c/yourslug/clientname — clean, professional, fully branded." />
-            <Feature icon="📊" title="Agency admin panel" desc="Add, remove, and monitor all your sub-clients from one dashboard." />
+            <Feature icon="📊" title="Agency admin panel" desc="Add, remove, and monitor all your sub-clients from one dashboard. Per-client usage tracking." />
             <Feature icon="🔑" title="Optional BYOK discount" desc="Bring your own Hunter + ZeroBounce keys → drop to $797/mo, get unlimited leads." />
             <Feature icon="📥" title="CSV + CRM exports" desc="One-click CSV download, plus push to HubSpot, Salesforce, or any webhook." />
-            <Feature icon="🤖" title="AI persona scoring" desc="Every lead auto-tagged as Champion / Buyer / Researcher with explanations." />
-            <Feature icon="🛟" title="Priority support" desc="Slack channel access + same-day email replies. We have your back." />
-            <Feature icon="🚫" title="No long-term contract" desc="Month-to-month. Cancel anytime. No setup fees, no surprises." />
+            <Feature icon="🤖" title="AI persona scoring" desc="Every lead auto-tagged as Champion / Buyer / Researcher with explanations your clients can read." />
+            <Feature icon="🛟" title="Priority support" desc="Slack channel access + same-day email replies. We've got your back when clients ask hard questions." />
+            <Feature icon="🚫" title="No long-term contract" desc="Month-to-month. Cancel anytime from your dashboard. No setup fees, no surprises." />
           </div>
         </div>
       </section>
 
+      {/* ─── Testimonials ──────────────────────────────────────────────────── */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-950 via-purple-950/20 to-gray-950">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
@@ -252,9 +309,14 @@ export default function AgencyPage() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {TESTIMONIALS.map((t, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-                className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col">
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col"
+              >
                 <div className={`inline-flex items-center self-start gap-1 bg-gradient-to-r ${t.color} text-white text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider mb-4`}>
                   {t.metric}
                 </div>
@@ -278,11 +340,12 @@ export default function AgencyPage() {
         </div>
       </section>
 
+      {/* ─── Comparison ────────────────────────────────────────────────────── */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-950">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-3xl sm:text-4xl font-black text-white mb-3">Why agencies choose us over building it themselves</h2>
-            <p className="text-gray-400">Building this in-house? Here is the real cost comparison.</p>
+            <p className="text-gray-400">Building this in-house? Here's the real cost comparison.</p>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
@@ -313,6 +376,7 @@ export default function AgencyPage() {
         </div>
       </section>
 
+      {/* ─── FAQ ────────────────────────────────────────────────────────────── */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-950 to-purple-950/20">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-10">
@@ -341,19 +405,30 @@ export default function AgencyPage() {
         </div>
       </section>
 
+      {/* ─── Final CTA ─────────────────────────────────────────────────────── */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-brand-900/40 via-purple-900/30 to-gray-950">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">Ready to add $3K+/mo in profit?</h2>
-          <p className="text-lg text-gray-300 mb-2">Subscribe today, brand it in 2 minutes, onboard your first client tonight.</p>
-          <p className="text-sm text-gray-500 mb-10">10 seats · 2,000 leads/mo · White-label · Cancel anytime · 14-day money back</p>
+          <h2 className="text-4xl sm:text-5xl font-black text-white mb-4">
+            Ready to add $3K+/mo in profit?
+          </h2>
+          <p className="text-lg text-gray-300 mb-2">
+            Subscribe today, brand it in 2 minutes, onboard your first client tonight.
+          </p>
+          <p className="text-sm text-gray-500 mb-10">
+            10 seats · 2,000 leads/mo · White-label · Cancel anytime · 14-day money back
+          </p>
 
-          <button onClick={buyAgency} disabled={loading}
-            className="bg-brand-600 hover:bg-brand-500 text-white font-black px-10 py-5 rounded-2xl text-xl transition shadow-2xl shadow-brand-600/40 disabled:opacity-50">
+          <button
+            onClick={buyAgency}
+            disabled={loading}
+            className="bg-brand-600 hover:bg-brand-500 text-white font-black px-10 py-5 rounded-2xl text-xl transition shadow-2xl shadow-brand-600/40 disabled:opacity-50"
+          >
             {loading ? 'Loading…' : 'Start Reselling — $997/mo →'}
           </button>
 
           <p className="text-xs text-gray-600 mt-6">
-            Questions first? Email <a href="mailto:agency@devcabin.tech" className="text-brand-400 hover:underline">agency@devcabin.tech</a>
+            Questions first? Email{' '}
+            <a href="mailto:agency@devcabin.tech" className="text-brand-400 hover:underline">agency@devcabin.tech</a>
             {' · '}
             <Link href="/pricing" legacyBehavior><a className="text-gray-500 hover:text-white underline">See all plans</a></Link>
           </p>

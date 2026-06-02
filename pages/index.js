@@ -106,14 +106,14 @@ export default function Home() {
             className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-5">
             <Link href="/demo"
               className="px-8 py-4 rounded-xl bg-gradient-to-r from-brand-500 to-purple-600 text-white font-bold text-lg hover:opacity-90 transition-all shadow-xl shadow-brand-500/30 hover:scale-105">
-              🔎 See Live Leads Free
+              🔎 Try Free — Get 5 Leads Now
             </Link>
             <Link href="/pricing"
               className="px-8 py-4 rounded-xl glass border border-white/10 text-white font-bold text-lg hover:border-brand-400/50 transition-all">
-              💰 Plans from $97/mo →
+              💰 See Plans →
             </Link>
           </motion.div>
-          <p className="text-gray-600 text-sm">No credit card for demo · Cancel anytime · Real data, not scraped lists</p>
+          <p className="text-gray-600 text-sm">No signup required · Results in under 3 seconds · One click to start</p>
         </motion.div>
 
         {/* Sample lead cards */}
@@ -215,16 +215,16 @@ export default function Home() {
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
             className="text-center mb-14">
             <div className="text-brand-400 text-sm font-semibold uppercase tracking-widest mb-3">Simple Pricing</div>
-            <h2 className="text-4xl font-black text-white mb-3">Start at <span className="gradient-text">$97/mo</span></h2>
+            <h2 className="text-4xl font-black text-white mb-3">Start at <span className="gradient-text">$100/mo</span></h2>
             <p className="text-gray-400 text-lg">
               All plans include ZeroBounce validation, A–D scoring, LinkedIn profiles, and CSV export. Cancel anytime.
             </p>
           </motion.div>
           <div className="grid sm:grid-cols-3 gap-5 max-w-3xl mx-auto mb-8">
             {[
-              { name: 'Starter', price: '$97',  leads: '100 leads/mo', note: 'All keys included',            highlight: false },
-              { name: 'Pro',     price: '$247', leads: '500 leads/mo', note: 'Bring your Hunter key',        highlight: true  },
-              { name: 'Scale',   price: '$497', leads: 'Unlimited',    note: 'Full BYOK · Campaign Builder', highlight: false },
+              { name: 'Starter', price: '$100', leads: '100 leads/mo', note: 'All keys included',            highlight: false },
+              { name: 'Pro',     price: '$250', leads: '500 leads/mo', note: 'Bring your Hunter key',        highlight: true  },
+              { name: 'Scale',   price: '$500', leads: 'Unlimited',    note: 'Full BYOK · Campaign Builder', highlight: false },
             ].map((tier, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }} transition={{ delay: i * 0.1 }}
@@ -301,11 +301,10 @@ export default function Home() {
             <a href="https://devcabin.tech?utm_source=productsDemo" target="_blank" rel="noopener noreferrer" className="text-gray-600 text-xs ml-2 hover:text-gray-400 transition-colors">by Dev Cabin Technologies</a>
           </div>
           <nav className="flex flex-wrap justify-center gap-6 text-sm text-gray-500">
-            <Link href="/demo"           className="hover:text-white transition-colors">Live Demo</Link>
-            <Link href="/agents"         className="hover:text-white transition-colors">Marketplace</Link>
+            <Link href="/demo"           className="hover:text-white transition-colors">Try Free</Link>
             <Link href="/pricing"        className="hover:text-white transition-colors">Pricing</Link>
             <Link href="/compare"        className="hover:text-white transition-colors">Compare</Link>
-            <Link href="/agents/builder" className="hover:text-white transition-colors">Build an Agent</Link>
+            <Link href="/agents"         className="hover:text-white transition-colors">Marketplace</Link>
             <a href="mailto:jameson@devcabin.tech" className="hover:text-white transition-colors">Support</a>
           </nav>
           <p className="text-gray-600 text-xs">© {new Date().getFullYear()} <a href="https://devcabin.tech?utm_source=productsDemo" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors">Dev Cabin Technologies</a></p>

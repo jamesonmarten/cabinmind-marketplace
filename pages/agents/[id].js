@@ -5,6 +5,7 @@ import { motion, useMotionValue, useTransform } from 'framer-motion';
 import Link from 'next/link';
 import { useCheckout } from '../../hooks/useCheckout';
 import SocialDashboard from '../../components/dashboards/SocialDashboard';
+import TrainingDashboard from '../../components/dashboards/TrainingDashboard';
 
 // ─── Per-agent rich content ────────────────────────────────────────────────
 const AGENT_CONTENT = {
@@ -104,6 +105,24 @@ const AGENT_CONTENT = {
     ],
     demoTitle: 'Live Composer Preview',
     demoDesc: 'See the full Social Media Hub — compose a post, toggle platforms, and use AI to generate a caption. Connect your accounts in the Connect tab to start publishing.',
+    showChat: false,
+  },
+  'ai-training': {
+    gradient: 'from-emerald-500 via-teal-400 to-cyan-400',
+    bg: 'from-emerald-900/30 to-teal-900/10',
+    icon: '🎓',
+    tagline: 'The fastest way to turn your team into AI power users.',
+    heroDesc: 'Private 1-on-1 sessions with a CabinMind specialist. $50/hr on-demand, or $500 once for a Lifetime Pass — unlimited sessions forever plus exclusive AI perks like a private Slack channel, custom prompt library, early product access, and a free monthly strategy call.',
+    benefits: [
+      { icon: '🎯', title: 'Tailored to Your Business', desc: 'Every session is scoped to your exact use case — not a generic playbook. We prep before the call.' },
+      { icon: '🛠️', title: 'Build Live on the Call', desc: 'We set up real automations, configure agents, and write prompts together so you leave with working tools.' },
+      { icon: '📹', title: 'Full Session Recording', desc: 'Every call is recorded and delivered within 24 hours so your team can rewatch and build on it.' },
+      { icon: '📧', title: '48-Hour Follow-up Support', desc: 'Questions after the session? Email us within 48 hours and we\'ll answer free of charge.' },
+      { icon: '📋', title: 'Written Action Plan', desc: 'Team sessions include a written AI action plan — what to deploy, in what order, with what tools.' },
+      { icon: '📅', title: 'Flexible Pricing', desc: '$50/hr on-demand or $500 once for lifetime access — unlimited sessions, priority booking, and exclusive AI perks.' },
+    ],
+    demoTitle: 'Book or Enquire',
+    demoDesc: 'Choose a session type, tell us what you want to achieve, and we\'ll get back within 24 hours with a calendar invite.',
     showChat: false,
   },
 };
@@ -925,6 +944,25 @@ function LeadDemo() {
   const [errorMsg, setErrorMsg] = useState('');
   const [expandedLead, setExpandedLead] = useState(null);
   const [savedLeads, setSavedLeads] = useState({});
+  const [verifyResults, setVerifyResults] = useState({});
+  const [verifying, setVerifying] = useState({});
+
+  async function verifyDomain(index, domain) {
+    if (!domain || verifyResults[index]) return;
+    setVerifying(v => ({ ...v, [index]: true }));
+    try {
+      const res = await fetch('/api/verify-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain }),
+      });
+      const data = await res.json();
+      setVerifyResults(v => ({ ...v, [index]: data }));
+    } catch {
+      setVerifyResults(v => ({ ...v, [index]: { error: 'Verification failed' } }));
+    }
+    setVerifying(v => ({ ...v, [index]: false }));
+  }
 
   const SCORE_COLOR = s => s >= 90 ? 'text-green-400' : s >= 75 ? 'text-blue-400' : s >= 60 ? 'text-yellow-400' : 'text-gray-400';
   const SCORE_BG    = s => s >= 90 ? 'bg-green-400/20 border-green-400/30' : s >= 75 ? 'bg-blue-400/20 border-blue-400/30' : s >= 60 ? 'bg-yellow-400/20 border-yellow-400/30' : 'bg-gray-400/20 border-gray-400/30';
@@ -953,6 +991,8 @@ function LeadDemo() {
     setErrorMsg('');
     setExpandedLead(null);
     setSavedLeads({});
+    setVerifyResults({});
+    setVerifying({});
 
     let msgIdx = 0;
     setStatusMsg(STATUS_MSGS[0]);
@@ -1070,18 +1110,48 @@ function LeadDemo() {
 
         {/* Stats row */}
         {visLeads.length > 0 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="grid grid-cols-3 gap-2 mb-3">
-            {[
-              { label: 'Leads found', val: `${visLeads.length}/${leads.length}` },
-              { label: 'Avg fit score', val: avgScore },
-              { label: 'Saved to CRM', val: Object.values(savedLeads).filter(Boolean).length },
-            ].map((s, i) => (
-              <div key={i} className="bg-white/5 rounded-xl p-2.5 text-center border border-white/5">
-                <div className="text-white font-bold text-base">{s.val}</div>
-                <div className="text-gray-500 text-xs">{s.label}</div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2 mb-3">
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: 'Leads found', val: `${visLeads.length}/${leads.length}` },
+                { label: 'Avg fit score', val: avgScore },
+                { label: 'Saved to CRM', val: Object.values(savedLeads).filter(Boolean).length },
+              ].map((s, i) => (
+                <div key={i} className="bg-white/5 rounded-xl p-2.5 text-center border border-white/5">
+                  <div className="text-white font-bold text-base">{s.val}</div>
+                  <div className="text-gray-500 text-xs">{s.label}</div>
+                </div>
+              ))}
+            </div>
+            {/* Data quality proof banner */}
+            <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-3">
+              <div className="text-[10px] uppercase tracking-widest text-emerald-400 font-semibold mb-1.5">📬 Data Quality Proof</div>
+              <div className="flex flex-wrap gap-1.5">
+                {(() => {
+                  const withEmail = visLeads.filter(l => l.email).length;
+                  const zbVerified = visLeads.filter(l => l.zb_status === 'valid').length;
+                  const hunterSource = visLeads.filter(l => l.email_source === 'hunter').length;
+                  const withLinkedIn = visLeads.filter(l => l.linkedin).length;
+                  const withDomain = visLeads.filter(l => l.domain).length;
+                  const verifiedCount = Object.values(verifyResults).filter(v => v.canReceiveEmail).length;
+                  return [
+                    withEmail > 0 && { text: `${withEmail}/${visLeads.length} have email`, cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20' },
+                    zbVerified > 0 && { text: `${zbVerified} ZeroBounce verified`, cls: 'bg-green-500/15 text-green-300 border-green-500/20' },
+                    hunterSource > 0 && { text: `${hunterSource} from Hunter.io`, cls: 'bg-blue-500/15 text-blue-300 border-blue-500/20' },
+                    withDomain > 0 && { text: `${withDomain} real domains`, cls: 'bg-purple-500/15 text-purple-300 border-purple-500/20' },
+                    withLinkedIn > 0 && { text: `${withLinkedIn} LinkedIn profiles`, cls: 'bg-blue-500/15 text-blue-300 border-blue-500/20' },
+                    verifiedCount > 0 && { text: `${verifiedCount} MX verified ✓`, cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20' },
+                  ].filter(Boolean).map((badge, j) => (
+                    <span key={j} className={`text-[10px] ${badge.cls} border rounded-full px-2 py-0.5`}>
+                      {badge.text}
+                    </span>
+                  ));
+                })()}
               </div>
-            ))}
+              <div className="text-[10px] text-gray-600 mt-1.5">
+                Expand any lead → click "Verify Domain" for live MX proof. Every lead has a real company website you can visit.
+              </div>
+            </div>
           </motion.div>
         )}
 
@@ -1141,6 +1211,82 @@ function LeadDemo() {
                           <span className="font-mono text-gray-500 tracking-wide">{l.email || 's••••••@a••••.com'}</span>
                           <a href="/pricing" className="flex-shrink-0 text-[10px] text-purple-400 bg-purple-500/15 border border-purple-500/25 rounded-full px-2 py-0.5 hover:bg-purple-500/25 transition-colors whitespace-nowrap">🔒 Unlock →</a>
                         </div>
+                      </div>
+
+                      {/* ─── Deliverability Proof ─── */}
+                      <div className="bg-black/20 rounded-lg p-2 col-span-2">
+                        <div className="text-gray-500 mb-1 flex items-center justify-between">
+                          <span className="font-semibold">📬 Deliverability Proof</span>
+                          {l.domain && (
+                            <a href={`https://${l.domain}`} target="_blank" rel="noopener noreferrer"
+                              className="text-blue-400 hover:underline text-[10px]">Visit website →</a>
+                          )}
+                        </div>
+                        {/* Email source + confidence badges */}
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          {l.email_source && l.email_source !== 'none' && (
+                            <span className="text-[10px] bg-purple-500/15 text-purple-300 border border-purple-500/20 rounded-full px-1.5 py-0.5">
+                              Source: {l.email_source === 'hunter' ? 'Hunter.io' : l.email_source}
+                            </span>
+                          )}
+                          {l.email_confidence && (
+                            <span className={`text-[10px] rounded-full px-1.5 py-0.5 border ${
+                              l.email_confidence >= 90 ? 'bg-green-500/15 text-green-300 border-green-500/20' :
+                              l.email_confidence >= 70 ? 'bg-blue-500/15 text-blue-300 border-blue-500/20' :
+                              'bg-yellow-500/15 text-yellow-300 border-yellow-500/20'
+                            }`}>
+                              Confidence: {l.email_confidence}%
+                            </span>
+                          )}
+                          {l.catch_all === false && l.email && (
+                            <span className="text-[10px] bg-green-500/15 text-green-300 border border-green-500/20 rounded-full px-1.5 py-0.5">
+                              Not catch-all ✓
+                            </span>
+                          )}
+                          {l.catch_all === true && (
+                            <span className="text-[10px] bg-yellow-500/15 text-yellow-300 border border-yellow-500/20 rounded-full px-1.5 py-0.5">
+                              Catch-all domain
+                            </span>
+                          )}
+                        </div>
+                        {/* Live MX verify button + result */}
+                        {!verifyResults[i] ? (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); verifyDomain(i, l.domain); }}
+                            disabled={verifying[i] || !l.domain}
+                            className="w-full text-[11px] py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/25 transition-all flex items-center justify-center gap-1.5 font-medium disabled:opacity-50"
+                          >
+                            {verifying[i] ? (
+                              <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Checking MX records…</>
+                            ) : (
+                              <>⚡ Verify Domain Can Receive Email — Live MX Lookup</>
+                            )}
+                          </button>
+                        ) : verifyResults[i].canReceiveEmail ? (
+                          <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                            className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-emerald-400 font-bold text-[11px]">✅ Domain verified — can receive email</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              <span className="text-[10px] bg-emerald-500/15 text-emerald-300 rounded-full px-1.5 py-0.5 border border-emerald-500/20">
+                                {verifyResults[i].providerIcon} {verifyResults[i].provider}
+                              </span>
+                              <span className="text-[10px] bg-white/5 text-gray-400 rounded-full px-1.5 py-0.5 border border-white/10 font-mono">
+                                MX: {verifyResults[i].primaryMx}
+                              </span>
+                              {verifyResults[i].hasWebsite && (
+                                <span className="text-[10px] bg-blue-500/15 text-blue-300 rounded-full px-1.5 py-0.5 border border-blue-500/20">
+                                  🌐 Website live
+                                </span>
+                              )}
+                            </div>
+                          </motion.div>
+                        ) : (
+                          <div className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-2">
+                            ❌ {verifyResults[i].error || 'No MX records — domain cannot receive email'}
+                          </div>
+                        )}
                       </div>
 
                       {/* LinkedIn */}
@@ -1233,7 +1379,7 @@ function LeadDemo() {
                   </div>
                   <a href="/pricing"
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-sm hover:opacity-90 transition-all shadow-lg shadow-purple-500/30">
-                    Unlock Full Access — from $49/mo →
+                    Unlock Full Access — from $100/mo →
                   </a>
                   <div className="mt-2 text-xs text-gray-600">14-day money-back guarantee · Cancel anytime</div>
                 </motion.div>
@@ -1261,6 +1407,7 @@ const DEMO_COMPONENTS = {
   'sales-assistant': SalesDemo,
   'lead-researcher': LeadDemo,
   'social-hub': SocialDashboard,
+  'ai-training': TrainingDashboard,
 };
 
 // ─── Main page ─────────────────────────────────────────────────────────────
@@ -1401,8 +1548,8 @@ export default function AgentDetail() {
           >
             {agent.price && (
               <div className="glass border border-white/10 rounded-2xl px-6 py-3 text-center">
-                <div className="text-3xl font-black text-white">${agent.price}<span className="text-lg text-gray-400 font-normal">/mo</span></div>
-                <div className="text-xs text-gray-500 mt-0.5">Cancel anytime</div>
+                <div className="text-3xl font-black text-white">${agent.price}<span className="text-lg text-gray-400 font-normal">{agent.priceSuffix || '/mo'}</span></div>
+                <div className="text-xs text-gray-500 mt-0.5">{agent.priceSuffix ? 'Flexible packages available' : 'Cancel anytime'}</div>
               </div>
             )}
             <button
@@ -1553,7 +1700,7 @@ export default function AgentDetail() {
                     Redirecting…
                   </>
                 ) : (
-                  `Get Started — $${agent.price}/mo`
+                  `Get Started — $${agent.price}${agent.priceSuffix || '/mo'}`
                 )}
               </button>
               <Link href="/agents" className="px-8 py-4 rounded-xl glass border border-white/10 text-white font-semibold hover:border-white/20 transition-all">

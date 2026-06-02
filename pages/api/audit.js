@@ -1,10 +1,8 @@
 /**
  * /api/audit
  * Tier 1: Google PageSpeed Insights (real Lighthouse scores).
- *         Uses PAGESPEED_API_KEY env var if set (recommended — free 25k/day on your own key).
- * Tier 2: If PSI fails (quota exceeded, timeout, unreachable) → AI-generated audit via GPT-4o mini.
- *         Provides plausible, domain-aware scores and real fix recommendations.
- * Customers always get a useful result.
+ * Tier 2: AI-generated audit fallback via GPT-4o mini.
+ * Both tiers also include AI-powered tech stack detection (Wappalyzer-style).
  */
 import OpenAI from 'openai';
 import { withProtection } from '../../lib/rateLimit';
@@ -20,6 +18,9 @@ export default withProtection('audit', async function handler(req, res) {
   // Normalise
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
   url = url.replace(/\/$/, '');
+
+  // Run tech stack detection in parallel with PSI — never blocks the main audit
+  const techStackPromise = detectTechStack(url);
 
   // ── Tier 1: Google PageSpeed Insights ──────────────────────────────────────
   const apiKey = process.env.PAGESPEED_API_KEY || '';
@@ -37,7 +38,6 @@ export default withProtection('audit', async function handler(req, res) {
   let psiError = null;
 
   try {
-    // 20s timeout — leaves plenty of headroom in the 60s Vercel function limit for AI fallback
     const r = await fetch(PSI_URL, { signal: AbortSignal.timeout(20000) });
     if (r.ok) {
       psiData = await r.json();
@@ -51,14 +51,81 @@ export default withProtection('audit', async function handler(req, res) {
     console.warn('[audit] PSI unreachable — falling back to AI audit:', psiError);
   }
 
-  // ── Tier 2: AI-generated audit fallback ────────────────────────────────────
-  if (!psiData) {
-    return runAiAudit(url, res);
-  }
+  const techStack = await techStackPromise;
 
-  // ── Parse real PSI data ────────────────────────────────────────────────────
-  return parsePsiAndRespond(psiData, url, res);
+  if (!psiData) {
+    return runAiAudit(url, res, techStack);
+  }
+  return parsePsiAndRespond(psiData, url, res, techStack);
 });
+
+// ── Tech stack detection (Wappalyzer-style via AI + HTTP headers) ────────────
+async function detectTechStack(url) {
+  let headers = {};
+  try {
+    const r = await fetch(url, {
+      method: 'GET',
+      signal: AbortSignal.timeout(8000),
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CabinMindAudit/1.0)' },
+    });
+    // Collect useful response headers
+    for (const h of ['server','x-powered-by','x-generator','x-drupal-cache','x-wp-total','cf-ray','x-vercel-id','x-amz-cf-id','x-cache','via','x-shopify-stage']) {
+      const v = r.headers.get(h);
+      if (v) headers[h] = v;
+    }
+  } catch {}
+
+  let hostname = url;
+  try { hostname = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+
+  const headerStr = Object.entries(headers).map(([k,v]) => `${k}: ${v}`).join('\n') || 'none detected';
+
+  const prompt = `You are a web technology analyst. Identify the tech stack for: ${url}
+
+HTTP response headers:
+${headerStr}
+
+Based on the domain name "${hostname}" and headers, identify what technologies this site likely uses.
+
+Return ONLY valid JSON in this exact shape — no markdown, no prose:
+{
+  "technologies": [
+    {
+      "name": "WordPress",
+      "category": "CMS",
+      "confidence": "high",
+      "icon": "📝",
+      "pros": ["Huge plugin ecosystem", "Easy content management", "Large community"],
+      "cons": ["Can be slow without optimisation", "Security vulnerabilities if unpatched", "Plugin conflicts common"],
+      "recommendation": "Ensure you're running latest version, use a caching plugin like WP Rocket, and audit plugins quarterly."
+    }
+  ]
+}
+
+Categories to use: CMS, Hosting, CDN, Analytics, Framework, E-commerce, Marketing, Security, Font, Payment, Chat, Email, Other
+
+Confidence levels: high, medium, low
+
+Include 3–8 technologies. Be specific — "Cloudflare" not "CDN provider". Each tech needs exactly: name, category, confidence, icon (emoji), pros (array of 3), cons (array of 2–3), recommendation (1 sentence).
+
+If you can't identify specific technologies, make educated guesses based on the domain/headers — but mark them as "low" confidence.`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1000,
+      temperature: 0.4,
+    });
+    let s = completion.choices[0].message.content.trim()
+      .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+    if (s[0] !== '{') { const m = s.match(/(\{[\s\S]*\})/); if (m) s = m[1]; else return null; }
+    return JSON.parse(s);
+  } catch (e) {
+    console.warn('[audit] tech stack detection failed:', e.message);
+    return null;
+  }
+}
 
 // ── Shared fix/impact hint maps ─────────────────────────────────────────────
 const FIX_HINTS = {
@@ -108,7 +175,7 @@ const IMPACT_HINTS = {
 const PAD_OK = [{ sev: 'low', text: 'No critical issues found in this category', fix: 'Keep monitoring as your site evolves.', impact: 'Already optimised' }];
 
 // ── Tier 1: Parse real PSI response ─────────────────────────────────────────
-function parsePsiAndRespond(psiData, url, res) {
+function parsePsiAndRespond(psiData, url, res, techStack) {
   const cats   = psiData.lighthouseResult?.categories ?? {};
   const audits = psiData.lighthouseResult?.audits     ?? {};
 
@@ -163,11 +230,11 @@ function parsePsiAndRespond(psiData, url, res) {
   const scoreGap    = Math.max(0, 90 - avgScore);
   const trafficGain = Math.round(scoreGap * 85 + 200);
 
-  return res.status(200).json({ results, trafficGain, audited: url, source: 'pagespeed' });
+  return res.status(200).json({ results, trafficGain, audited: url, source: 'pagespeed', techStack: techStack || null });
 }
 
 // ── Tier 2: AI-powered audit fallback ───────────────────────────────────────
-async function runAiAudit(url, res) {
+async function runAiAudit(url, res, techStack) {
   let hostname = url;
   try { hostname = new URL(url).hostname.replace(/^www\./, ''); } catch {}
 
@@ -232,7 +299,7 @@ Rules:
     const scoreGap    = Math.max(0, 90 - avgScore);
     const trafficGain = Math.round(scoreGap * 85 + 200);
 
-    return res.status(200).json({ results, trafficGain, audited: url, source: 'ai' });
+    return res.status(200).json({ results, trafficGain, audited: url, source: 'ai', techStack: techStack || null });
 
   } catch (err) {
     console.error('[audit] AI fallback failed:', err.message);

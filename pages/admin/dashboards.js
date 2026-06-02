@@ -1,3 +1,9 @@
+/**
+ * /admin/dashboards — Superadmin shortcut page
+ *
+ * Lists every dashboard variant with a click-to-open link using your
+ * ADMIN_SECRET as the token. Password-gated client-side (same as /admin).
+ */
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -10,10 +16,10 @@ const DASHBOARDS = [
   { id: 'lead-agency',     name: 'Lead Researcher — Agency',     icon: '🔎', notes: 'Full BYOK, unlimited' },
   { id: 'receptionist',    name: 'AI Receptionist',              icon: '🤖', notes: '24/7 chat agent' },
   { id: 'website-audit',   name: 'AI Website Auditor',           icon: '📈', notes: 'PageSpeed + SEO reports' },
-  { id: 'blog-writer',     name: 'AI Blog Writer',               icon: '✍️', notes: 'Long-form content gen' },
-  { id: 'sales-assistant', name: 'AI Sales Assistant',           icon: '💼', notes: 'Outbound + follow-up' },
-  { id: 'social-hub',      name: 'AI Social Media Hub',          icon: '📱', notes: 'Multi-platform scheduling' },
-  { id: 'ai-training',     name: '1-on-1 AI Training',           icon: '🎓', notes: 'Coaching dashboard' },
+  { id: 'blog-writer',     name: 'AI Blog Writer',                icon: '✍️',  notes: 'Long-form content gen' },
+  { id: 'sales-assistant', name: 'AI Sales Assistant',            icon: '💼', notes: 'Outbound + follow-up' },
+  { id: 'social-hub',      name: 'AI Social Media Hub',           icon: '📱', notes: 'Multi-platform scheduling' },
+  { id: 'ai-training',     name: '1-on-1 AI Training',            icon: '🎓', notes: 'Coaching dashboard' },
 ];
 
 const OTHER_PAGES = [
@@ -23,8 +29,6 @@ const OTHER_PAGES = [
   { label: 'Demo Page',                  url: '/demo' },
   { label: 'Agents Marketplace',         url: '/agents' },
 ];
-
-const TRIAL_SLUGS = ['acme2026', 'defiantcnc2026'];
 
 export default function DashboardsIndex() {
   const [secret, setSecret] = useState('');
@@ -143,7 +147,7 @@ export default function DashboardsIndex() {
               <p className="text-gray-500 text-xs mt-0.5">Share these directly with clients — 50 free leads each</p>
             </div>
             <div className="divide-y divide-white/5">
-              {TRIAL_SLUGS.map(slug => {
+              {['acme2026', 'defiantcnc2026'].map(slug => {
                 const url = `${base}/trial/${slug}`;
                 return (
                   <div key={slug} className="px-5 py-3 flex items-center justify-between hover:bg-white/3 transition">

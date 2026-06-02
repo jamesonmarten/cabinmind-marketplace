@@ -225,8 +225,7 @@ function DemoUpgradeWall({ onDismiss }) {
         <a
           href="/pricing"
           className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-base hover:opacity-90 transition-all shadow-lg shadow-purple-500/30"
-        >
-          Unlock Full Access — from $49/mo →
+        >                  Unlock Full Access — from $100/mo →
         </a>
         {onDismiss && (
           <button onClick={onDismiss} className="block mx-auto mt-3 text-xs text-gray-600 hover:text-gray-400 transition-colors">
@@ -480,6 +479,52 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
                   </div>
                 ))}
               </div>
+
+              {/* ─── Deliverability Proof ─── */}
+              {lead.domain && (
+                <div className="bg-black/20 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500 font-medium">📬 Deliverability proof</span>
+                    <a href={`https://${lead.domain}`} target="_blank" rel="noopener noreferrer"
+                      className="text-[10px] text-blue-400 hover:underline">Visit {lead.domain} →</a>
+                  </div>
+                  {!verifyResults[lead._id] ? (
+                    <button
+                      onClick={() => verifyDomain(lead._id, lead.domain)}
+                      disabled={verifying[lead._id]}
+                      className="w-full text-xs py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-300 hover:bg-emerald-500/25 transition-all flex items-center justify-center gap-1.5 font-medium disabled:opacity-50"
+                    >
+                      {verifying[lead._id] ? (
+                        <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Checking MX records…</>
+                      ) : (
+                        <>⚡ Verify Domain Can Receive Email</>
+                      )}
+                    </button>
+                  ) : verifyResults[lead._id].canReceiveEmail ? (
+                    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                      className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2 space-y-1">
+                      <div className="text-emerald-400 font-bold text-xs">✅ Domain verified — can receive email</div>
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-[10px] bg-emerald-500/15 text-emerald-300 rounded-full px-1.5 py-0.5 border border-emerald-500/20">
+                          {verifyResults[lead._id].providerIcon} {verifyResults[lead._id].provider}
+                        </span>
+                        <span className="text-[10px] bg-white/5 text-gray-400 rounded-full px-1.5 py-0.5 border border-white/10 font-mono">
+                          MX: {verifyResults[lead._id].primaryMx}
+                        </span>
+                        {verifyResults[lead._id].hasWebsite && (
+                          <span className="text-[10px] bg-blue-500/15 text-blue-300 rounded-full px-1.5 py-0.5 border border-blue-500/20">
+                            🌐 Website live
+                          </span>
+                        )}
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg p-2">
+                      ❌ {verifyResults[lead._id].error || 'No MX records found'}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Tech badges */}
               {lead.tech && (
@@ -1271,6 +1316,7 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
   const [location, setLocation] = useState('');
   const [companySize, setCompanySize] = useState('');
   const [excludeCompanies, setExcludeCompanies] = useState('');
+  const [allowMultiplePerCompany, setAllowMultiplePerCompany] = useState(false);
   const [batchSize, setBatchSize] = useState(isPaid ? 25 : 5);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -1285,6 +1331,26 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
   // Batch progress state
   const [batchProgress, setBatchProgress] = useState({ done: 0, total: 0, active: false, provider: null, msPerBatch: null });
   const abortRef = useRef(false);
+
+  // Domain verification state (live MX lookup proof)
+  const [verifyResults, setVerifyResults] = useState({});
+  const [verifying, setVerifying] = useState({});
+  async function verifyDomain(leadId, domain) {
+    if (!domain || verifyResults[leadId]) return;
+    setVerifying(v => ({ ...v, [leadId]: true }));
+    try {
+      const res = await fetch('/api/verify-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain }),
+      });
+      const data = await res.json();
+      setVerifyResults(v => ({ ...v, [leadId]: data }));
+    } catch {
+      setVerifyResults(v => ({ ...v, [leadId]: { error: 'Verification failed' } }));
+    }
+    setVerifying(v => ({ ...v, [leadId]: false }));
+  }
 
   // Pipeline (localStorage-persisted)
   // savedIds = Set of _id slugs (name|company), NOT emails — emails can collide across leads
@@ -1345,6 +1411,7 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
       location: location.trim() || undefined,
       companySize: companySize || undefined,
       excludeCompanies: excludeCompanies.trim() || undefined,
+      allowMultiplePerCompany: allowMultiplePerCompany || undefined,
     };
 
     let allLeads = [];
@@ -1651,6 +1718,16 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
                       <input value={excludeCompanies} onChange={e => setExcludeCompanies(e.target.value)} placeholder="e.g. Google, Salesforce, IBM"
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50" />
                     </div>
+                    <div className="sm:col-span-2">
+                      <label className="flex items-center gap-2.5 cursor-pointer group">
+                        <input type="checkbox" checked={allowMultiplePerCompany} onChange={e => setAllowMultiplePerCompany(e.target.checked)}
+                          className="w-4 h-4 rounded border-white/20 bg-white/5 text-purple-500 focus:ring-purple-500/50 focus:ring-offset-0 cursor-pointer" />
+                        <span className="text-gray-400 text-xs group-hover:text-gray-300 transition-colors">
+                          Allow multiple leads per company
+                          <span className="text-gray-600 ml-1">(default: 1 best lead per company for maximum diversity)</span>
+                        </span>
+                      </label>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1905,10 +1982,10 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
               </p>
               <div className="grid sm:grid-cols-4 gap-3">
                 {[
-                  { id: 'starter',  label: 'Starter',  price: '$49/mo', sub: '100 leads · Platform keys',    color: 'border-green-500/40 bg-green-500/5'   },
-                  { id: 'pro',      label: 'Pro',       price: '$149/mo',sub: '500 leads · Your Hunter key', color: 'border-blue-500/40 bg-blue-500/5'     },
-                  { id: 'scale',    label: 'Scale',     price: '$299/mo',sub: 'Unlimited · Both your keys',  color: 'border-purple-500/40 bg-purple-500/5' },
-                  { id: 'agency',   label: 'Agency',    price: '$599/mo',sub: 'Unlimited · BYOK · 5 seats',  color: 'border-violet-500/40 bg-violet-500/5' },
+                  { id: 'starter',  label: 'Starter',  price: '$100/mo', sub: '100 leads · Platform keys',    color: 'border-green-500/40 bg-green-500/5'   },
+                  { id: 'pro',      label: 'Pro',       price: '$250/mo', sub: '500 leads · Your Hunter key', color: 'border-blue-500/40 bg-blue-500/5'     },
+                  { id: 'scale',    label: 'Scale',     price: '$500/mo',sub: 'Unlimited · Both your keys',  color: 'border-purple-500/40 bg-purple-500/5' },
+                  { id: 'agency',   label: 'Agency',    price: '$1000/mo',sub: 'Unlimited · BYOK · 5 seats',  color: 'border-violet-500/40 bg-violet-500/5' },
                 ].map(p => (
                   <button key={p.id} onClick={() => setPlan(p.id)}
                     className={`border rounded-xl p-4 text-left transition-all ${plan === p.id ? p.color + ' ring-1 ring-white/20' : 'border-white/10 bg-white/3 hover:bg-white/8'}`}>
@@ -1992,10 +2069,10 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
               <div className="text-amber-400 font-semibold text-sm mb-3">🔑 Which keys does each plan use?</div>
               <div className="space-y-2 text-xs text-gray-400">
                 {[
-                  { plan: 'Starter $49',  hunter: 'Platform',      zb: 'Platform',     leads: '100/mo cap' },
-                  { plan: 'Pro $149',     hunter: 'Your key 🔑',   zb: 'Platform',     leads: '500/mo' },
-                  { plan: 'Scale $299',   hunter: 'Your key 🔑',   zb: 'Your key 🔑',  leads: 'Unlimited' },
-                  { plan: 'Agency $599',  hunter: 'Your key 🔑',   zb: 'Your key 🔑',  leads: 'Unlimited' },
+                  { plan: 'Starter $100',  hunter: 'Platform',      zb: 'Platform',     leads: '100/mo cap' },
+                  { plan: 'Pro $250',     hunter: 'Your key 🔑',   zb: 'Platform',     leads: '500/mo' },
+                  { plan: 'Scale $500',   hunter: 'Your key 🔑',   zb: 'Your key 🔑',  leads: 'Unlimited' },
+                  { plan: 'Agency $1000',  hunter: 'Your key 🔑',   zb: 'Your key 🔑',  leads: 'Unlimited' },
                 ].map((row, i) => (
                   <div key={i} className="grid grid-cols-4 gap-2 py-1.5 border-b border-white/5 last:border-0">
                     <span className="text-gray-300 font-semibold">{row.plan}</span>

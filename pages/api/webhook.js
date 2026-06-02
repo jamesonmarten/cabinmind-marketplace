@@ -23,16 +23,18 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const AGENT_META = {
   // Flat-rate agents
-  'receptionist':      { name: 'AI Receptionist',              icon: '🤖', price: '$79/mo',  setupUrl: 'https://products.devcabin.tech/agents/receptionist' },
-  'website-audit':     { name: 'AI Website Auditor',           icon: '📈', price: '$29/mo',  setupUrl: 'https://products.devcabin.tech/agents/website-audit' },
-  'blog-writer':       { name: 'AI Blog Writer',               icon: '✍️', price: '$49/mo',  setupUrl: 'https://products.devcabin.tech/agents/blog-writer' },
-  'sales-assistant':   { name: 'AI Sales Assistant',           icon: '💼', price: '$99/mo',  setupUrl: 'https://products.devcabin.tech/agents/sales-assistant' },
+  'receptionist':      { name: 'AI Receptionist',              icon: '🤖', price: '$80/mo',   setupUrl: 'https://products.devcabin.tech/agents/receptionist' },
+  'website-audit':     { name: 'AI Website Auditor',           icon: '📈', price: '$50/mo',   setupUrl: 'https://products.devcabin.tech/agents/website-audit' },
+  'blog-writer':       { name: 'AI Blog Writer',               icon: '✍️', price: '$50/hr',   setupUrl: 'https://products.devcabin.tech/agents/blog-writer' },
+  'sales-assistant':   { name: 'AI Sales Assistant',           icon: '💼', price: '$100/mo',  setupUrl: 'https://products.devcabin.tech/agents/sales-assistant' },
+  'social-hub':        { name: 'AI Social Media Hub',          icon: '📱', price: '$50/mo',   setupUrl: 'https://products.devcabin.tech/agents/social-hub' },
+  'ai-training':       { name: '1-on-1 AI Training',           icon: '🎓', price: '$50/hr · $500 lifetime', setupUrl: 'https://products.devcabin.tech/agents/ai-training' },
   // Lead Researcher — BYOK tiered
-  'lead-researcher':   { name: 'AI Lead Researcher — Starter', icon: '🔎', price: '$49/mo',  setupUrl: 'https://products.devcabin.tech/dashboard', byok: true },
-  'lead-starter':      { name: 'AI Lead Researcher — Starter', icon: '🔎', price: '$49/mo',  setupUrl: 'https://products.devcabin.tech/dashboard', byok: true },
-  'lead-pro':          { name: 'AI Lead Researcher — Pro',     icon: '🔎', price: '$149/mo', setupUrl: 'https://products.devcabin.tech/dashboard', byok: true, byokNote: 'Add your Hunter.io API key in your dashboard under API Keys.' },
-  'lead-scale':        { name: 'AI Lead Researcher — Scale',   icon: '🔎', price: '$299/mo', setupUrl: 'https://products.devcabin.tech/dashboard', byok: true, byokNote: 'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys.' },
-  'lead-agency':       { name: 'AI Lead Researcher — Agency',  icon: '🔎', price: '$599/mo', setupUrl: 'https://products.devcabin.tech/dashboard', byok: true, byokNote: 'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys. You have 5 seats — invite team members from Settings.' },
+  'lead-researcher':   { name: 'AI Lead Researcher — Starter', icon: '🔎', price: '$100/mo',  setupUrl: 'https://products.devcabin.tech/dashboard', byok: true },
+  'lead-starter':      { name: 'AI Lead Researcher — Starter', icon: '🔎', price: '$100/mo',  setupUrl: 'https://products.devcabin.tech/dashboard', byok: true },
+  'lead-pro':          { name: 'AI Lead Researcher — Pro',     icon: '🔎', price: '$250/mo',  setupUrl: 'https://products.devcabin.tech/dashboard', byok: true, byokNote: 'Add your Hunter.io API key in your dashboard under API Keys.' },
+  'lead-scale':        { name: 'AI Lead Researcher — Scale',   icon: '🔎', price: '$500/mo',  setupUrl: 'https://products.devcabin.tech/dashboard', byok: true, byokNote: 'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys.' },
+  'lead-agency':       { name: 'AI Lead Researcher — Agency',  icon: '🔎', price: '$1000/mo', setupUrl: 'https://products.devcabin.tech/dashboard', byok: true, byokNote: 'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys. You have 5 seats — invite team members from Settings.' },
 };
 
 /** Read the raw body from the request stream */

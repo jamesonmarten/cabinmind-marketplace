@@ -8,3 +8,9 @@ node_modules/
 *.tmp
 test-e2e-leads.mjs
 .sfdx/
+
+# Standalone sub-project (separate repo, not deployed with marketplace)
+apollo-lead-engine/
+
+# Runtime state files (regenerated at runtime)
+data/ratelimit.json

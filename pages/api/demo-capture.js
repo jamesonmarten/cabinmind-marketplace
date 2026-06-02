@@ -18,7 +18,7 @@ const NOTIFY = process.env.NOTIFY_EMAIL || 'jameson@devcabin.tech';
 export default withProtection('demo-capture', async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  const { email, name, icp, source = 'demo-page' } = req.body || {};
+  const { email, name, icp, company, message, source = 'demo-page' } = req.body || {};
   if (!email || !email.includes('@')) {
     return res.status(400).json({ error: 'Valid email required' });
   }
@@ -90,9 +90,9 @@ export default withProtection('demo-capture', async function handler(req, res) {
       <div style="color:#64748b;font-size:12px;margin-bottom:8px;">When you're ready to go beyond 5 leads:</div>
       <table width="100%" cellpadding="0" cellspacing="0">
         ${[
-          ['Starter', '$97/mo', '100 leads/mo, ZeroBounce included, AI sequences'],
-          ['Pro', '$247/mo', '500 leads/mo, bring your own Hunter key'],
-          ['Scale', '$497/mo', 'Unlimited leads, full BYOK, campaign builder'],
+          ['Starter', '$100/mo', '100 leads/mo, ZeroBounce included, AI sequences'],
+          ['Pro', '$250/mo', '500 leads/mo, bring your own Hunter key'],
+          ['Scale', '$500/mo', 'Unlimited leads, full BYOK, campaign builder'],
         ].map(([plan, price, desc]) => `
         <tr>
           <td style="padding:5px 0;color:#a78bfa;font-size:13px;font-weight:700;width:70px;">${plan}</td>
@@ -133,8 +133,10 @@ export default withProtection('demo-capture', async function handler(req, res) {
   <p style="color:#64748b;font-size:13px;margin:0 0 20px;">${timestamp}</p>
   <table width="100%" cellpadding="0" cellspacing="0">
     <tr><td style="color:#64748b;font-size:13px;padding:6px 0;width:100px;">Email</td><td style="color:#e2e8f0;font-size:13px;font-weight:600;padding:6px 0;">${email}</td></tr>
-    ${name ? `<tr><td style="color:#64748b;font-size:13px;padding:6px 0;">Name</td><td style="color:#e2e8f0;font-size:13px;font-weight:600;padding:6px 0;">${name}</td></tr>` : ''}
-    ${icp  ? `<tr><td style="color:#64748b;font-size:13px;padding:6px 0;">ICP</td><td style="color:#c4b5fd;font-size:13px;font-style:italic;padding:6px 0;">"${icp}"</td></tr>` : ''}
+    ${name    ? `<tr><td style="color:#64748b;font-size:13px;padding:6px 0;">Name</td><td style="color:#e2e8f0;font-size:13px;font-weight:600;padding:6px 0;">${name}</td></tr>` : ''}
+    ${company ? `<tr><td style="color:#64748b;font-size:13px;padding:6px 0;">Company</td><td style="color:#e2e8f0;font-size:13px;font-weight:600;padding:6px 0;">${company}</td></tr>` : ''}
+    ${icp     ? `<tr><td style="color:#64748b;font-size:13px;padding:6px 0;">ICP</td><td style="color:#c4b5fd;font-size:13px;font-style:italic;padding:6px 0;">"${icp}"</td></tr>` : ''}
+    ${message ? `<tr><td style="color:#64748b;font-size:13px;padding:6px 0;vertical-align:top;">Message</td><td style="color:#94a3b8;font-size:13px;padding:6px 0;white-space:pre-wrap;">${message}</td></tr>` : ''}
     <tr><td style="color:#64748b;font-size:13px;padding:6px 0;">Source</td><td style="color:#e2e8f0;font-size:13px;padding:6px 0;">${source}</td></tr>
   </table>
   <div style="margin-top:20px;">
@@ -162,7 +164,7 @@ export default withProtection('demo-capture', async function handler(req, res) {
       resend.emails.send({
         from: FROM,
         to: NOTIFY,
-        subject: `🎯 Demo lead: ${name || email}${icp ? ` — "${icp.slice(0, 50)}"` : ''}`,
+        subject: `🎯 Demo lead: ${name || email}${company ? ` @ ${company}` : ''}${icp ? ` — "${icp.slice(0, 50)}"` : ''}${source !== 'demo-page' ? ` [${source}]` : ''}`,
         html: alertHtml,
       }),
     ]);

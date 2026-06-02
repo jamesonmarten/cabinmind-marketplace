@@ -59,9 +59,12 @@ const PLATFORMS = [
     text: 'text-gray-300',
     mediaTypes: ['none', 'image', 'video'],
     maxCaption: 280,
-    notes: 'Text (280 chars), images, and videos supported. Requires an X Developer App with OAuth2 user context.',
+    notes: 'Text (280 chars), images, and videos supported. All 4 OAuth 1.0a credentials required for media uploads. Text-only posts work with just the Access Token (Bearer).',
     fields: [
-      { key: 'token', label: 'OAuth2 User Access Token', placeholder: 'xxx...', type: 'password', help: 'Generate via X Developer Portal → your app → User Authentication Settings → OAuth2.' },
+      { key: 'consumerKey',       label: 'API Key (Consumer Key)',         placeholder: 'xxx...', type: 'password', help: 'X Developer Portal → your app → Keys and Tokens → API Key.' },
+      { key: 'consumerSecret',    label: 'API Secret (Consumer Secret)',   placeholder: 'xxx...', type: 'password', help: 'X Developer Portal → your app → Keys and Tokens → API Key Secret.' },
+      { key: 'accessToken',       label: 'Access Token',                   placeholder: 'xxx...', type: 'password', help: 'X Developer Portal → your app → Keys and Tokens → Access Token.' },
+      { key: 'accessTokenSecret', label: 'Access Token Secret',            placeholder: 'xxx...', type: 'password', help: 'X Developer Portal → your app → Keys and Tokens → Access Token Secret.' },
     ],
   },
   {
@@ -90,10 +93,18 @@ const PLATFORMS = [
     text: 'text-pink-300',
     mediaTypes: ['video'],
     maxCaption: 2200,
-    notes: 'Video-only via API. Requires TikTok Developer account with Content Posting API access (apply at developers.tiktok.com).',
+    notes: 'Video-only via API. Requires a TikTok Developer app with the Content Posting API product enabled. Posts default to "Only me" visibility — change in TikTok app after posting.',
+    setupSteps: [
+      'Go to developers.tiktok.com → My Apps → Create App',
+      'Under "Products", add "Content Posting API" and request access',
+      'Copy your Client Key and Client Secret from the app dashboard',
+      'Use the OAuth2 authorization flow (or sandbox tools in the portal) to generate a User Access Token with scope: video.upload, video.publish',
+      'Paste the resulting access token below — it starts with act.',
+    ],
     fields: [
-      { key: 'token',    label: 'Access Token',   placeholder: 'act.xxx...', type: 'password', help: 'OAuth2 access token from TikTok Developer Portal.' },
-      { key: 'ttOpenId', label: 'TikTok open_id', placeholder: 'xxxx-xxxx-...', type: 'text', help: 'Returned alongside your access token during OAuth flow.' },
+      { key: 'clientKey',    label: 'Client Key',    placeholder: 'aw1234abc...', type: 'text',     help: 'Found in your TikTok app dashboard under "App Info". Also called "App ID".' },
+      { key: 'clientSecret', label: 'Client Secret', placeholder: 'xxxxxxxx...', type: 'password',  help: 'Found next to the Client Key. Keep this secret.' },
+      { key: 'accessToken',  label: 'User Access Token', placeholder: 'act.xxxxxxxx...', type: 'password', help: 'OAuth2 user token with video.upload + video.publish scopes. Generate via TikTok OAuth flow or sandbox tools in the developer portal.' },
     ],
   },
 ];
@@ -176,11 +187,13 @@ function ComposeTab({ tokens, credentials }) {
   const [caption, setCaption]       = useState('');
   const [mediaFile, setMediaFile]   = useState(null);  // { name, type, b64, mediaType }
   const [mediaType, setMediaType]   = useState('none'); // 'none' | 'image' | 'video'
+  const [imageUrl, setImageUrl]     = useState('');     // public URL for Instagram image posts
   const [enabled, setEnabled]       = useState({ instagram: false, facebook: true, twitter: false, linkedin: false, tiktok: false });
   const [publishing, setPublishing] = useState(false);
   const [results, setResults]       = useState(null);
   const [aiLoading, setAiLoading]   = useState(false);
   const [aiPrompt, setAiPrompt]     = useState('');
+  const [aiError, setAiError]       = useState('');
   const fileRef = useRef(null);
   const [queue, setQueue]           = useState(() => loadStorage(QUEUE_KEY, []));
   const [scheduleDate, setScheduleDate] = useState('');
@@ -189,6 +202,8 @@ function ComposeTab({ tokens, credentials }) {
   const isConnected = id => {
     const p = PLATFORMS.find(p => p.id === id);
     if (!p) return false;
+    // X is considered connected if at minimum accessToken is present
+    if (id === 'twitter') return !!(credentials.twitter?.accessToken?.trim());
     return p.fields.every(f => (credentials[id]?.[f.key] || '').trim().length > 0);
   };
 
@@ -212,6 +227,7 @@ function ComposeTab({ tokens, credentials }) {
   const generateCaption = async () => {
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
+    setAiError('');
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -224,8 +240,16 @@ function ComposeTab({ tokens, credentials }) {
         }),
       });
       const data = await res.json();
-      if (data.message) setCaption(data.message);
-    } catch {}
+      // API returns { reply, message } — use whichever is present
+      const text = data.reply || data.message;
+      if (text) {
+        setCaption(text);
+      } else {
+        setAiError(data.error || 'AI did not return a caption. Try again.');
+      }
+    } catch (e) {
+      setAiError('Could not reach AI. Check your connection and try again.');
+    }
     setAiLoading(false);
   };
 
@@ -257,21 +281,30 @@ function ComposeTab({ tokens, credentials }) {
     setPublishing(true);
     setResults(null);
 
-    // Build per-platform token + credential map
-    const tokenMap = {};
-    PLATFORMS.forEach(p => { tokenMap[p.id] = credentials[p.id]?.token || tokens?.[p.id] || ''; });
+    // Build structured per-platform credential objects
+    const igCreds = { token: credentials.instagram?.token || '', igUserId: credentials.instagram?.igUserId || '' };
+    const fbCreds = { token: credentials.facebook?.token  || '', fbPageId: credentials.facebook?.fbPageId  || '' };
+    const twCreds = {
+      consumerKey:       credentials.twitter?.consumerKey       || '',
+      consumerSecret:    credentials.twitter?.consumerSecret    || '',
+      accessToken:       credentials.twitter?.accessToken       || '',
+      accessTokenSecret: credentials.twitter?.accessTokenSecret || '',
+    };
+    const liCreds = { token: credentials.linkedin?.token || '', liPersonUrn: credentials.linkedin?.liPersonUrn || '' };
+    const ttCreds = { accessToken: credentials.tiktok?.accessToken || '' };
 
     const body = {
-      platforms:   enabled,
-      tokens:      tokenMap,
+      platforms: enabled,
       caption,
       mediaType,
-      mediaB64:    mediaFile?.b64 || null,
-      mediaName:   mediaFile?.name || null,
-      igUserId:    credentials.instagram?.igUserId || '',
-      fbPageId:    credentials.facebook?.fbPageId  || '',
-      liPersonUrn: credentials.linkedin?.liPersonUrn || '',
-      ttOpenId:    credentials.tiktok?.ttOpenId    || '',
+      mediaB64:  mediaFile?.b64  || null,
+      mediaName: mediaFile?.name || null,
+      imageUrl:  imageUrl.trim() || null,
+      igCreds,
+      fbCreds,
+      twCreds,
+      liCreds,
+      ttCreds,
     };
 
     try {
@@ -279,8 +312,18 @@ function ComposeTab({ tokens, credentials }) {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify(body),
+        signal:  AbortSignal.timeout(60000), // 60s max — video uploads can be slow
       });
-      const data = await res.json();
+      let data;
+      try { data = await res.json(); } catch { data = {}; }
+
+      if (!res.ok && !data.results) {
+        // Top-level API error (400, 429, 500 etc.)
+        setResults({ _error: data.error || `Server error (HTTP ${res.status}). Please try again.` });
+        setPublishing(false);
+        return;
+      }
+
       setResults(data.results || {});
 
       // Determine aggregate status
@@ -360,6 +403,9 @@ function ComposeTab({ tokens, credentials }) {
             {aiLoading ? '✨ Writing…' : '✨ AI Caption'}
           </button>
         </div>
+        {aiError && (
+          <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{aiError}</p>
+        )}
       </div>
 
       {/* Media */}
@@ -395,6 +441,23 @@ function ComposeTab({ tokens, credentials }) {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Instagram image URL — shown when Instagram is enabled and mediaType is image or none */}
+        {enabled.instagram && (mediaType === 'image' || mediaType === 'none') && (
+          <div className="mt-3">
+            <label className="block text-xs font-medium text-gray-300 mb-1">
+              📸 Instagram Public Image URL
+              <span className="ml-2 text-gray-600 font-normal">Required for Instagram image posts (Imgur, Cloudinary, S3, etc.)</span>
+            </label>
+            <input
+              type="url"
+              value={imageUrl}
+              onChange={e => setImageUrl(e.target.value)}
+              placeholder="https://i.imgur.com/yourimage.jpg"
+              className="w-full bg-gray-800 border border-pink-500/30 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-pink-500 transition font-mono"
+            />
           </div>
         )}
       </div>
@@ -596,7 +659,9 @@ function AnalyticsTab({ credentials }) {
     const posts       = queue.filter(e => e.platforms[p.id]);
     const published   = posts.filter(e => e.results?.[p.id]?.ok).length;
     const failed      = posts.filter(e => e.results?.[p.id] && !e.results[p.id].ok).length;
-    const connected   = p.fields.every(f => (credentials[p.id]?.[f.key] || '').trim().length > 0);
+    const connected   = p.id === 'twitter'
+      ? !!(credentials.twitter?.accessToken?.trim())
+      : p.fields.every(f => (credentials[p.id]?.[f.key] || '').trim().length > 0);
     return { ...p, posts: posts.length, published, failed, connected };
   });
 
@@ -666,6 +731,8 @@ function AnalyticsTab({ credentials }) {
 function ConnectTab({ credentials, setCredentials }) {
   const [expanded, setExpanded] = useState(null);
   const [saved, setSaved]       = useState(null);
+  const [testing, setTesting]   = useState(null);   // platform id being tested
+  const [testResult, setTestResult] = useState({}); // { [platformId]: { ok, info?, error? } }
 
   const handleSave = (platformId) => {
     setSaved(platformId);
@@ -681,7 +748,28 @@ function ConnectTab({ credentials, setCredentials }) {
     saveStorage(STORAGE_KEY, updated);
   };
 
-  const isConnected = (p) => p.fields.every(f => (credentials[p.id]?.[f.key] || '').trim().length > 0);
+  const isConnected = (p) => p.id === 'twitter'
+    ? !!(credentials.twitter?.accessToken?.trim())
+    : p.id === 'tiktok'
+    ? !!(credentials.tiktok?.accessToken?.trim())
+    : p.fields.every(f => (credentials[p.id]?.[f.key] || '').trim().length > 0);
+
+  const handleTest = async (p) => {
+    setTesting(p.id);
+    setTestResult(prev => ({ ...prev, [p.id]: null }));
+    try {
+      const res = await fetch('/api/social/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform: p.id, credentials: credentials[p.id] || {} }),
+      });
+      const data = await res.json();
+      setTestResult(prev => ({ ...prev, [p.id]: data }));
+    } catch (e) {
+      setTestResult(prev => ({ ...prev, [p.id]: { ok: false, error: 'Network error — could not reach server.' } }));
+    }
+    setTesting(null);
+  };
 
   return (
     <div className="space-y-3">
@@ -722,12 +810,25 @@ function ConnectTab({ credentials, setCredentials }) {
                 <div className="px-4 pb-4 space-y-3 border-t border-gray-700/50 pt-3">
                   <p className="text-xs text-gray-500">{p.notes}</p>
 
+                  {/* Setup steps (TikTok and others that need them) */}
+                  {p.setupSteps && (
+                    <div className="bg-gray-800/60 border border-gray-700/40 rounded-xl p-3 space-y-1">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Setup Steps</p>
+                      {p.setupSteps.map((step, i) => (
+                        <div key={i} className="flex gap-2 text-xs text-gray-400">
+                          <span className="flex-shrink-0 w-4 h-4 rounded-full bg-gray-700 text-gray-300 flex items-center justify-center text-[10px] font-bold">{i + 1}</span>
+                          <span>{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {p.fields.map(f => (
                     <div key={f.key}>
                       <label className="block text-xs font-medium text-gray-300 mb-1">
                         {f.label}
-                        <span className="ml-2 text-gray-600 font-normal">{f.help}</span>
                       </label>
+                      <p className="text-[11px] text-gray-600 mb-1">{f.help}</p>
                       <input
                         type={f.type}
                         value={credentials[p.id]?.[f.key] || ''}
@@ -748,17 +849,44 @@ function ConnectTab({ credentials, setCredentials }) {
                         ? <>Get tokens at <a href="https://developer.twitter.com/en/portal/dashboard" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">X Developer Portal</a></>
                         : p.id === 'linkedin'
                         ? <>Get tokens at <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">LinkedIn Developer Apps</a></>
-                        : <>Apply at <a href="https://developers.tiktok.com/apps/" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">TikTok for Developers</a></>
+                        : <>Apply for Content Posting API access at <a href="https://developers.tiktok.com/apps/" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">developers.tiktok.com/apps</a> — approval is required before you can post via API</>
                       }
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => handleSave(p.id)}
-                    className="text-sm px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl transition"
-                  >
-                    {saved === p.id ? '✓ Saved!' : 'Save'}
-                  </button>
+                  {/* Save + Test buttons */}
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={() => handleSave(p.id)}
+                      className="text-sm px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl transition"
+                    >
+                      {saved === p.id ? '✓ Saved!' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => handleTest(p)}
+                      disabled={testing === p.id || !isConnected(p)}
+                      className="text-sm px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed text-gray-200 font-semibold rounded-xl transition flex items-center gap-1.5"
+                    >
+                      {testing === p.id
+                        ? <><span className="w-3 h-3 border border-gray-400/30 border-t-gray-300 rounded-full animate-spin" /> Testing…</>
+                        : '⚡ Test Connection'
+                      }
+                    </button>
+                  </div>
+
+                  {/* Test result */}
+                  {testResult[p.id] && (
+                    <div className={`text-xs rounded-xl px-3 py-2.5 border ${
+                      testResult[p.id].ok
+                        ? 'bg-green-500/10 border-green-500/30 text-green-300'
+                        : 'bg-red-500/10 border-red-500/30 text-red-300'
+                    }`}>
+                      {testResult[p.id].ok
+                        ? `✓ ${testResult[p.id].info || 'Connection verified!'}`
+                        : `✗ ${testResult[p.id].error}`
+                      }
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -794,7 +922,9 @@ export default function SocialDashboard({ session }) {
   }, [credentials]);
 
   const connectedCount = PLATFORMS.filter(p =>
-    p.fields.every(f => (credentials[p.id]?.[f.key] || '').trim().length > 0)
+    p.id === 'twitter'
+      ? !!(credentials.twitter?.accessToken?.trim())
+      : p.fields.every(f => (credentials[p.id]?.[f.key] || '').trim().length > 0)
   ).length;
 
   return (
@@ -812,7 +942,9 @@ export default function SocialDashboard({ session }) {
         {/* Platform connection status pills */}
         <div className="flex gap-1.5 flex-wrap">
           {PLATFORMS.map(p => {
-            const connected = p.fields.every(f => (credentials[p.id]?.[f.key] || '').trim().length > 0);
+            const connected = p.id === 'twitter'
+              ? !!(credentials.twitter?.accessToken?.trim())
+              : p.fields.every(f => (credentials[p.id]?.[f.key] || '').trim().length > 0);
             return (
               <span key={p.id} className={`text-[10px] px-2 py-1 rounded-lg border ${
                 connected
