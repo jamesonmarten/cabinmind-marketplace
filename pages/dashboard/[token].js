@@ -14,6 +14,7 @@ import SalesDashboard from '../../components/dashboards/SalesDashboard';
 import LeadDashboard from '../../components/dashboards/LeadDashboard';
 import SocialDashboard from '../../components/dashboards/SocialDashboard';
 import TrainingDashboard from '../../components/dashboards/TrainingDashboard';
+import AutomationDashboard from '../../components/dashboards/AutomationDashboard';
 import { motion } from 'framer-motion';
 
 const DASHBOARDS = {
@@ -31,6 +32,10 @@ const DASHBOARDS = {
   'social-hub':      SocialDashboard,
   // 1-on-1 AI Training
   'ai-training':     TrainingDashboard,
+  // AI Automation Expert
+  'automation-expert': AutomationDashboard,
+  'automation-single': AutomationDashboard,
+  'automation-agency': AutomationDashboard,
 };
 
 const AGENT_META = {
@@ -45,6 +50,9 @@ const AGENT_META = {
   'lead-agency':     { name: 'AI Lead Researcher — Agency',  icon: '🔎', color: 'from-violet-600 to-purple-500' },
   'social-hub':      { name: 'AI Social Media Hub',          icon: '📱', color: 'from-pink-500 to-orange-400'  },
   'ai-training':     { name: '1-on-1 AI Training',            icon: '🎓', color: 'from-emerald-500 to-teal-400'  },
+  'automation-expert': { name: 'AI Automation Expert',        icon: '⚡', color: 'from-amber-500 to-orange-500'  },
+  'automation-single': { name: 'AI Automation — Single Workflow', icon: '⚡', color: 'from-amber-500 to-orange-500' },
+  'automation-agency': { name: 'AI Automation — Agency',      icon: '⚡', color: 'from-amber-600 to-red-500'    },
 };
 
 export default function DashboardPage() {

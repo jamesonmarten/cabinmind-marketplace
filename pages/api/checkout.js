@@ -19,6 +19,10 @@ const AGENT_PRICES = {
   'lead-pro':        { name: 'AI Lead Researcher — Pro',     amount: 25000 }, // $250/mo · client Hunter key · 500 leads
   'lead-scale':      { name: 'AI Lead Researcher — Scale',   amount: 50000 }, // $500/mo · full BYOK · unlimited
   'lead-agency':     { name: 'AI Lead Researcher — Agency',  amount: 100000}, // $1000/mo · BYOK · 5 seats · white-label
+  // AI Automation Expert — three tiers
+  'automation-single': { name: 'AI Automation — Single Workflow', amount: 4700,  mode: 'payment' }, // $47 one-time
+  'automation-expert': { name: 'AI Automation Expert',            amount: 19700 }, // $197/mo · 25 generations/mo
+  'automation-agency': { name: 'AI Automation Expert — Agency',   amount: 49700 }, // $497/mo · unlimited, white-label exports
 };
 
 export default async function handler(req, res) {
@@ -58,17 +62,20 @@ export default async function handler(req, res) {
   };
 
   try {
+    const isOneTime = agentPrice.mode === 'payment';
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      mode: 'subscription',
+      mode: isOneTime ? 'payment' : 'subscription',
       line_items: [
         {
           price_data: {
             currency: 'usd',
-            recurring: { interval: 'month' },
+            ...(isOneTime ? {} : { recurring: { interval: 'month' } }),
             product_data: {
               name: agentPrice.name,
-              description: `CabinMind – ${agentPrice.name} monthly subscription`,
+              description: isOneTime
+                ? `CabinMind – ${agentPrice.name} (one-time purchase)`
+                : `CabinMind – ${agentPrice.name} monthly subscription`,
               images: [],
             },
             unit_amount: agentPrice.amount,

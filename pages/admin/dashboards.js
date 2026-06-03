@@ -20,6 +20,8 @@ const DASHBOARDS = [
   { id: 'sales-assistant', name: 'AI Sales Assistant',            icon: '💼', notes: 'Outbound + follow-up' },
   { id: 'social-hub',      name: 'AI Social Media Hub',           icon: '📱', notes: 'Multi-platform scheduling' },
   { id: 'ai-training',     name: '1-on-1 AI Training',            icon: '🎓', notes: 'Coaching dashboard' },
+  { id: 'automation-expert', name: 'AI Automation Expert',        icon: '⚡', notes: '$197/mo · 25 gens · Zapier/Make/n8n' },
+  { id: 'automation-agency', name: 'AI Automation — Agency',      icon: '⚡', notes: '$497/mo · unlimited generations' },
 ];
 
 const OTHER_PAGES = [

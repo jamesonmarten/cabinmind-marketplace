@@ -127,6 +127,27 @@ export default function handler(req, res) {
       tools: ['Google Meet', 'Screen share', 'Live build sessions'],
       actions: ['Book a session', 'Send enquiry', 'Buy Lifetime Pass']
     },
+    {
+      id: 'automation-expert',
+      name: 'AI Automation Expert',
+      description: 'Describe any workflow in plain English → get importable blueprints for Zapier, Make.com, n8n, plus webhook & Python snippets. Skip the consultant bill.',
+      category: 'Marketing',
+      price: 197,
+      priceLabel: '$197/mo · 25 generations',
+      features: [
+        'Plain-English → production-ready automation',
+        'Importable Make.com scenario blueprints (JSON)',
+        'Importable n8n workflow JSON',
+        'Step-by-step Zapier setup instructions',
+        'Webhook (cURL) + Python equivalents',
+        'Cost estimates per platform (Zapier / Make / n8n)',
+        'Auth warnings + common-gotcha highlights',
+        '25 generations / month (Agency tier = unlimited)',
+        'In-dashboard history of every blueprint',
+      ],
+      tools: ['GPT-4o (JSON mode)', 'Zapier app catalog', 'Make.com blueprint format', 'n8n node spec'],
+      actions: ['Generate blueprint', 'Download JSON', 'Copy webhook snippet', 'View history']
+    },
   ];
 
   const { id } = req.query;

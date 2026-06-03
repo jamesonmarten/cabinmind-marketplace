@@ -191,6 +191,24 @@ const OTHER_PLANS = [
     features: ['500 prospects / month', '5-step follow-up sequences', 'CRM auto-logging', 'Reply detection', 'Open-rate analytics'],
     highlight: false,
   },
+  {
+    id: 'automation-expert',
+    icon: '⚡',
+    name: 'AI Automation Expert',
+    price: 197,
+    desc: 'Describe any workflow → importable blueprints for Zapier, Make, and n8n. Replaces a $200/hr automation consultant.',
+    features: [
+      '25 workflow generations / month',
+      'Importable Make.com & n8n JSON',
+      'Zapier step-by-step setup guides',
+      'Webhook (cURL) + Python snippets',
+      'Cost estimates per platform',
+      'Auth + gotcha warnings',
+      'Generation history saved',
+    ],
+    highlight: false,
+    badge: 'New',
+  },
 ];
 
 const FAQ = [
