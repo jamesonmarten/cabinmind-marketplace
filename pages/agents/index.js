@@ -3,7 +3,7 @@ import AgentCard from '../../components/AgentCard';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
-const CATEGORIES = ['All', 'Customer Support', 'Marketing', 'Content', 'Sales'];
+const CATEGORIES = ['All', 'Customer Support', 'Marketing', 'Content', 'Sales', 'Consulting'];
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState([]);
@@ -39,9 +39,18 @@ export default function AgentsPage() {
           <h1 className="text-5xl font-black text-white mb-4">
             AI Agent <span className="gradient-text">Marketplace</span>
           </h1>
-          <p className="text-gray-400 text-lg">
-            Plug-and-play AI agents for every part of your business. Pick one, deploy in minutes.
+          <p className="text-gray-400 text-lg mb-6">
+            Pick an agent, hit <span className="text-white font-semibold">Get Started</span>, deploy in minutes.
+            Or click <span className="text-white font-semibold">👁 Demo</span> to try it first.
           </p>
+          <div className="flex flex-wrap gap-3 justify-center text-sm">
+            <a href="/pricing" className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-gray-200 hover:bg-white/10 transition">
+              💰 Compare all plans
+            </a>
+            <a href="/trial" className="px-4 py-2 rounded-full bg-brand-600/20 border border-brand-500/40 text-brand-200 hover:bg-brand-600/30 transition">
+              🎁 Free 50-lead trial — no card
+            </a>
+          </div>
         </motion.div>
       </div>
 

@@ -1518,8 +1518,48 @@ export default function AgentDetail() {
   const DemoComponent = DEMO_COMPONENTS[id];
   const catGradient = CATEGORY_GRADIENT[agent.category] || gradient;
 
+  // Show sticky buy bar once user scrolls past the hero (~600px)
+  const stickyOpacity = useTransform(scrollY, [500, 700], [0, 1]);
+  const stickyY = useTransform(scrollY, [500, 700], [80, 0]);
+
   return (
     <Layout title={`${agent.name} – CabinMind`} fullBleed>
+
+      {/* ── STICKY BUY BAR (slides up after hero) ─────── */}
+      {mounted && (
+        <motion.div
+          style={{ opacity: stickyOpacity, y: stickyY }}
+          className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none"
+        >
+          <div className="pointer-events-auto bg-gray-950/95 backdrop-blur-xl border-t border-white/10 shadow-2xl">
+            <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3 sm:gap-4">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-xl flex-shrink-0`}>
+                {content.icon || '⚡'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-white font-bold text-sm truncate">{agent.name}</div>
+                <div className="text-gray-400 text-xs truncate">
+                  {agent.priceLabel || (agent.price ? `$${agent.price}${agent.priceSuffix || '/mo'}` : '')} · Cancel anytime
+                </div>
+              </div>
+              <button
+                onClick={() => startCheckout(id)}
+                disabled={checkoutLoading}
+                className={`px-4 sm:px-6 py-2.5 rounded-xl bg-gradient-to-r ${gradient} text-white font-bold text-sm hover:opacity-90 transition shadow-lg disabled:opacity-60 flex items-center gap-1.5 flex-shrink-0`}
+              >
+                {checkoutLoading ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span className="hidden sm:inline">Loading…</span>
+                  </>
+                ) : (
+                  <>Get Started <span className="hidden sm:inline">→</span></>
+                )}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* ── PARALLAX HERO ─────────────────────────────── */}
       <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
@@ -1606,10 +1646,14 @@ export default function AgentDetail() {
             transition={{ delay: 0.5 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            {agent.price && (
+            {(agent.price || agent.priceLabel) && (
               <div className="glass border border-white/10 rounded-2xl px-6 py-3 text-center">
-                <div className="text-3xl font-black text-white">${agent.price}<span className="text-lg text-gray-400 font-normal">{agent.priceSuffix || '/mo'}</span></div>
-                <div className="text-xs text-gray-500 mt-0.5">{agent.priceSuffix ? 'Flexible packages available' : 'Cancel anytime'}</div>
+                {agent.priceLabel ? (
+                  <div className="text-2xl font-black text-white leading-tight">{agent.priceLabel}</div>
+                ) : (
+                  <div className="text-3xl font-black text-white">${agent.price}<span className="text-lg text-gray-400 font-normal">{agent.priceSuffix || '/mo'}</span></div>
+                )}
+                <div className="text-xs text-gray-500 mt-0.5">{agent.priceSuffix || agent.priceLabel?.includes('once') ? 'Flexible options' : 'Cancel anytime'}</div>
               </div>
             )}
             <button
