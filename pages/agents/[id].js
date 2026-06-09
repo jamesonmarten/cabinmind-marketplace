@@ -1499,6 +1499,14 @@ export default function AgentDetail() {
       .then(setAgent);
   }, [id]);
 
+  // External agents (e.g. WordPress suite) — bounce straight to their hosted URL.
+  // Use useEffect so we don't run during SSR; falls back to manual link below.
+  useEffect(() => {
+    if (agent?.external && agent?.url && typeof window !== 'undefined') {
+      window.location.replace(agent.url);
+    }
+  }, [agent]);
+
   if (!agent) {
     return (
       <Layout fullBleed>
@@ -1508,6 +1516,29 @@ export default function AgentDetail() {
             transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
             className="w-12 h-12 rounded-full border-2 border-brand-400 border-t-transparent"
           />
+        </div>
+      </Layout>
+    );
+  }
+
+  // External agent — show a brief redirect notice with a manual fallback link.
+  if (agent.external && agent.url) {
+    return (
+      <Layout title={`${agent.name} – CabinMind`} fullBleed>
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <div className="text-center max-w-md">
+            <div className="text-5xl mb-4">🔌</div>
+            <h1 className="text-2xl font-bold text-white mb-2">{agent.name}</h1>
+            <p className="text-gray-400 text-sm mb-6">
+              This agent lives on the WordPress Agent Suite. Redirecting you now…
+            </p>
+            <a
+              href={agent.url}
+              className="inline-block px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-sm hover:opacity-90 transition shadow-lg"
+            >
+              Open on wp.devcabin.tech ↗
+            </a>
+          </div>
         </div>
       </Layout>
     );

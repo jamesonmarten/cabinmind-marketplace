@@ -3,7 +3,7 @@ import AgentCard from '../../components/AgentCard';
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 
-const CATEGORIES = ['All', 'Customer Support', 'Marketing', 'Content', 'Sales', 'Consulting'];
+const CATEGORIES = ['All', 'Customer Support', 'Marketing', 'Content', 'Sales', 'Consulting', 'WordPress'];
 
 export default function AgentsPage() {
   const [agents, setAgents] = useState([]);
@@ -24,6 +24,12 @@ export default function AgentsPage() {
       a.name.toLowerCase().includes(search.toLowerCase()) ||
       a.description.toLowerCase().includes(search.toLowerCase())
     );
+
+  // Split WordPress agents from the main set when no filter / search is applied
+  // so we can showcase them in their own banner section.
+  const showSplitSections = filter === 'All' && search.trim() === '';
+  const wpAgents   = showSplitSections ? filtered.filter(a => a.category === 'WordPress') : [];
+  const mainAgents = showSplitSections ? filtered.filter(a => a.category !== 'WordPress') : filtered;
 
   return (
     <Layout title="Agent Marketplace – CabinMind">
@@ -93,11 +99,57 @@ export default function AgentsPage() {
             ))}
           </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((agent, i) => (
-              <AgentCard key={agent.id} agent={agent} index={i} />
-            ))}
-          </div>
+          <>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {mainAgents.map((agent, i) => (
+                <AgentCard key={agent.id} agent={agent} index={i} />
+              ))}
+            </div>
+
+            {/* WordPress section — only when no filter/search is active */}
+            {showSplitSections && wpAgents.length > 0 && (
+              <div className="mt-20">
+                {/* Section banner */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="relative overflow-hidden rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-900/40 via-purple-900/30 to-indigo-900/40 p-8 mb-8"
+                >
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600 rounded-full blur-3xl opacity-20 pointer-events-none" />
+                  <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div>
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 text-xs font-semibold mb-3">
+                        🔌 WordPress Agent Suite
+                      </div>
+                      <h2 className="text-3xl font-black text-white mb-2">
+                        Built for WordPress <span className="gradient-text">Pros &amp; Agencies</span>
+                      </h2>
+                      <p className="text-gray-400 max-w-xl">
+                        6 specialised agents that solve real WP problems — vulnerability scans, plugin recommendations,
+                        Core Web Vitals, maintenance reports, child themes, broken-link maps. Bring your own OpenAI key.
+                      </p>
+                    </div>
+                    <a
+                      href="https://wp.devcabin.tech"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-sm hover:opacity-90 transition shadow-lg whitespace-nowrap flex-shrink-0"
+                    >
+                      Open Full Suite ↗
+                    </a>
+                  </div>
+                </motion.div>
+
+                {/* WordPress agent grid */}
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                  {wpAgents.map((agent, i) => (
+                    <AgentCard key={agent.id} agent={agent} index={i} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {!loading && filtered.length === 0 && (

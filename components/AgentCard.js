@@ -8,6 +8,7 @@ const categoryColors = {
   'Content':          'from-yellow-500 to-orange-400',
   'Sales':            'from-pink-500 to-rose-400',
   'Consulting':       'from-emerald-500 to-teal-400',
+  'WordPress':        'from-indigo-500 to-purple-500',
 };
 
 const categoryIcons = {
@@ -16,6 +17,7 @@ const categoryIcons = {
   'Content':          '✍️',
   'Sales':            '💼',
   'Consulting':       '🎓',
+  'WordPress':        '🔌',
 };
 
 // Per-agent icon overrides — keeps cards distinct even within a category
@@ -28,6 +30,12 @@ const AGENT_ICON_OVERRIDES = {
   'social-hub':        '📱',
   'ai-training':       '🎓',
   'automation-expert': '⚡',
+  'wp-vulnerability-scanner': '🛡️',
+  'wp-plugin-recommender':    '🔌',
+  'wp-speed-optimizer':       '⚡',
+  'wp-maintenance-report':    '📊',
+  'wp-child-theme-builder':   '🎨',
+  'wp-link-checker':          '🔗',
 };
 
 export default function AgentCard({ agent, index = 0 }) {
@@ -86,29 +94,43 @@ export default function AgentCard({ agent, index = 0 }) {
           ) : null}
         </div>
 
-        {/* CTAs — primary buy, secondary demo */}
+        {/* CTAs — primary buy, secondary demo (or single Launch for external WP agents) */}
         <div className="flex gap-2 mt-auto">
-          <button
-            onClick={() => handleCheckout(agent.id)}
-            disabled={isThisLoading}
-            className={`flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r ${gradient} text-white text-sm font-bold hover:opacity-90 transition-all shadow-lg disabled:opacity-60 disabled:cursor-wait flex items-center justify-center gap-1.5`}
-          >
-            {isThisLoading ? (
-              <>
-                <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                Loading…
-              </>
-            ) : (
-              <>Get Started →</>
-            )}
-          </button>
-          <Link
-            href={`/agents/${agent.id}`}
-            className="px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm font-semibold hover:bg-white/10 hover:text-white transition whitespace-nowrap"
-            title="View demo, full features, and details"
-          >
-            👁 Demo
-          </Link>
+          {agent.external && agent.url ? (
+            <a
+              href={agent.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r ${gradient} text-white text-sm font-bold hover:opacity-90 transition-all shadow-lg flex items-center justify-center gap-1.5`}
+              title="Opens the WordPress Agent Suite in a new tab"
+            >
+              Launch on WP Suite ↗
+            </a>
+          ) : (
+            <>
+              <button
+                onClick={() => handleCheckout(agent.id)}
+                disabled={isThisLoading}
+                className={`flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r ${gradient} text-white text-sm font-bold hover:opacity-90 transition-all shadow-lg disabled:opacity-60 disabled:cursor-wait flex items-center justify-center gap-1.5`}
+              >
+                {isThisLoading ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    Loading…
+                  </>
+                ) : (
+                  <>Get Started →</>
+                )}
+              </button>
+              <Link
+                href={`/agents/${agent.id}`}
+                className="px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm font-semibold hover:bg-white/10 hover:text-white transition whitespace-nowrap"
+                title="View demo, full features, and details"
+              >
+                👁 Demo
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </motion.div>
