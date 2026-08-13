@@ -330,7 +330,7 @@ async function sanitiseDomain(raw) {
 function buildLead({
   name, title, email, linkedIn, emailVerified, emailConfidence,
   emailSource, zbStatus, catchAll, companyMeta, domain,
-  score, scoreSignals, scoreReason, dataSource,
+  score, scoreSignals, scoreReason, dataSource, hunterMeta,
 }) {
   const parts = (name || '').trim().split(/\s+/);
   const first = parts[0] || '';
@@ -367,7 +367,11 @@ function buildLead({
     linkedin_is_direct:  linkedIn?.isDirect || false,
     linkedin_validated:  linkedIn?.validated || false,
     phone:               null,
-    company_description: companyMeta.why_fits || '',
+    company_description: hunterMeta?.description || companyMeta.why_fits || '',
+    tech:                (hunterMeta?.technologies?.length ? hunterMeta.technologies.slice(0, 8).join(', ') : null) || companyMeta.tech || '',
+    size:                hunterMeta?.headcount || companyMeta.size || 'Unknown',
+    company_twitter:     hunterMeta?.twitter ? `https://twitter.com/${hunterMeta.twitter}` : null,
+    company_linkedin:    hunterMeta?.linkedin || null,
     all_email_patterns:  allPatterns(first, last, domain),
     data_source:         dataSource,
     _provider:           'hunter',
@@ -610,13 +614,26 @@ Return ONLY valid JSON: {"name":"Full Name","title":"Job Title","score_reason":"
 //   3. Hunter domain-search gives up to 10 contacts per domain
 //   4. ZeroBounce called on every email — conserved by stopping at first valid pattern
 //   5. D-grade leads dropped before output; keeps trying next candidate
-async function generateLeads(icp, filters, batchNum, hunterKey, zbKey, subscriptionKey, { allowMultiplePerCompany = false } = {}) {
+async function generateLeads(
+  icp,
+  filters,
+  batchNum,
+  hunterKey,
+  zbKey,
+  subscriptionKey,
+  {
+    allowMultiplePerCompany = false,
+    requireVerifiedEmail = false,
+    requireDirectLinkedIn = false,
+  } = {}
+) {
   const { companies, aiProvider } = await getCompanyDomains(icp, filters, batchNum);
   const leads = [];
   const seenIds = subscriptionKey ? getSeenLeads(subscriptionKey) : new Set();
   const seenCompanies = new Set(); // Company diversity — 1 lead per company by default
   let hunterQuotaExceeded = false;
   const creatorMode = isCreatorICP(icp);
+  const strictRejected = { unverifiedEmail: 0, noDirectLinkedIn: 0 };
 
   for (const companyMeta of companies) {
     if (leads.length >= 5) break;  // got enough — stop early
@@ -696,13 +713,24 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey, subscript
           emailSource:     'hunter',
           zbStatus:        validation.zbStatus,
           catchAll:        validation.catchAll,
-          companyMeta:     { ...companyMeta, location: hunterData?.country || companyMeta.location },
+          companyMeta:     { ...companyMeta, location: hunterData?.city ? `${hunterData.city}, ${hunterData.country || ''}`.trim().replace(/,$/, '') : (hunterData?.country || companyMeta.location) },
+          hunterMeta:      { description: hunterData?.description, technologies: hunterData?.technologies, headcount: hunterData?.headcount, twitter: hunterData?.twitter, linkedin: hunterData?.linkedin },
           domain,
           score,
           scoreSignals:    signals,
           scoreReason:     `${c.position || 'Decision maker'} at ${companyMeta.company} — ${companyMeta.why_fits || icp.slice(0, 80)}`,
           dataSource:      (validation.verified || hunterStatus === 'valid') ? 'hunter-verified' : 'hunter',
         });
+
+        // Optional strict proof mode: only return leads with confirmed email + direct LinkedIn profile URL.
+        if (requireVerifiedEmail && !lead.email_verified) {
+          strictRejected.unverifiedEmail += 1;
+          continue;
+        }
+        if (requireDirectLinkedIn && !lead.linkedin_is_direct) {
+          strictRejected.noDirectLinkedIn += 1;
+          continue;
+        }
 
         // ── Cross-batch dedup ──────────────────────────────────────────────
         if (seenIds.has(lead._id)) {
@@ -797,7 +825,18 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey, subscript
         scoreSignals: signals,
         scoreReason:  s.score_reason || companyMeta.why_fits || '',
         dataSource:   'ai-pattern',
+        hunterMeta:   null,
       });
+
+      // Optional strict proof mode: pattern leads are excluded when proof requirements aren't met.
+      if (requireVerifiedEmail && !lead.email_verified) {
+        strictRejected.unverifiedEmail += 1;
+        continue;
+      }
+      if (requireDirectLinkedIn && !lead.linkedin_is_direct) {
+        strictRejected.noDirectLinkedIn += 1;
+        continue;
+      }
 
       // ── Cross-batch dedup ────────────────────────────────────────────────
       if (seenIds.has(lead._id)) {
@@ -846,6 +885,7 @@ async function generateLeads(icp, filters, batchNum, hunterKey, zbKey, subscript
       zbAvailable: !!(zbKey),
       realCount, verifiedCount, directLinkedIn, zbVerified, patternVerified,
       avgScore, hotLeads, warmLeads,
+      strictRejected,
     },
   };
 }
@@ -963,7 +1003,20 @@ export default withProtection('leads', async function handler(req, res) {
       exclude:     excludeCompanies || '',
     };
 
-    const { leads, meta } = await generateLeads(icp.trim(), filters, parseInt(batchNum) || 1, hunterKey, zbKey, subscriptionKey, { allowMultiplePerCompany: !!allowMultiplePerCompany });
+    const strictProofMode = false; // requireDirectLinkedIn is too aggressive — drops nearly all candidates
+    const { leads, meta } = await generateLeads(
+      icp.trim(),
+      filters,
+      parseInt(batchNum) || 1,
+      hunterKey,
+      zbKey,
+      subscriptionKey,
+      {
+        allowMultiplePerCompany: !!allowMultiplePerCompany,
+        requireVerifiedEmail: false,
+        requireDirectLinkedIn: false,
+      }
+    );
 
     // Record successful batch usage (after work completes — failed calls don't count)
     if (planForLimits !== 'scale' && planForLimits !== 'agency') {
@@ -976,6 +1029,53 @@ export default withProtection('leads', async function handler(req, res) {
     }
 
     const finalLeads = isDemo ? maskForDemo(leads) : leads;
+
+    // Per-batch quality diagnostics so trial users can see exactly why A-grade leads are low.
+    const gradeCounts = finalLeads.reduce((acc, l) => {
+      const g = l.grade || 'D';
+      acc[g] = (acc[g] || 0) + 1;
+      return acc;
+    }, { A: 0, B: 0, C: 0, D: 0 });
+
+    const decisionMakerRegex = /(ceo|founder|chief|owner|president|managing director|\bvp\b|vice president|director|head of|partner|editor|cro|cmo|cto|coo|cfo)/i;
+    const diagnostics = {
+      unverifiedEmails: finalLeads.filter(l => !l.email_verified).length,
+      lowConfidenceEmails: finalLeads.filter(l => typeof l.email_confidence === 'number' && l.email_confidence < 80).length,
+      nonDecisionMakerTitles: finalLeads.filter(l => !decisionMakerRegex.test(l.title || '')).length,
+      noDirectLinkedIn: finalLeads.filter(l => !l.linkedin_is_direct).length,
+      catchAllDomains: finalLeads.filter(l => l.catch_all).length,
+      noBuyingSignal: finalLeads.filter(l => !(l.signal || '').trim()).length,
+    };
+
+    const tips = [];
+    if (gradeCounts.A === 0) {
+      tips.push('No A-grade leads this batch: tighten ICP toward decision-maker titles (Founder, CEO, VP, Director, Head of).');
+    }
+    if (diagnostics.unverifiedEmails >= 3) {
+      tips.push('Most emails were not verified: narrow industry/location so Hunter finds stronger personal emails for each company.');
+    }
+    if (diagnostics.nonDecisionMakerTitles >= 3) {
+      tips.push('Titles are mostly non-senior: add seniority constraints directly in ICP (e.g., "VP/Director/Founder only").');
+    }
+    if (diagnostics.noDirectLinkedIn >= 3) {
+      tips.push('Few direct LinkedIn profiles: include clearer role + company-size signals to improve contact match quality.');
+    }
+    if (diagnostics.catchAllDomains >= 2) {
+      tips.push('Multiple catch-all domains detected: prefer niches with established B2B companies over creator/solo sites.');
+    }
+    if (tips.length === 0) {
+      tips.push('Quality looks healthy for this batch. To push more A-leads, tighten ICP by role, company size, and region.');
+    }
+
+    const debug = {
+      generatedAt: new Date().toISOString(),
+      batchNum: parseInt(batchNum) || 1,
+      icp: icp.trim(),
+      gradeCounts,
+      diagnostics,
+      tips,
+      thresholdGuide: 'A>=88, B>=72, C>=58',
+    };
 
     return res.status(200).json({
       leads:    finalLeads,
@@ -1002,6 +1102,12 @@ export default withProtection('leads', async function handler(req, res) {
         patternVerified:     meta.patternVerified,
         directLinkedIn:      meta.directLinkedIn,
       },
+      quality: {
+        strictMode: strictProofMode,
+        requirements: strictProofMode ? ['verified-email', 'direct-linkedin-profile'] : [],
+        strictRejected: meta.strictRejected || { unverifiedEmail: 0, noDirectLinkedIn: 0 },
+      },
+      debug,
     });
   } catch (err) {
     console.error('[/api/leads]', err.message);

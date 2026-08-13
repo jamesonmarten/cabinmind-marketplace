@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Add/remove slugs here to control who has access.
 // Each slug gets its own independent 50-lead counter.
 const VALID_SLUGS = [
+  'demo-50-leads',
   'acme2026',
   'defiantcnc2026',
 ];
@@ -115,6 +116,41 @@ function LeadCard({ lead, index }) {
             className="overflow-hidden"
           >
             <div className="px-4 pb-4 pt-0 border-t border-gray-700/50 space-y-3">
+
+              {/* Company snapshot row */}
+              {(lead.industry || lead.size || lead.location) && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {lead.industry && (
+                    <span className="text-[11px] px-2 py-1 bg-gray-700/50 text-gray-300 rounded-md">
+                      🏢 {lead.industry}
+                    </span>
+                  )}
+                  {lead.size && lead.size !== 'Unknown' && (
+                    <span className="text-[11px] px-2 py-1 bg-gray-700/50 text-gray-300 rounded-md">
+                      👥 {lead.size} employees
+                    </span>
+                  )}
+                  {lead.location && (
+                    <span className="text-[11px] px-2 py-1 bg-gray-700/50 text-gray-300 rounded-md">
+                      📍 {lead.location}
+                    </span>
+                  )}
+                  {lead.budget_range && (
+                    <span className="text-[11px] px-2 py-1 bg-green-900/30 text-green-400 border border-green-700/30 rounded-md">
+                      💰 {lead.budget_range}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Company description */}
+              {lead.company_description && (
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">About the Company</p>
+                  <p className="text-sm text-gray-300 leading-relaxed">{lead.company_description}</p>
+                </div>
+              )}
+
               {lead.signal && (
                 <div>
                   <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Buying Signal</p>
@@ -127,12 +163,41 @@ function LeadCard({ lead, index }) {
                   <p className="text-sm text-gray-300">{lead.pain_points}</p>
                 </div>
               )}
+
+              {/* Tech stack */}
+              {lead.tech && (
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Tech Stack</p>
+                  <div className="flex flex-wrap gap-1">
+                    {lead.tech.split(',').map((t, i) => t.trim() && (
+                      <span key={i} className="text-[10px] px-1.5 py-0.5 bg-indigo-900/30 text-indigo-300 border border-indigo-700/30 rounded">
+                        {t.trim()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-2 pt-1">
                 {lead.linkedin && (
                   <a href={lead.linkedin} target="_blank" rel="noopener noreferrer"
                     className="text-xs px-3 py-1.5 bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded-lg hover:bg-blue-600/30 transition"
                     onClick={e => e.stopPropagation()}>
-                    LinkedIn →
+                    👤 LinkedIn →
+                  </a>
+                )}
+                {lead.company_linkedin && lead.company_linkedin !== lead.linkedin && (
+                  <a href={lead.company_linkedin} target="_blank" rel="noopener noreferrer"
+                    className="text-xs px-3 py-1.5 bg-blue-900/20 text-blue-300 border border-blue-700/30 rounded-lg hover:bg-blue-900/40 transition"
+                    onClick={e => e.stopPropagation()}>
+                    🏢 Company Page →
+                  </a>
+                )}
+                {lead.company_twitter && (
+                  <a href={lead.company_twitter} target="_blank" rel="noopener noreferrer"
+                    className="text-xs px-3 py-1.5 bg-sky-900/20 text-sky-400 border border-sky-700/30 rounded-lg hover:bg-sky-900/40 transition"
+                    onClick={e => e.stopPropagation()}>
+                    𝕏 Twitter →
                   </a>
                 )}
                 {lead.email && (
@@ -177,6 +242,8 @@ export default function TrialPage({ slug, valid }) {
   const [error, setError]           = useState(null);
   const [limitHit, setLimitHit]     = useState(false);
   const [sources, setSources]       = useState(null);
+  const [debugLog, setDebugLog]     = useState([]);
+  const [quality, setQuality]       = useState(null);
   const abortRef = useRef(null);
 
   const totalGenerated = leads.length;
@@ -223,6 +290,10 @@ export default function TrialPage({ slug, valid }) {
         });
         setBatchNum(b => b + 1);
         if (data.sources) setSources(data.sources);
+        if (data.quality) setQuality(data.quality);
+        if (data.debug) {
+          setDebugLog(prev => [data.debug, ...prev].slice(0, 8));
+        }
       } else {
         setError('No leads returned for this batch. Try adjusting your ICP.');
       }
@@ -411,6 +482,55 @@ export default function TrialPage({ slug, valid }) {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Strict quality proof mode */}
+          {quality?.strictMode && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3">
+              <p className="text-sm text-emerald-300 font-medium">Proof Mode Active: verified emails + direct LinkedIn profiles only</p>
+              <p className="text-xs text-gray-400 mt-1">
+                Filtered out this batch — unverified email: {quality.strictRejected?.unverifiedEmail || 0}, no direct LinkedIn: {quality.strictRejected?.noDirectLinkedIn || 0}
+              </p>
+            </div>
+          )}
+
+          {/* Quality diagnostics log */}
+          {debugLog.length > 0 && (
+            <details className="bg-gray-900/80 border border-gray-700/60 rounded-2xl p-4" open>
+              <summary className="cursor-pointer list-none flex items-center justify-between">
+                <span className="text-sm font-semibold text-white">Quality Diagnostics Log</span>
+                <span className="text-xs text-gray-500">Latest {debugLog.length} batch{debugLog.length === 1 ? '' : 'es'}</span>
+              </summary>
+              <div className="mt-4 space-y-3">
+                {debugLog.map((d, i) => (
+                  <div key={`${d.generatedAt}-${i}`} className="bg-gray-800/60 border border-gray-700/50 rounded-xl p-3">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <p className="text-xs text-gray-300 font-medium">Batch {d.batchNum} · {new Date(d.generatedAt).toLocaleTimeString()}</p>
+                      <p className="text-xs text-gray-500">{d.thresholdGuide}</p>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <span className="text-[11px] px-2 py-1 rounded bg-green-500/15 text-green-300 border border-green-500/30">A: {d.gradeCounts?.A ?? 0}</span>
+                      <span className="text-[11px] px-2 py-1 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30">B: {d.gradeCounts?.B ?? 0}</span>
+                      <span className="text-[11px] px-2 py-1 rounded bg-yellow-500/15 text-yellow-300 border border-yellow-500/30">C: {d.gradeCounts?.C ?? 0}</span>
+                    </div>
+                    <div className="mt-2 text-[11px] text-gray-400 flex flex-wrap gap-x-3 gap-y-1">
+                      <span>Unverified: {d.diagnostics?.unverifiedEmails ?? 0}</span>
+                      <span>Low confidence: {d.diagnostics?.lowConfidenceEmails ?? 0}</span>
+                      <span>Non-senior titles: {d.diagnostics?.nonDecisionMakerTitles ?? 0}</span>
+                      <span>No direct LinkedIn: {d.diagnostics?.noDirectLinkedIn ?? 0}</span>
+                      <span>Catch-all: {d.diagnostics?.catchAllDomains ?? 0}</span>
+                    </div>
+                    {Array.isArray(d.tips) && d.tips.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {d.tips.map((tip, tipIndex) => (
+                          <li key={tipIndex} className="text-xs text-brand-300">• {tip}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </details>
           )}
 
           {/* Lead cards */}

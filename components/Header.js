@@ -15,7 +15,7 @@ export default function Header() {
   }, []);
 
   const navLinks = [
-    { href: '/agents',  label: 'Marketplace'    },
+    { href: '/agents',  label: 'Marketplace', marketplace: true },
     { href: '/demo',    label: 'Try It Free', accent: true },
     { href: '/pricing', label: 'Pricing'        },
     { href: '/agency',  label: 'For Agencies'   },
@@ -52,7 +52,7 @@ export default function Header() {
           >
             <span className="text-gray-500 text-[10px] uppercase tracking-widest leading-none">made by</span>
             <Image
-              src="/dev-cabin-logo.jpg"
+              src="/dev-cabin-logo-transparent.png"
               alt="Dev Cabin Technologies"
               width={30}
               height={30}
@@ -66,22 +66,33 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map(({ href, label, accent }) => (
+          {navLinks.map(({ href, label, accent, marketplace }) => (
             <Link
               key={href}
               href={href}
               className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
-                router.pathname.startsWith(href)
+                marketplace
+                  ? 'text-white font-semibold'
+                  : router.pathname.startsWith(href)
                   ? 'text-white'
                   : accent
                   ? 'text-brand-400 hover:text-brand-300'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              {accent && (
+              {marketplace && (
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-purple-400">⬡</span>
+                  {label}
+                  <span className="ml-1 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-gradient-to-r from-brand-500/30 to-purple-500/30 border border-brand-500/40 text-brand-300 leading-none">
+                    New
+                  </span>
+                </span>
+              )}
+              {accent && !marketplace && (
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />
               )}
-              {label}
+              {!marketplace && label}
             </Link>
           ))}
           <Link

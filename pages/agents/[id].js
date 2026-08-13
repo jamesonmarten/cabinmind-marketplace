@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import Link from 'next/link';
 import { useCheckout } from '../../hooks/useCheckout';
-import SocialDashboard from '../../components/dashboards/SocialDashboard';
 import TrainingDashboard from '../../components/dashboards/TrainingDashboard';
 
 // ─── Per-agent rich content ────────────────────────────────────────────────
@@ -103,8 +102,8 @@ const AGENT_CONTENT = {
       { icon: '🔐', title: 'Secure Credential Vault', desc: 'Platform tokens are stored only in your browser — never in our database. Full privacy by design.' },
       { icon: '📊', title: 'Publishing Analytics', desc: 'See total posts, success rates, and failures per platform at a glance.' },
     ],
-    demoTitle: 'Live Composer Preview',
-    demoDesc: 'See the full Social Media Hub — compose a post, toggle platforms, and use AI to generate a caption. Connect your accounts in the Connect tab to start publishing.',
+    demoTitle: 'Interactive Social Composer Demo',
+    demoDesc: 'Build a campaign in seconds: choose channels, generate an AI-style caption, and stage posts in the queue with live status chips.',
     showChat: false,
   },
   'ai-training': {
@@ -194,7 +193,7 @@ All products are software subscriptions. We do NOT build custom websites, run ad
 | AI Website Auditor | PageSpeed + SEO reports clients can hand to prospects | $47/mo |
 | AI Blog Writer | Long-form SEO content generator | $97/mo |
 | AI Sales Assistant | Outbound email + automated follow-up | $197/mo |
-| AI Social Media Hub | Multi-platform scheduler + AI caption generator | $147/mo |
+| AI Social Media Hub | Multi-platform scheduler + AI caption generator | $50/mo |
 | 1-on-1 AI Training | Live coaching dashboard for teams adopting AI | $497 one-time |
 
 **Free trial:** /trial (50 free verified leads, no card required) — this is your default low-friction CTA.
@@ -356,6 +355,214 @@ All products are software subscriptions. We do NOT build custom websites, run ad
 }
 
 // ─── Interactive demo panels ───────────────────────────────────────────────
+
+// SOCIAL HUB
+function SocialHubDemo() {
+  const [prompt, setPrompt] = useState('Launching our new summer service package for local businesses.');
+  const [caption, setCaption] = useState('');
+  const [selected, setSelected] = useState({ instagram: true, facebook: true, linkedin: true, twitter: false, tiktok: false });
+  const [connected, setConnected] = useState({ instagram: false, facebook: false, linkedin: false, twitter: false, tiktok: false });
+  const [queue, setQueue] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [publishNote, setPublishNote] = useState('');
+
+  const platforms = [
+    { id: 'instagram', label: 'Instagram', icon: '📸', cls: 'bg-pink-500/15 border-pink-500/30 text-pink-300' },
+    { id: 'facebook',  label: 'Facebook',  icon: '👍', cls: 'bg-blue-500/15 border-blue-500/30 text-blue-300' },
+    { id: 'linkedin',  label: 'LinkedIn',  icon: '💼', cls: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300' },
+    { id: 'twitter',   label: 'X',         icon: '𝕏', cls: 'bg-gray-500/15 border-gray-500/30 text-gray-300' },
+    { id: 'tiktok',    label: 'TikTok',    icon: '🎵', cls: 'bg-fuchsia-500/15 border-fuchsia-500/30 text-fuchsia-300' },
+  ];
+
+  const active = platforms.filter(p => selected[p.id]);
+
+  const buildCaption = () => {
+    if (!prompt.trim()) return;
+    setLoading(true);
+    const base = prompt.trim().replace(/\s+/g, ' ');
+    setTimeout(() => {
+      const generated = `${base} Ready to level up this quarter? DM us \"SOCIAL\" for the playbook. #SmallBusiness #Marketing #AIAutomation`;
+      setCaption(generated);
+      setLoading(false);
+    }, 500);
+  };
+
+  const addToQueue = () => {
+    if (!caption.trim() || active.length === 0) return;
+    setPublishNote('');
+    const item = {
+      id: Date.now(),
+      caption,
+      channels: active.map(p => p.id),
+      status: 'queued',
+      at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      channelResults: null,
+    };
+    setQueue(prev => [item, ...prev].slice(0, 4));
+  };
+
+  const publishNow = () => {
+    if (!caption.trim() || active.length === 0) return;
+    const channelResults = Object.fromEntries(active.map(p => [
+      p.id,
+      connected[p.id] ? 'published' : 'needs-setup',
+    ]));
+    const publishedCount = Object.values(channelResults).filter(v => v === 'published').length;
+    const blockedCount = Object.values(channelResults).filter(v => v === 'needs-setup').length;
+    const status = publishedCount === 0 ? 'blocked' : blockedCount > 0 ? 'partial' : 'published';
+
+    const item = {
+      id: Date.now(),
+      caption,
+      channels: active.map(p => p.id),
+      status,
+      at: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      channelResults,
+    };
+    setQueue(prev => [item, ...prev].slice(0, 4));
+
+    if (blockedCount > 0 && publishedCount === 0) {
+      setPublishNote('No connected accounts detected. Post was not published. Connect at least one channel to simulate success.');
+    } else if (blockedCount > 0) {
+      setPublishNote(`Published to ${publishedCount} connected channel${publishedCount === 1 ? '' : 's'} and blocked ${blockedCount} unconnected channel${blockedCount === 1 ? '' : 's'}.`);
+    } else {
+      setPublishNote(`Published successfully to ${publishedCount} connected channel${publishedCount === 1 ? '' : 's'}.`);
+    }
+  };
+
+  return (
+    <div className="glass rounded-2xl border border-white/10 overflow-hidden">
+      <div className="px-5 py-4 border-b border-white/10 bg-gradient-to-r from-pink-600/20 to-orange-500/20">
+        <div className="text-white font-semibold text-sm">AI Social Media Hub Demo</div>
+        <div className="text-xs text-gray-400">Compose once, tailor everywhere, queue with confidence</div>
+      </div>
+
+      <div className="p-5 space-y-4">
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Campaign Brief</p>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            rows={3}
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-pink-400/50"
+            placeholder="Describe your campaign..."
+          />
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Channels</p>
+          <div className="flex flex-wrap gap-2">
+            {platforms.map((p) => {
+              const on = selected[p.id];
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setSelected(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition ${on ? p.cls : 'bg-gray-800/60 border-gray-700 text-gray-500 hover:text-gray-300'}`}
+                >
+                  {p.icon} {p.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Demo account connections</p>
+          <div className="flex flex-wrap gap-2">
+            {platforms.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setConnected(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
+                className={`text-xs px-3 py-1.5 rounded-full border transition ${connected[p.id] ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' : 'bg-gray-800/60 border-gray-700 text-gray-500 hover:text-gray-300'}`}
+              >
+                {connected[p.id] ? '✓' : '○'} {p.icon} {p.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray-500 mt-2">Only connected channels can publish in this demo.</p>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={buildCaption}
+            disabled={loading || !prompt.trim()}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-pink-500 to-orange-500 text-white text-sm font-semibold hover:opacity-90 transition disabled:opacity-50"
+          >
+            {loading ? 'Generating…' : '✨ Generate Caption'}
+          </button>
+          <button
+            onClick={addToQueue}
+            disabled={!caption.trim() || active.length === 0}
+            className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-200 text-sm font-semibold hover:bg-white/10 transition disabled:opacity-50"
+          >
+            Add to Queue
+          </button>
+          <button
+            onClick={publishNow}
+            disabled={!caption.trim() || active.length === 0}
+            className="px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/30 transition disabled:opacity-50"
+          >
+            Publish Now
+          </button>
+        </div>
+
+        {publishNote && (
+          <div className={`text-xs rounded-xl px-3 py-2.5 border ${publishNote.startsWith('Published successfully') ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-amber-500/10 border-amber-500/30 text-amber-300'}`}>
+            {publishNote}
+          </div>
+        )}
+
+        <div className="bg-black/20 border border-white/10 rounded-xl p-4">
+          <div className="text-xs text-gray-500 mb-1">Caption Preview</div>
+          <p className="text-sm text-gray-200 leading-relaxed min-h-[48px]">
+            {caption || 'Your generated caption appears here.'}
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Live Queue</p>
+            <span className="text-[11px] text-gray-600">Demo mode</span>
+          </div>
+          <div className="space-y-2">
+            {queue.length === 0 ? (
+              <div className="text-xs text-gray-500 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5">
+                No posts queued yet. Generate a caption, then click Add to Queue or Publish Now.
+              </div>
+            ) : queue.map((item) => (
+              <div key={item.id} className="bg-white/5 border border-white/10 rounded-xl px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border ${item.status === 'published' ? 'bg-green-500/15 border-green-500/30 text-green-300' : item.status === 'partial' ? 'bg-yellow-500/15 border-yellow-500/30 text-yellow-300' : item.status === 'blocked' ? 'bg-red-500/15 border-red-500/30 text-red-300' : 'bg-blue-500/15 border-blue-500/30 text-blue-300'}`}>
+                    {item.status}
+                  </span>
+                  <span className="text-[10px] text-gray-600">{item.at}</span>
+                </div>
+                <div className="text-xs text-gray-300 line-clamp-2">{item.caption}</div>
+                <div className="mt-1.5 flex gap-1.5 flex-wrap">
+                  {item.channels.map((ch) => {
+                    const p = platforms.find(x => x.id === ch);
+                    const channelStatus = item.channelResults?.[ch];
+                    const statusCls = channelStatus === 'published'
+                      ? 'bg-green-500/10 border-green-500/30 text-green-300'
+                      : channelStatus === 'needs-setup'
+                      ? 'bg-red-500/10 border-red-500/30 text-red-300'
+                      : 'bg-black/25 border-white/10 text-gray-400';
+                    return (
+                      <span key={ch} className={`text-[10px] border rounded-full px-2 py-0.5 ${statusCls}`}>
+                        {channelStatus === 'published' ? '✓' : channelStatus === 'needs-setup' ? '!' : '•'} {p?.icon} {p?.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // WEBSITE AUDITOR
 function AuditDemo() {
@@ -1466,7 +1673,7 @@ const DEMO_COMPONENTS = {
   'blog-writer': BlogDemo,
   'sales-assistant': SalesDemo,
   'lead-researcher': LeadDemo,
-  'social-hub': SocialDashboard,
+  'social-hub': SocialHubDemo,
   'ai-training': TrainingDashboard,
 };
 
@@ -1484,6 +1691,9 @@ export default function AgentDetail() {
   const scrollY = useMotionValue(0);
   const heroY = useTransform(scrollY, [0, 600], ['0%', '30%']);
   const heroOpacity = useTransform(scrollY, [0, 420], [1, 0]);
+  // Sticky buy bar motion values must be declared unconditionally to keep hook order stable.
+  const stickyOpacity = useTransform(scrollY, [500, 700], [0, 1]);
+  const stickyY = useTransform(scrollY, [500, 700], [80, 0]);
 
   useEffect(() => {
     setMounted(true);
@@ -1548,10 +1758,6 @@ export default function AgentDetail() {
   const gradient = content.gradient || 'from-brand-400 to-purple-500';
   const DemoComponent = DEMO_COMPONENTS[id];
   const catGradient = CATEGORY_GRADIENT[agent.category] || gradient;
-
-  // Show sticky buy bar once user scrolls past the hero (~600px)
-  const stickyOpacity = useTransform(scrollY, [500, 700], [0, 1]);
-  const stickyY = useTransform(scrollY, [500, 700], [80, 0]);
 
   return (
     <Layout title={`${agent.name} – CabinMind`} fullBleed>

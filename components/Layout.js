@@ -1,5 +1,6 @@
 import Head from 'next/head';
 import Header from './Header';
+import TeddyChat from './TeddyChat';
 
 export default function Layout({ children, title = 'CabinMind Agents', fullBleed = false }) {
   return (
@@ -17,6 +18,7 @@ export default function Layout({ children, title = 'CabinMind Agents', fullBleed
       <main className={fullBleed ? '' : 'pt-16'}>
         {children}
       </main>
+      <TeddyChat />
     </>
   );
 }
