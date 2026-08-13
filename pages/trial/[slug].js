@@ -253,6 +253,7 @@ export default function TrialPage({ slug, valid }) {
   const fetchBatch = useCallback(async (currentBatch, currentIcp) => {
     setGenerating(true);
     setError(null);
+    setQuality(null);
     abortRef.current = new AbortController();
 
     try {
@@ -481,16 +482,6 @@ export default function TrialPage({ slug, valid }) {
                   <p className="text-gray-400 text-xs mt-0.5">{s.label}</p>
                 </div>
               ))}
-            </div>
-          )}
-
-          {/* Strict quality proof mode */}
-          {quality?.strictMode && (
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3">
-              <p className="text-sm text-emerald-300 font-medium">Proof Mode Active: verified emails + direct LinkedIn profiles only</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Filtered out this batch — unverified email: {quality.strictRejected?.unverifiedEmail || 0}, no direct LinkedIn: {quality.strictRejected?.noDirectLinkedIn || 0}
-              </p>
             </div>
           )}
 
