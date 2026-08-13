@@ -190,7 +190,7 @@ export default function TrialPage() {
               No credit card required. Emails sent within 24 hours.
             </p>
             <p className="text-gray-600 text-xs">
-              Questions? Email <a href="mailto:support@devcabin.tech" className="text-purple-400 hover:underline">support@devcabin.tech</a>
+              Questions? Email <a href="mailto:info@devcabin.tech" className="text-purple-400 hover:underline">info@devcabin.tech</a>
             </p>
           </motion.div>
         </div>

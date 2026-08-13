@@ -257,7 +257,7 @@ const FAQ = [
   },
   {
     q: 'Do you offer agency or reseller pricing?',
-    a: "The Agency plan ($1000/mo) is built for that — 5 seats, white-label reports, per-client ICP templates. Email support@devcabin.tech to discuss volume deals for higher seat counts.",
+    a: "The Agency plan ($1000/mo) is built for that — 5 seats, white-label reports, per-client ICP templates. Email info@devcabin.tech to discuss volume deals for higher seat counts.",
   },
 ];
 

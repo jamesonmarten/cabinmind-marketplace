@@ -10,7 +10,7 @@
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM   = process.env.RESEND_FROM_EMAIL || 'CabinMind <support@devcabin.tech>';
+const FROM   = process.env.RESEND_FROM_EMAIL || 'CabinMind <info@devcabin.tech>';
 const MAX_LEADS = 100;
 
 function scoreColor(score, grade) {
@@ -159,7 +159,7 @@ function buildHTML({ leads, toName, icp }) {
       <a href="https://products.devcabin.tech" style="color:#6d28d9;text-decoration:none;">products.devcabin.tech</a>
     </p>
     <p style="margin:6px 0 0;color:#374151;font-size:11px;">
-      Questions? Reply to this email or contact <a href="mailto:support@devcabin.tech" style="color:#6d28d9;text-decoration:none;">support@devcabin.tech</a>
+      Questions? Reply to this email or contact <a href="mailto:info@devcabin.tech" style="color:#6d28d9;text-decoration:none;">info@devcabin.tech</a>
     </p>
   </td></tr>
 

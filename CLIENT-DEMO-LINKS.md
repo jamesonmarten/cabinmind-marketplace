@@ -129,4 +129,4 @@ https://products.devcabin.tech/agents
 https://products.devcabin.tech/pricing
 
 ## Questions
-support@devcabin.tech
+info@devcabin.tech

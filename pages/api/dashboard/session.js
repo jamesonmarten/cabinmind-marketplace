@@ -89,6 +89,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ ...foundSession, token });
   } catch (err) {
     console.error('[dashboard/session] Stripe fallback error:', err.message);
-    return res.status(500).json({ error: 'Could not validate your session. Please contact support@devcabin.tech' });
+    return res.status(500).json({ error: 'Could not validate your session. Please contact info@devcabin.tech' });
   }
 }

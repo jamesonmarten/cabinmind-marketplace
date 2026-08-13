@@ -128,7 +128,7 @@ async function sendConfirmationEmail({ toEmail, toName, agentId, sessionId, dash
           <p style="margin:0 0 12px;color:#475569;font-size:12px;text-align:center;">Or copy this link: <a href="${dashboardUrl}" style="color:#a78bfa;word-break:break-all;">${dashboardUrl}</a></p>
 
           <p style="margin:0;color:#475569;font-size:13px;line-height:1.6;">
-            Questions? Reply to this email or reach us at <a href="mailto:support@devcabin.tech" style="color:#a78bfa;">support@devcabin.tech</a>. We typically respond within a few hours.
+            Questions? Reply to this email or reach us at <a href="mailto:info@devcabin.tech" style="color:#a78bfa;">info@devcabin.tech</a>. We typically respond within a few hours.
           </p>
         </td></tr>
 
@@ -304,7 +304,7 @@ export default async function handler(req, res) {
     <div style="text-align:center;margin:28px 0;">
       <a href="https://products.devcabin.tech/agents" style="display:inline-block;background:linear-gradient(135deg,#6d28d9,#4f46e5);color:#fff;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:10px;">Re-subscribe →</a>
     </div>
-    <p style="color:#475569;font-size:13px;">Questions? Email us at <a href="mailto:support@devcabin.tech" style="color:#a78bfa;">support@devcabin.tech</a></p>
+    <p style="color:#475569;font-size:13px;">Questions? Email us at <a href="mailto:info@devcabin.tech" style="color:#a78bfa;">info@devcabin.tech</a></p>
   </div>
 </body>`,
           });

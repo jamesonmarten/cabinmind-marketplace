@@ -20,7 +20,7 @@
 | `/api/checkout` — all prices correct | ✅ |
 | `/api/webhook` — BYOK email template all 5 LR tiers | ✅ |
 | Stripe webhook secret configured | ✅ |
-| Resend `support@devcabin.tech` verified | ✅ |
+| Resend `info@devcabin.tech` verified | ✅ |
 | `ZEROBOUNCE_API_KEY` in Vercel env | ✅ |
 | Dashboard token provisioning | ✅ |
 | `LeadDashboard` BYOK API Keys tab | ✅ |
@@ -83,7 +83,7 @@ Just ensure the key is still valid: https://hunter.io/api-keys
 
 Check Vercel env vars — should be:
 ```
-RESEND_FROM_EMAIL=CabinMind <support@devcabin.tech>
+RESEND_FROM_EMAIL=CabinMind <info@devcabin.tech>
 NOTIFY_EMAIL=hello@devcabin.tech
 ```
 
@@ -131,7 +131,7 @@ After switching to live keys:
 | `NEXT_PUBLIC_STRIPE_KEY` | Vercel | `pk_test_` now → swap to `pk_live_` |
 | `STRIPE_WEBHOOK_SECRET` | Vercel | Re-register on live endpoint |
 | `RESEND_API_KEY` | Vercel | ✅ Active |
-| `RESEND_FROM_EMAIL` | Vercel | `CabinMind <support@devcabin.tech>` |
+| `RESEND_FROM_EMAIL` | Vercel | `CabinMind <info@devcabin.tech>` |
 | `NOTIFY_EMAIL` | Vercel | Internal sale alert recipient |
 | `ZEROBOUNCE_API_KEY` | Vercel | ✅ Active (100 free/mo → upgrade when needed) |
 | `PLATFORM_HUNTER` | Vercel | Hunter.io key for Starter plan users |

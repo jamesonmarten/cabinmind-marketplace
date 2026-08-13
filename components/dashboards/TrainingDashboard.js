@@ -80,7 +80,7 @@ export default function TrainingDashboard({ session }) {
       setSent(true);
       setForm({ name: '', email: '', company: '', message: '' });
     } catch {
-      setError('Something went wrong. Please email us directly at support@devcabin.tech');
+      setError('Something went wrong. Please email us directly at info@devcabin.tech');
     }
     setSending(false);
   };
@@ -263,7 +263,7 @@ export default function TrainingDashboard({ session }) {
               )}
             </button>
             <p className="text-center text-xs text-gray-600">
-              Or email us directly: <a href="mailto:support@devcabin.tech" className="text-gray-500 hover:text-gray-300 transition">support@devcabin.tech</a>
+              Or email us directly: <a href="mailto:info@devcabin.tech" className="text-gray-500 hover:text-gray-300 transition">info@devcabin.tech</a>
             </p>
           </form>
         )}

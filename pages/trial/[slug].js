@@ -584,8 +584,8 @@ export default function TrialPage({ slug, valid }) {
             </a>
             {' · '}
             Questions?{' '}
-            <a href="mailto:support@devcabin.tech" className="text-gray-500 hover:text-gray-400 transition">
-              support@devcabin.tech
+            <a href="mailto:info@devcabin.tech" className="text-gray-500 hover:text-gray-400 transition">
+              info@devcabin.tech
             </a>
           </div>
         </div>

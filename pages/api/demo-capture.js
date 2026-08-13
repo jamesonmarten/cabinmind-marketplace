@@ -12,7 +12,7 @@ import { Resend } from 'resend';
 import { withProtection } from '../../lib/rateLimit';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM   = process.env.RESEND_FROM_EMAIL || 'CabinMind <support@devcabin.tech>';
+const FROM   = process.env.RESEND_FROM_EMAIL || 'CabinMind <info@devcabin.tech>';
 const NOTIFY = process.env.NOTIFY_EMAIL || 'jameson@devcabin.tech';
 
 export default withProtection('demo-capture', async function handler(req, res) {

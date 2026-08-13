@@ -247,8 +247,8 @@ export default function CheckoutSuccess() {
             className="mt-8 text-gray-500 text-sm"
           >
             Questions? Email us at{' '}
-            <a href="mailto:support@devcabin.tech" className="text-brand-400 hover:underline">
-              support@devcabin.tech
+            <a href="mailto:info@devcabin.tech" className="text-brand-400 hover:underline">
+              info@devcabin.tech
             </a>
           </motion.p>
         </div>

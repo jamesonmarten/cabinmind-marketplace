@@ -94,7 +94,7 @@ export default function DashboardPage() {
           <div className="text-6xl mb-4">🔒</div>
           <h1 className="text-2xl font-bold text-white mb-3">Dashboard not found</h1>
           <p className="text-gray-400 mb-6">{error}</p>
-          <p className="text-gray-500 text-sm">Check your welcome email for the correct link, or contact <a href="mailto:support@devcabin.tech" className="text-brand-400">support@devcabin.tech</a></p>
+          <p className="text-gray-500 text-sm">Check your welcome email for the correct link, or contact <a href="mailto:info@devcabin.tech" className="text-brand-400">info@devcabin.tech</a></p>
         </div>
       </div>
     </Layout>
@@ -150,7 +150,7 @@ export default function DashboardPage() {
           {cancelState?.cancelAt ? (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-sm">
               <p className="text-amber-300 font-medium">Your subscription is set to cancel on {new Date(cancelState.cancelAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.</p>
-              <p className="text-gray-400 mt-1">You'll retain full access until then. Contact <a href="mailto:support@devcabin.tech" className="text-brand-400 hover:underline">support@devcabin.tech</a> to reactivate.</p>
+              <p className="text-gray-400 mt-1">You'll retain full access until then. Contact <a href="mailto:info@devcabin.tech" className="text-brand-400 hover:underline">info@devcabin.tech</a> to reactivate.</p>
             </div>
           ) : cancelState === 'confirming' ? (
             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
