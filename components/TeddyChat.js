@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react';
 const SYSTEM_CONTEXT = {
   agentName: 'Teddy',
   businessName: 'CabinMind',
-  businessContext: `CabinMind is an AI agent marketplace built by Dev Cabin Technologies. It offers powerful AI agents for lead generation, social media, sales, blog writing, audits, and more. Visitors can try agents for free at /trial or /demo. Pricing starts at $297/mo. The agency white-label plan is $1,997/mo. Key pages: /agents (browse agents), /pricing, /demo, /agency.`,
+  businessContext: `CabinMind is an AI agent marketplace built by Dev Cabin Technologies. It offers AI agents for lead generation, social media, sales, blog writing, audits, automation, and WordPress workflows. Visitors can try agents for free at /trial or /demo. Pricing includes freemium options for selected WordPress tools, paid plans from $19/mo on those tools, and marketplace subscriptions starting from $50/mo depending on product. Key pages: /agents (browse agents), /pricing, /demo, /agency.`,
   salesMode: true,
 };
 

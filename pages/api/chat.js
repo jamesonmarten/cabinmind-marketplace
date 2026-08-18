@@ -3,8 +3,8 @@ import { withProtection } from '../../lib/rateLimit';
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-function buildSystemPrompt(agentName = 'Aria', businessName = '', businessContext = '', salesMode = false) {
-  const nameStr = agentName || 'Aria';
+function buildSystemPrompt(agentName = 'Teddy', businessName = '', businessContext = '', salesMode = false) {
+  const nameStr = agentName || 'Teddy';
   const bizStr  = businessName ? ` for ${businessName}` : '';
   const ctxStr  = businessContext
     ? `\n\n=== BUSINESS CONTEXT ===\n${businessContext}\n=== END CONTEXT ===`

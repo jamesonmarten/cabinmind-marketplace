@@ -3,9 +3,13 @@
  * Plugin Name:  CabinMind AI Agents
  * Plugin URI:   https://products.devcabin.tech
  * Description:  Embed the CabinMind AI Agent Marketplace on any page using the [cabinmind_agents] shortcode.
- * Version:      1.1.0
+ * Version:      1.3.0
  * Author:       Dev Cabin Technologies
  * Author URI:   https://devcabin.tech
+ * Requires at least: 6.0
+ * Requires PHP: 7.4
+ * Text Domain: cabinmind-ai-agents
+ * Domain Path: /languages
  * License:      GPL-2.0-or-later
  */
 
@@ -27,7 +31,7 @@ function cabinmind_enqueue_styles() {
         'cabinmind-agents',
         plugin_dir_url( __FILE__ ) . 'cabinmind-agents.css',
         array(),
-        '1.1.0'
+        '1.3.0'
     );
 }
 add_action( 'wp_enqueue_scripts', 'cabinmind_enqueue_styles' );
@@ -84,6 +88,17 @@ function cabinmind_agents_shortcode( $atts ) {
             return d.innerHTML;
         }
 
+        function priceMarkup( agent ) {
+            if ( agent && typeof agent.priceLabel === 'string' && agent.priceLabel.trim() !== '' ) {
+                return escHtml(agent.priceLabel);
+            }
+            if ( agent && agent.price ) {
+                var suffix = agent.priceSuffix || '/mo';
+                return '$' + escHtml(agent.price) + '<small>' + escHtml(suffix) + '</small>';
+            }
+            return 'Contact for pricing';
+        }
+
         fetch( apiUrl )
             .then( function(res) {
                 if ( !res.ok ) throw new Error('HTTP ' + res.status);
@@ -114,7 +129,10 @@ function cabinmind_agents_shortcode( $atts ) {
                           '<p class="cabinmind-desc">' + escHtml(agent.description) + '</p>',
                           featuresHtml,
                           '<div class="cabinmind-footer">',
-                            '<span class="cabinmind-price">$' + escHtml(agent.price) + '<small>/mo</small></span>',
+                                                        '<div class="cabinmind-price-wrap">',
+                                                            (agent.freemium ? '<span class="cabinmind-free-badge">Free tier available</span>' : ''),
+                                                            '<span class="cabinmind-price">' + priceMarkup(agent) + '</span>',
+                                                        '</div>',
                             '<div class="cabinmind-actions">',
                               '<a class="cabinmind-btn-secondary" href="' + agentUrl + '" target="_blank" rel="noopener">Try Demo</a>',
                               '<a class="cabinmind-btn-primary"   href="' + agentUrl + '" target="_blank" rel="noopener">Subscribe →</a>',
@@ -129,6 +147,27 @@ function cabinmind_agents_shortcode( $atts ) {
                 container.innerHTML = '<p class="cabinmind-error">Could not load agents. ' +
                     '<a href="' + storeUrl + '" target="_blank" rel="noopener">View marketplace →</a></p>';
             });
+    })();
+    </script>
+
+    <script>
+    (function () {
+        'use strict';
+        if (window.__cabinmindTeddyLoaded) return;
+        window.__cabinmindTeddyLoaded = true;
+
+        window.CabinMindConfig = Object.assign({}, window.CabinMindConfig || {}, {
+            agentName: 'Teddy',
+            businessName: 'CabinMind',
+            businessContext: 'CabinMind is an AI agent marketplace built by Dev Cabin Technologies. It offers AI agents for lead generation, social media, sales, blog writing, audits, automation, and WordPress workflows. Visitors can try agents for free at /trial or /demo. Pricing includes freemium options for selected WordPress tools, paid plans from $19/mo on those tools, and marketplace subscriptions starting from $50/mo depending on product. Key pages: /agents (browse agents), /pricing, /demo, /agency.',
+            salesMode: true,
+            apiBase: 'https://products.devcabin.tech'
+        });
+
+        var s = document.createElement('script');
+        s.src = 'https://products.devcabin.tech/widget.js';
+        s.async = true;
+        document.head.appendChild(s);
     })();
     </script>
     <?php

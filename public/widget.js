@@ -6,13 +6,14 @@
   'use strict';
 
   var cfg = Object.assign({
-    agentName:       'Aria',
-    businessName:    '',
-    businessContext: '',
+    agentName:       'Teddy',
+    businessName:    'CabinMind',
+    businessContext: 'CabinMind is an AI agent marketplace built by Dev Cabin Technologies. It offers AI agents for lead generation, social media, sales, blog writing, audits, automation, and WordPress workflows. Visitors can try agents for free at /trial or /demo. Pricing includes freemium options for selected WordPress tools, paid plans from $19/mo on those tools, and marketplace subscriptions starting from $50/mo depending on product. Key pages: /agents (browse agents), /pricing, /demo, /agency.',
+    salesMode:       true,
     primaryColor:    '#10b981',
     bgColor:         '#0f172a',
     position:        'bottom-right',
-    greeting:        "Hi there! I'm here to help. How can I assist you today?",
+    greeting:        "Hey! I'm Teddy - your CabinMind guide. Ask me anything about our AI agents, pricing, or how to get started!",
     apiBase:         'https://products.devcabin.tech',
   }, window.CabinMindConfig || {});
 
@@ -168,7 +169,8 @@
     if(loading)return;loading=true;sendBtn.disabled=true;showTyping();
     var payload=JSON.stringify({
       messages:messages.slice(-20).map(function(m){return{role:m.role,content:m.content};}),
-      agentName:cfg.agentName||'Aria',businessName:cfg.businessName||'',businessContext:cfg.businessContext||'',
+      agentName:cfg.agentName||'Teddy',businessName:cfg.businessName||'',businessContext:cfg.businessContext||'',
+      salesMode: !!cfg.salesMode,
     });
     var xhr=new XMLHttpRequest();
     xhr.open('POST',API+'/api/chat',true);

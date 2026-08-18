@@ -27,7 +27,7 @@ export default function EmbedChat() {
   const router = useRouter();
   const { name, color, bg, greeting, business, context } = router.query;
 
-  const agentName   = name     || 'Aria';
+  const agentName   = name     || 'Teddy';
   const primary     = color    || '#6d28d9';
   const bgColor     = bg       || '#0f172a';
   const openingMsg  = greeting || `Hi! I'm ${agentName}. How can I help you today?`;

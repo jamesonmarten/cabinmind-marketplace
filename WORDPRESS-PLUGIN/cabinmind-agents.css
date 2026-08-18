@@ -1,4 +1,4 @@
-/* CabinMind AI Agents — WordPress plugin stylesheet v1.1.0 */
+/* CabinMind AI Agents — WordPress plugin stylesheet v1.3.0 */
 
 .cabinmind-grid {
   display: grid;
@@ -103,6 +103,24 @@
   font-size: 22px;
   font-weight: 800;
   color: #111827;
+}
+.cabinmind-price-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cabinmind-free-badge {
+  display: inline-block;
+  width: fit-content;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  color: #14532d;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  border-radius: 999px;
+  padding: 3px 9px;
 }
 .cabinmind-price small {
   font-size: 13px;
