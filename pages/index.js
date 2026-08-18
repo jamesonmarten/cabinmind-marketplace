@@ -59,7 +59,28 @@ function SocialProofTicker() {
 
 export default function Home() {
   return (
-    <Layout title="CabinMind — AI Lead Researcher · 100 Verified B2B Leads in Under 3 Minutes" fullBleed>
+    <Layout
+      title="CabinMind — AI Lead Researcher and Agent Marketplace"
+      description="Automate lead generation, sales, support, and marketing with AI agents. Try CabinMind demos, compare plans, and launch in minutes."
+      canonicalPath="/"
+      schema={[
+        {
+          '@context': 'https://schema.org',
+          '@type': 'SoftwareApplication',
+          name: 'CabinMind',
+          applicationCategory: 'BusinessApplication',
+          operatingSystem: 'Web',
+          offers: {
+            '@type': 'Offer',
+            priceCurrency: 'USD',
+            price: '19',
+            description: 'Freemium and paid plans available',
+          },
+          url: 'https://products.devcabin.tech',
+        },
+      ]}
+      fullBleed
+    >
 
       {/* HERO */}
       <section className="relative min-h-screen grid-bg flex flex-col items-center justify-center overflow-hidden px-4 pt-16">

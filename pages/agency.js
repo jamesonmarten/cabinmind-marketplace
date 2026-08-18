@@ -6,7 +6,6 @@
  */
 import Layout from '../components/Layout';
 import Link from 'next/link';
-import Head from 'next/head';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { useCheckout } from '../hooks/useCheckout';
@@ -87,11 +86,11 @@ export default function AgencyPage() {
   const buyAgency = () => handleCheckout('lead-agency-white-label');
 
   return (
-    <Layout>
-      <Head>
-        <title>White-Label Lead Generation for Agencies | CabinMind</title>
-        <meta name="description" content="Resell AI-powered lead generation under your own brand. $997/mo gets you 10 client seats and 2,000 leads/mo. 96% margin." />
-      </Head>
+    <Layout
+      title="White-Label Lead Generation for Agencies | CabinMind"
+      description="Resell AI-powered lead generation under your own brand. CabinMind Agency helps you launch recurring lead-gen offers fast."
+      canonicalPath="/agency"
+    >
 
       {/* ─── Hero ───────────────────────────────────────────────────────────── */}
       <section className="pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-950 via-purple-950/20 to-gray-950">

@@ -9,6 +9,13 @@ import { withProtection } from '../../lib/rateLimit';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+function withTimeout(promise, ms, fallback = null) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 export default withProtection('audit', async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -20,7 +27,7 @@ export default withProtection('audit', async function handler(req, res) {
   url = url.replace(/\/$/, '');
 
   // Run tech stack detection in parallel with PSI — never blocks the main audit
-  const techStackPromise = detectTechStack(url);
+  const techStackPromise = detectTechStack(url).catch(() => null);
 
   // ── Tier 1: Google PageSpeed Insights ──────────────────────────────────────
   const apiKey = process.env.PAGESPEED_API_KEY || '';
@@ -51,10 +58,10 @@ export default withProtection('audit', async function handler(req, res) {
     console.warn('[audit] PSI unreachable — falling back to AI audit:', psiError);
   }
 
-  const techStack = await techStackPromise;
+  const techStack = await withTimeout(techStackPromise, 2500, null);
 
   if (!psiData) {
-    return runAiAudit(url, res, techStack);
+    return runAiAudit(url, res, techStackPromise, techStack);
   }
   return parsePsiAndRespond(psiData, url, res, techStack);
 });
@@ -116,6 +123,7 @@ If you can't identify specific technologies, make educated guesses based on the 
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 1000,
       temperature: 0.4,
+      timeout: 6000,
     });
     let s = completion.choices[0].message.content.trim()
       .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
@@ -234,7 +242,7 @@ function parsePsiAndRespond(psiData, url, res, techStack) {
 }
 
 // ── Tier 2: AI-powered audit fallback ───────────────────────────────────────
-async function runAiAudit(url, res, techStack) {
+async function runAiAudit(url, res, techStackPromise, immediateTechStack = null) {
   let hostname = url;
   try { hostname = new URL(url).hostname.replace(/^www\./, ''); } catch {}
 
@@ -299,6 +307,7 @@ Rules:
     const scoreGap    = Math.max(0, 90 - avgScore);
     const trafficGain = Math.round(scoreGap * 85 + 200);
 
+    const techStack = immediateTechStack || await withTimeout(techStackPromise, 2000, null);
     return res.status(200).json({ results, trafficGain, audited: url, source: 'ai', techStack: techStack || null });
 
   } catch (err) {

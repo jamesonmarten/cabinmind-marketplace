@@ -205,7 +205,11 @@ export default function ComparePage() {
   const { handleCheckout, loading: checkoutLoading } = useCheckout();
 
   return (
-    <Layout title="CabinMind vs Apollo, Hunter, ZoomInfo & More — AI Lead Research Comparison">
+    <Layout
+      title="CabinMind vs Apollo, Hunter, Clay, ZoomInfo and More"
+      description="Compare CabinMind against leading lead-generation platforms on features, flexibility, and total cost."
+      canonicalPath="/compare"
+    >
       <div className="min-h-screen">
 
         {/* ── Hero ── */}

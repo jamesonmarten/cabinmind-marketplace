@@ -1279,7 +1279,11 @@ function FinalCTASection() {
 
 export default function DemoPage() {
   return (
-    <Layout title="CabinMind AI Lead Researcher — Live Demo" description="See real B2B leads generated in 2.5 seconds. ZeroBounce-verified emails, direct LinkedIn profiles, A–D scoring. Compare costs and calculate your ROI.">
+    <Layout
+      title="CabinMind AI Lead Researcher — Live Demo"
+      description="See real B2B leads generated in 2.5 seconds. ZeroBounce-verified emails, direct LinkedIn profiles, A–D scoring. Compare costs and calculate your ROI."
+      canonicalPath="/demo"
+    >
       <HeroSection />
       <PipelineSection />
       <LiveLeadsSection />

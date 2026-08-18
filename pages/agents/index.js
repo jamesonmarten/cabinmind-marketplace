@@ -32,7 +32,20 @@ export default function AgentsPage() {
   const mainAgents = showSplitSections ? filtered.filter(a => a.category !== 'WordPress') : filtered;
 
   return (
-    <Layout title="Agent Marketplace – CabinMind">
+    <Layout
+      title="AI Agent Marketplace | CabinMind"
+      description="Browse CabinMind AI agents for lead generation, social, sales, content, support, and WordPress workflows. Freemium options available."
+      canonicalPath="/agents"
+      schema={[
+        {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'CabinMind Agent Marketplace',
+          description: 'Marketplace of AI agents for business workflows and WordPress services.',
+          url: 'https://products.devcabin.tech/agents',
+        },
+      ]}
+    >
       {/* Hero banner */}
       <div className="relative overflow-hidden bg-gradient-to-b from-brand-900/60 to-transparent pt-24 pb-16 px-4">
         <div className="absolute inset-0 grid-bg opacity-50 pointer-events-none" />
@@ -127,7 +140,7 @@ export default function AgentsPage() {
                       </h2>
                       <p className="text-gray-400 max-w-xl">
                         6 specialised agents that solve real WP problems — vulnerability scans, plugin recommendations,
-                        Core Web Vitals, maintenance reports, child themes, broken-link maps. Bring your own OpenAI key.
+                        Core Web Vitals, maintenance reports, child themes, broken-link maps.
                       </p>
                     </div>
                     <a

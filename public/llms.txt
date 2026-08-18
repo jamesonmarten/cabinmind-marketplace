@@ -1,0 +1,40 @@
+# CabinMind
+
+CabinMind is an AI agent marketplace operated by Dev Cabin Technologies.
+Primary website: https://products.devcabin.tech
+
+## What CabinMind Offers
+- AI Lead Researcher for prospect discovery, validation, and outbound-ready sequences
+- AI Website Auditor for SEO, performance, accessibility, and UX audits
+- AI Blog Writer for SEO article generation and publishing workflows
+- AI Sales Assistant for outreach support and objection handling
+- AI Receptionist for lead capture and qualification
+- AI Social Media Hub for cross-platform publishing
+- AI Automation Expert for Zapier/Make/n8n workflow blueprints
+- WordPress-focused AI tools for vulnerability scanning, speed audits, maintenance reports, and plugin recommendations
+
+## Core Pages
+- Homepage: / 
+- Marketplace: /agents
+- Pricing: /pricing
+- Compare: /compare
+- Demo: /demo
+- Trial: /trial
+- Agency: /agency
+
+## Audience
+- Agencies
+- B2B sales teams
+- Consultants
+- Small businesses and founders
+- WordPress professionals
+
+## Pricing Summary
+- Marketplace plans include freemium options for selected WordPress tools
+- Paid tiers vary by product and usage volume
+- Primary pricing details live at: /pricing
+
+## Brand and Entity
+- Brand: CabinMind
+- Company: Dev Cabin Technologies
+- Company site: https://devcabin.tech

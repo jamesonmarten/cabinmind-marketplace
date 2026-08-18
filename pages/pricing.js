@@ -665,7 +665,19 @@ export default function PricingPage() {
   const [activeTab, setActiveTab] = useState('leads');
 
   return (
-    <Layout title="Pricing – CabinMind AI Agents">
+    <Layout
+      title="Pricing | CabinMind AI Agents"
+      description="See CabinMind pricing for AI lead generation, marketing, and WordPress tools, including freemium and BYOK options."
+      canonicalPath="/pricing"
+      schema={[
+        {
+          '@context': 'https://schema.org',
+          '@type': 'OfferCatalog',
+          name: 'CabinMind Pricing Catalog',
+          url: 'https://products.devcabin.tech/pricing',
+        },
+      ]}
+    >
       <div className="relative overflow-hidden pt-32 pb-16 px-4">
         <div className="absolute inset-0 grid-bg opacity-40 pointer-events-none" />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-brand-600 rounded-full blur-3xl opacity-10 pointer-events-none" />

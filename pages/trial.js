@@ -50,7 +50,12 @@ export default function TrialPage() {
   };
 
   return (
-    <Layout title="Free 50-Lead Trial – CabinMind" fullBleed>
+    <Layout
+      title="Free Trial | 50 Verified B2B Leads"
+      description="Start a free CabinMind trial and get 50 verified, AI-scored B2B leads with no credit card required."
+      canonicalPath="/trial"
+      fullBleed
+    >
       <section className="relative min-h-screen flex items-center justify-center py-24 px-4">
         {/* Background */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
