@@ -4,7 +4,7 @@ Tags: ai, chatbot, lead-generation, marketing, wordpress
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
-Stable tag: 1.3.0
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,7 +24,6 @@ Perfect for agencies, consultants, and creators who want to showcase AI tools wi
 * Responsive 1/2/3-column layouts
 * Live agent data from your API endpoint
 * Category badge, feature bullets, and CTA buttons per card
-* Loads the same Teddy AI chatbot used on products.devcabin.tech
 * Works with classic editor and block editor shortcode block
 
 = Shortcode Attributes =
@@ -41,21 +40,21 @@ Examples:
 This plugin supports agents that expose freemium pricing labels from your API (for example, "Free + from $19/mo").
 
 = External Services =
-This plugin connects to CabinMind-hosted APIs to fetch agent listing data.
+This plugin connects to a CabinMind-hosted API to fetch agent listing data (JSON only — no executable code is ever downloaded).
 
-Service endpoint used by default:
+Default endpoint:
 * https://products.devcabin.tech/api/agents
-* https://products.devcabin.tech/api/chat
-* https://products.devcabin.tech/widget.js
 
 What is sent:
-* Standard HTTP request metadata required by WordPress hosting and networking stack
+* A standard HTTP GET request with no personally identifying information.
 
 What is received:
-* Public JSON data for agent cards (name, description, pricing labels, features, links)
+* Public JSON data for agent cards (name, description, pricing labels, features, links).
 
 When requests happen:
-* When a page containing the shortcode is rendered in a visitor browser
+* When a page containing the [cabinmind_agents] shortcode is rendered in a visitor's browser.
+
+You may override this endpoint via the api_url shortcode attribute to point at your own server.
 
 Service terms and privacy:
 * https://devcabin.tech/terms
@@ -82,18 +81,25 @@ Yes. Use the store_url shortcode attribute.
 3. Shortcode settings examples
 
 == Changelog ==
-= 1.2.0 =
-* Added support for freemium price labels
-* Added optional "Free tier available" badge
-* Updated pricing presentation for WordPress-focused tools
+= 1.4.0 =
+* Extracted inline JavaScript into a bundled cabinmind-agents.js file (Plugin Check compliance).
+* Removed external script loader; only JSON data is fetched from the CabinMind API.
+* Fixed duplicate container IDs when the shortcode is used more than once on a page.
+* Added rel="noopener noreferrer" to all external links.
+* All API data values are now HTML-escaped before DOM injection.
 
 = 1.3.0 =
-* Added Dev Cabin + OpenAI key requirement message above the agent grid
-* Embedded the same Teddy AI chatbot experience used on products.devcabin.tech
+* Added Dev Cabin chatbot configuration support.
+* Improved agent card layout.
+
+= 1.2.0 =
+* Added support for freemium price labels.
+* Added optional "Free tier available" badge.
+* Updated pricing presentation for WordPress-focused tools.
 
 = 1.1.0 =
-* Initial public release
+* Initial public release.
 
 == Upgrade Notice ==
-= 1.3.0 =
-Adds OpenAI key guidance and shared Teddy AI chatbot support.
+= 1.4.0 =
+Security and compliance update. Upgrade recommended for all users.
