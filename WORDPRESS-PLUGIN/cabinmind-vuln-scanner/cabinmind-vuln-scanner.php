@@ -21,6 +21,18 @@ define( 'CM_VS_VERSION',     '1.0.0' );
 define( 'CM_VS_API_URL',     'https://products.devcabin.tech/api/wp/vuln-scan' );
 define( 'CM_VS_UPGRADE_URL', 'https://wp.devcabin.tech/agents/vulnerability-scanner' );
 
+/**
+ * Load plugin text domain for translations.
+ */
+function cm_vs_load_textdomain() {
+	load_plugin_textdomain(
+		'cabinmind-vuln-scanner',
+		false,
+		dirname( plugin_basename( __FILE__ ) ) . '/languages'
+	);
+}
+add_action( 'plugins_loaded', 'cm_vs_load_textdomain' );
+
 function cm_vs_register_assets() {
 	wp_register_style(
 		'cm-vuln-scanner',

@@ -21,6 +21,18 @@ define( 'CM_CS_VERSION',     '1.0.0' );
 define( 'CM_CS_API_URL',     'https://products.devcabin.tech/api/wp/css-snippet' );
 define( 'CM_CS_UPGRADE_URL', 'https://wp.devcabin.tech/agents/child-theme-builder' );
 
+/**
+ * Load plugin text domain for translations.
+ */
+function cm_cs_load_textdomain() {
+	load_plugin_textdomain(
+		'cabinmind-css-snippet',
+		false,
+		dirname( plugin_basename( __FILE__ ) ) . '/languages'
+	);
+}
+add_action( 'plugins_loaded', 'cm_cs_load_textdomain' );
+
 function cm_cs_register_assets() {
 	wp_register_style(
 		'cm-css-snippet',

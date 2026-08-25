@@ -21,6 +21,18 @@ define( 'CM_LC_VERSION',     '1.0.0' );
 define( 'CM_LC_API_URL',     'https://products.devcabin.tech/api/wp/link-checker' );
 define( 'CM_LC_UPGRADE_URL', 'https://wp.devcabin.tech/agents/link-checker' );
 
+/**
+ * Load plugin text domain for translations.
+ */
+function cm_lc_load_textdomain() {
+	load_plugin_textdomain(
+		'cabinmind-link-checker',
+		false,
+		dirname( plugin_basename( __FILE__ ) ) . '/languages'
+	);
+}
+add_action( 'plugins_loaded', 'cm_lc_load_textdomain' );
+
 function cm_lc_register_assets() {
 	wp_register_style(
 		'cm-link-checker',

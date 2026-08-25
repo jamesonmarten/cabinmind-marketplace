@@ -21,6 +21,18 @@ define( 'CM_PR_VERSION',     '1.0.0' );
 define( 'CM_PR_API_URL',     'https://products.devcabin.tech/api/wp/plugin-recommender' );
 define( 'CM_PR_UPGRADE_URL', 'https://wp.devcabin.tech/agents/plugin-recommender' );
 
+/**
+ * Load plugin text domain for translations.
+ */
+function cm_pr_load_textdomain() {
+	load_plugin_textdomain(
+		'cabinmind-plugin-recommender',
+		false,
+		dirname( plugin_basename( __FILE__ ) ) . '/languages'
+	);
+}
+add_action( 'plugins_loaded', 'cm_pr_load_textdomain' );
+
 function cm_pr_register_assets() {
 	wp_register_style(
 		'cm-plugin-recommender',
