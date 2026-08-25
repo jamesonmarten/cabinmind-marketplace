@@ -1,8 +1,8 @@
-=== CabinMind CSS Snippet Generator ===
+=== CabinMind CSS Snippet ===
 Contributors: devcabintech
 Tags: css, child theme, wordpress customization, css snippets, divi elementor astra
 Requires at least: 6.0
-Tested up to: 6.8
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 1.0.0
 License: GPLv2 or later

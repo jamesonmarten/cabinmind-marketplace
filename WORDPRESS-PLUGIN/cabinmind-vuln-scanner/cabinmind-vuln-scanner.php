@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:  CabinMind Vulnerability Scanner
+ * Plugin Name:  CabinMind Vuln Scanner
  * Plugin URI:   https://wp.devcabin.tech/agents/vulnerability-scanner
  * Description:  Scan any WordPress URL for exposed plugins, known CVEs, missing security headers, and risk scores. Free tier included — no account required.
  * Version:      1.0.0

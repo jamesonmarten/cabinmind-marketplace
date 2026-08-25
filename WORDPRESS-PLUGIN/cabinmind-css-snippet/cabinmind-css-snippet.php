@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:  CabinMind CSS Snippet Generator
+ * Plugin Name:  CabinMind CSS Snippet
  * Plugin URI:   https://wp.devcabin.tech/agents/child-theme-builder
  * Description:  Describe a design change in plain English and get exact CSS or PHP snippets with conflict warnings for Divi, Elementor, Astra, and more. Free tier included.
  * Version:      1.0.0
