@@ -124,6 +124,133 @@ const AGENT_CONTENT = {
     demoDesc: 'Choose a session type, tell us what you want to achieve, and we\'ll get back within 24 hours with a calendar invite.',
     showChat: false,
   },
+
+  // ─── WordPress Agent Suite ─────────────────────────────────────────────────
+  'wp-vulnerability-scanner': {
+    gradient: 'from-red-500 via-rose-500 to-pink-500',
+    bg: 'from-red-900/30 to-rose-900/10',
+    icon: '🔒',
+    tagline: 'Know exactly what\'s exposed before attackers do.',
+    heroDesc: 'Surface exposed plugins, WordPress version leaks, missing security headers, known CVEs, and attack-surface endpoints — all from the outside, with no admin access required.',
+    benefits: [
+      { icon: '🔍', title: 'Plugin Fingerprinting', desc: 'Detects active plugins from page source and flags associated CVEs using AI knowledge of known vulnerable versions.' },
+      { icon: '🛡️', title: 'Security Header Audit', desc: 'Checks X-Frame-Options, HSTS, Content-Security-Policy, and X-Content-Type-Options — flags each missing header with a fix.' },
+      { icon: '🚨', title: 'Attack Surface Detection', desc: 'Identifies exposed wp-login.php, xmlrpc.php, readme.html, and user enumeration endpoints before attackers find them.' },
+      { icon: '📊', title: 'Risk-Scored Report', desc: 'Everything scored critical / high / medium / low with plain-English explanations — ready to share with clients.' },
+    ],
+    demoTitle: 'Live Security Scan Demo',
+    demoDesc: 'Enter any public WordPress URL. Real-time vulnerability analysis — 1 free scan / day, no account required.',
+    showChat: false,
+    wpPlugin: true,
+    shortcode: '[cabinmind_vuln_scan]',
+    freeLimit: '1 scan / day — no account needed',
+    zipName: 'cabinmind-vuln-scanner-1.0.0.zip',
+  },
+
+  'wp-plugin-recommender': {
+    gradient: 'from-blue-500 via-indigo-500 to-violet-500',
+    bg: 'from-blue-900/30 to-indigo-900/10',
+    icon: '🧩',
+    tagline: 'The right plugin stack for your business — in seconds.',
+    heroDesc: 'Describe your business and get 8–10 hand-picked, conflict-free WordPress plugins sorted by install order, with pricing, purpose, and direct WordPress.org links.',
+    benefits: [
+      { icon: '🏗️', title: 'Conflict-Free Stack', desc: 'AI validates plugin combinations and flags known conflicts before you install a single plugin.' },
+      { icon: '📋', title: 'Sorted by Install Order', desc: 'Every recommendation includes the order to install — essentials first, business-specific plugins last.' },
+      { icon: '💰', title: 'Pricing Included', desc: 'Free vs. premium breakdown per plugin so you can budget before committing to a stack.' },
+      { icon: '🔗', title: 'Direct WP.org Links', desc: 'One click from each recommendation to the official WordPress.org plugin page.' },
+    ],
+    demoTitle: 'Get Your Plugin Stack',
+    demoDesc: 'Describe your business — get a complete, conflict-free plugin stack in under 10 seconds. 2 free stacks / month.',
+    showChat: false,
+    wpPlugin: true,
+    shortcode: '[cabinmind_plugin_recommender]',
+    freeLimit: '2 stacks / month — no account needed',
+    zipName: 'cabinmind-plugin-recommender-1.0.0.zip',
+  },
+
+  'wp-speed-optimizer': {
+    gradient: 'from-amber-500 via-orange-500 to-yellow-400',
+    bg: 'from-amber-900/30 to-orange-900/10',
+    icon: '⚡',
+    tagline: 'Get your Core Web Vitals score and a fix list — instantly.',
+    heroDesc: 'Live Google PageSpeed Insights data with WordPress-specific fixes: names real plugins, estimates score gains, and surfaces quick wins you can action today.',
+    benefits: [
+      { icon: '📊', title: 'Live Lighthouse Scores', desc: 'Real-time Performance, SEO, Accessibility, and Best Practices scores from Google — not cached estimates.' },
+      { icon: '🎯', title: 'Core Web Vitals Breakdown', desc: 'LCP, CLS, FCP, TBT, and TTI displayed with pass/fail status and what each means for your rankings.' },
+      { icon: '🔧', title: 'WordPress-Specific Fixes', desc: 'Every fix recommendation names the exact plugin to install — no generic "compress your images" advice.' },
+      { icon: '⚡', title: 'Quick Wins Highlighted', desc: 'Actions completable in under 5 minutes are called out separately so you can act immediately.' },
+    ],
+    demoTitle: 'Live Speed Audit',
+    demoDesc: 'Enter any WordPress URL for live Core Web Vitals data and an AI fix list. 1 free audit / day, no account required.',
+    showChat: false,
+    wpPlugin: true,
+    shortcode: '[cabinmind_speed_optimizer]',
+    freeLimit: '1 audit / day — no account needed',
+    zipName: 'cabinmind-speed-optimizer-1.0.0.zip',
+  },
+
+  'wp-maintenance-report': {
+    gradient: 'from-emerald-500 via-teal-400 to-green-400',
+    bg: 'from-emerald-900/30 to-teal-900/10',
+    icon: '📋',
+    tagline: 'Send professional client reports in under 60 seconds.',
+    heroDesc: 'Auto-generate branded monthly maintenance reports covering uptime, plugin updates, backups, security scans, and performance scores — ready to email your client.',
+    benefits: [
+      { icon: '📈', title: 'Live Performance Data', desc: 'Pulls real PageSpeed Insights scores so the performance section always has current data.' },
+      { icon: '🎨', title: 'White-Label Ready', desc: 'Every report includes client name, site URL, and report period — rebrandable to your agency.' },
+      { icon: '📦', title: 'Full Coverage', desc: 'Uptime, updates, security scans, SSL status, backup count — the complete care plan report in one shot.' },
+      { icon: '🔁', title: 'Recurring Revenue Ready', desc: 'Built for agencies charging monthly retainers — generate the same report every month in seconds.' },
+    ],
+    demoTitle: 'Generate a Sample Report',
+    demoDesc: 'Enter a client site URL and business name. Live performance data + AI-generated report in 15 seconds. 1 free / month.',
+    showChat: false,
+    wpPlugin: true,
+    shortcode: '[cabinmind_maintenance_report]',
+    freeLimit: '1 report / month — no account needed',
+    zipName: 'cabinmind-maintenance-report-1.0.0.zip',
+  },
+
+  'wp-child-theme-builder': {
+    gradient: 'from-violet-500 via-purple-500 to-fuchsia-500',
+    bg: 'from-violet-900/30 to-purple-900/10',
+    icon: '🎨',
+    tagline: 'CSS that actually works with your theme — not against it.',
+    heroDesc: 'Describe a design change in plain English and get conflict-safe CSS for Divi, Elementor, Astra, and 6 other builders — plus optional child theme scaffold.',
+    benefits: [
+      { icon: '🎯', title: 'Theme-Specific Selectors', desc: 'CSS is scoped with selectors tuned for your exact theme — no generic code that breaks on update.' },
+      { icon: '⚠️', title: 'Conflict Warnings', desc: 'Every snippet includes a list of potential conflicts with your builder\'s CSS architecture before you paste.' },
+      { icon: '🏗️', title: 'Child Theme Scaffold', desc: 'One click generates a complete child theme: style.css header and functions.php — ready to zip and upload.' },
+      { icon: '📋', title: 'Placement Instructions', desc: 'Told exactly where to paste: Customizer, child theme stylesheet, or plugin — never left guessing.' },
+    ],
+    demoTitle: 'Generate a CSS Snippet',
+    demoDesc: 'Describe a design change and choose your theme. Conflict-safe CSS + PHP in seconds. 3 free snippets / month.',
+    showChat: false,
+    wpPlugin: true,
+    shortcode: '[cabinmind_css_snippet]',
+    freeLimit: '3 snippets / month — no account needed',
+    zipName: 'cabinmind-css-snippet-1.0.0.zip',
+  },
+
+  'wp-link-checker': {
+    gradient: 'from-cyan-500 via-teal-400 to-sky-400',
+    bg: 'from-cyan-900/30 to-teal-900/10',
+    icon: '🔗',
+    tagline: 'Find every broken link before Google does.',
+    heroDesc: 'Crawl any sitemap or URL, check live HTTP status for every link, and export broken-link and redirect maps as CSV — directly from your browser.',
+    benefits: [
+      { icon: '🗺️', title: 'Sitemap-First Discovery', desc: 'Automatically reads sitemap.xml, sitemap_index.xml, and wp-sitemap.xml to discover every page.' },
+      { icon: '🔴', title: 'Broken Link Detection', desc: 'HEAD requests to every URL surface 404s, timeouts, and server errors with exact HTTP status codes.' },
+      { icon: '🔄', title: 'Redirect Mapping', desc: 'Every 301 and 302 redirect is captured with its destination — perfect for building a redirect import file.' },
+      { icon: '📥', title: 'CSV Export', desc: 'Export the broken links table and redirect map as CSV files directly from the browser — no server required.' },
+    ],
+    demoTitle: 'Live Link Crawl Demo',
+    demoDesc: 'Enter any WordPress URL. The server crawls your sitemap and checks every link live. 1 free crawl / day (up to 100 URLs).',
+    showChat: false,
+    wpPlugin: true,
+    shortcode: '[cabinmind_link_checker]',
+    freeLimit: '1 crawl / day, up to 100 URLs — no account needed',
+    zipName: 'cabinmind-link-checker-1.0.0.zip',
+  },
 };
 
 const CATEGORY_GRADIENT = {
@@ -1667,6 +1794,392 @@ function LeadDemo() {
   );
 }
 
+// ─── WordPress plugin live demo components ─────────────────────────────────
+// These call the same-origin /api/wp/* routes — no CORS needed.
+
+function WpDemoShell({ gradient, children }) {
+  return (
+    <div className={`glass rounded-2xl overflow-hidden border border-white/10`}>
+      <div className={`px-5 py-4 border-b border-white/10 bg-gradient-to-r ${gradient}/20`}>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Live Demo — powered by CabinMind API</p>
+      </div>
+      <div className="p-5 space-y-4">{children}</div>
+    </div>
+  );
+}
+
+function WpRiskBadge({ level }) {
+  const cls = { critical: 'text-red-400 border-red-400/30 bg-red-400/10', high: 'text-orange-400 border-orange-400/30 bg-orange-400/10', medium: 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10', low: 'text-green-400 border-green-400/30 bg-green-400/10', info: 'text-blue-400 border-blue-400/30 bg-blue-400/10' };
+  const c = cls[String(level).toLowerCase()] || cls.info;
+  return <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${c}`}>{level}</span>;
+}
+
+function WpInput({ value, onChange, placeholder, type = 'text' }) {
+  return <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-400/50 transition-colors" />;
+}
+
+function WpBtn({ onClick, disabled, loading, gradient, children }) {
+  return (
+    <button onClick={onClick} disabled={disabled || loading} className={`px-5 py-3 rounded-xl bg-gradient-to-r ${gradient} text-white font-bold text-sm disabled:opacity-40 hover:opacity-90 transition flex items-center gap-2 whitespace-nowrap`}>
+      {loading && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin flex-shrink-0" />}
+      {children}
+    </button>
+  );
+}
+
+function WpMetricGrid({ items }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {items.map(([label, val]) => (
+        <div key={label} className="glass border border-white/10 rounded-xl p-3 text-center">
+          <div className="text-white font-bold text-sm leading-tight">{val}</div>
+          <div className="text-gray-400 text-xs mt-1">{label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function WpErrorMsg({ msg }) {
+  return msg ? <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-xl px-4 py-3">{msg}</p> : null;
+}
+
+// 1. Vulnerability Scanner
+function WpVulnScanDemo() {
+  const [url, setUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const run = async () => {
+    if (!url.trim()) return;
+    setLoading(true); setError(''); setResult(null);
+    try {
+      const r = await fetch('/api/wp/vuln-scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+      const d = await r.json();
+      if (r.status === 429) { setError('Demo daily limit reached. Upgrade for unlimited scans.'); return; }
+      if (!r.ok) { setError(d.error || 'Scan failed.'); return; }
+      setResult(d);
+    } catch { setError('Network error — please try again.'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <WpDemoShell gradient="from-red-600 to-rose-600">
+      <div className="flex gap-3">
+        <WpInput value={url} onChange={setUrl} placeholder="https://yoursite.com" type="url" />
+        <WpBtn onClick={run} loading={loading} disabled={!url.trim()} gradient="from-red-500 to-rose-600">Scan</WpBtn>
+      </div>
+      <WpErrorMsg msg={error} />
+      {loading && <p className="text-gray-400 text-sm animate-pulse">Fetching page and analysing security… 10–15 s</p>}
+      {result && (
+        <div className="space-y-4">
+          {result.data?.summary && <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-gray-300 text-sm leading-relaxed">{result.data.summary}</div>}
+          <WpMetricGrid items={[['Overall Risk', result.data?.overallRisk || '—'], ['WP Version', result.data?.wordpressVersion || 'Unknown'], ['Plugins', (result.data?.plugins || []).length], ['Exposed', (result.data?.exposedEndpoints || []).length + ' endpoints']]} />
+          {(result.data?.plugins || []).length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Detected Plugins</p>
+              {result.data.plugins.map((p, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 glass border border-white/10 rounded-xl">
+                  <WpRiskBadge level={p.riskLevel} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white text-sm font-medium">{p.name}</div>
+                    <div className="text-gray-400 text-xs mt-0.5">{p.issue}</div>
+                  </div>
+                  {p.cve && <span className="text-red-400 text-xs font-mono flex-shrink-0">{p.cve}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          {(result.data?.missingHeaders || []).length > 0 && (
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Missing Security Headers</p>
+              {result.data.missingHeaders.map((h, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm text-gray-300 py-1"><span className="text-yellow-400">⚠</span><span className="font-mono text-xs text-yellow-300">{h.header}</span><span className="text-gray-500">— {h.recommendation}</span></div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </WpDemoShell>
+  );
+}
+
+// 2. Plugin Recommender
+function WpPluginRecommenderDemo() {
+  const [bType, setBType] = useState('service-business');
+  const [desc, setDesc] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const run = async () => {
+    if (desc.trim().length < 10) return;
+    setLoading(true); setError(''); setResult(null);
+    try {
+      const r = await fetch('/api/wp/plugin-recommender', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ businessType: bType, description: desc }) });
+      const d = await r.json();
+      if (r.status === 429) { setError('Demo monthly limit reached. Upgrade for unlimited stacks.'); return; }
+      if (!r.ok) { setError(d.error || 'Failed.'); return; }
+      setResult(d);
+    } catch { setError('Network error.'); }
+    finally { setLoading(false); }
+  };
+
+  const TYPES = [['e-commerce','E-commerce'],['blog','Blog'],['portfolio','Portfolio'],['service-business','Service Business'],['restaurant','Restaurant'],['nonprofit','Nonprofit'],['real-estate','Real Estate'],['membership','Membership'],['other','Other']];
+
+  return (
+    <WpDemoShell gradient="from-blue-600 to-indigo-600">
+      <select value={bType} onChange={e => setBType(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-400/50">
+        {TYPES.map(([v, l]) => <option key={v} value={v} className="bg-gray-900">{l}</option>)}
+      </select>
+      <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="Describe your business in a sentence or two — e.g. Local plumbing company that books jobs online and sends follow-up emails." rows={3} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-400/50 resize-none" />
+      <WpBtn onClick={run} loading={loading} disabled={desc.trim().length < 10} gradient="from-blue-500 to-indigo-600">Get Plugin Stack</WpBtn>
+      <WpErrorMsg msg={error} />
+      {loading && <p className="text-gray-400 text-sm animate-pulse">Building your plugin stack… 5–10 s</p>}
+      {result?.data?.stack && (
+        <div className="space-y-3">
+          {result.data.summary && <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-gray-300 text-sm">{result.data.summary}</div>}
+          {result.data.stack.map((p, i) => (
+            <div key={i} className="glass border border-white/10 rounded-xl p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 font-mono">#{p.installOrder}</span>
+                    <span className="text-white font-semibold text-sm">{p.name}</span>
+                    <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-full text-xs text-gray-400">{p.category}</span>
+                  </div>
+                  <p className="text-gray-400 text-xs mt-1">{p.purpose}</p>
+                  <p className="text-brand-400 text-xs mt-1">{p.pricing}</p>
+                </div>
+                {p.wpOrgUrl && <a href={p.wpOrgUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-400 hover:underline whitespace-nowrap flex-shrink-0">WP.org →</a>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </WpDemoShell>
+  );
+}
+
+// 3. Speed Optimizer
+function WpSpeedOptimizerDemo() {
+  const [url, setUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const run = async () => {
+    if (!url.trim()) return;
+    setLoading(true); setError(''); setResult(null);
+    try {
+      const r = await fetch('/api/wp/speed-optimizer', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) });
+      const d = await r.json();
+      if (r.status === 429) { setError('Demo daily limit reached. Upgrade for unlimited audits.'); return; }
+      if (!r.ok) { setError(d.error || 'Audit failed.'); return; }
+      setResult(d);
+    } catch { setError('Network error.'); }
+    finally { setLoading(false); }
+  };
+
+  const scoreColor = n => n >= 80 ? 'bg-green-400' : n >= 50 ? 'bg-yellow-400' : 'bg-red-400';
+
+  return (
+    <WpDemoShell gradient="from-amber-600 to-orange-600">
+      <div className="flex gap-3">
+        <WpInput value={url} onChange={setUrl} placeholder="https://yoursite.com" type="url" />
+        <WpBtn onClick={run} loading={loading} disabled={!url.trim()} gradient="from-amber-500 to-orange-600">Audit</WpBtn>
+      </div>
+      <WpErrorMsg msg={error} />
+      {loading && <p className="text-gray-400 text-sm animate-pulse">Running Google PageSpeed Insights… 15–25 s</p>}
+      {result?.data && (
+        <div className="space-y-4">
+          {result.data.summary && <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-gray-300 text-sm">{result.data.summary}</div>}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Lighthouse Scores</p>
+            <div className="space-y-2">
+              {[['Performance', result.data.scores?.performance], ['SEO', result.data.scores?.seo], ['Accessibility', result.data.scores?.accessibility], ['Best Practices', result.data.scores?.bestPractices]].map(([label, val]) => (
+                <div key={label} className="flex items-center gap-3">
+                  <span className="text-gray-400 text-xs w-28 flex-shrink-0">{label}</span>
+                  <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all ${scoreColor(val || 0)}`} style={{ width: `${val || 0}%` }} />
+                  </div>
+                  <span className="text-white text-xs font-bold w-8 text-right">{val ?? '—'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {result.data.cwv && (
+            <WpMetricGrid items={[['LCP', result.data.cwv.lcp || 'N/A'], ['CLS', result.data.cwv.cls || 'N/A'], ['FCP', result.data.cwv.fcp || 'N/A'], ['TBT', result.data.cwv.tbt || 'N/A']]} />
+          )}
+          {(result.data.fixes || []).slice(0, 4).map((f, i) => (
+            <div key={i} className="glass border border-white/10 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs text-gray-500">#{f.priority}</span>
+                <span className="text-white text-sm font-medium">{f.title}</span>
+                {f.estimatedGain && <span className="ml-auto text-green-400 text-xs font-bold">{f.estimatedGain}</span>}
+              </div>
+              <p className="text-gray-400 text-xs">{f.description}</p>
+              {f.wpSolution && <p className="text-brand-400 text-xs mt-1">→ {f.wpSolution}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+    </WpDemoShell>
+  );
+}
+
+// 4. Maintenance Report
+function WpMaintenanceReportDemo() {
+  const [siteUrl, setSiteUrl] = useState('');
+  const [bizName, setBizName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const run = async () => {
+    if (!siteUrl.trim() || !bizName.trim()) return;
+    setLoading(true); setError(''); setResult(null);
+    try {
+      const r = await fetch('/api/wp/maintenance-report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteUrl, businessName: bizName }) });
+      const d = await r.json();
+      if (r.status === 429) { setError('Demo monthly limit reached. Upgrade for unlimited reports.'); return; }
+      if (!r.ok) { setError(d.error || 'Generation failed.'); return; }
+      setResult(d);
+    } catch { setError('Network error.'); }
+    finally { setLoading(false); }
+  };
+
+  const d = result?.data;
+  return (
+    <WpDemoShell gradient="from-emerald-600 to-teal-600">
+      <WpInput value={siteUrl} onChange={setSiteUrl} placeholder="https://clientsite.com" type="url" />
+      <div className="flex gap-3">
+        <WpInput value={bizName} onChange={setBizName} placeholder="Client / Business Name" />
+        <WpBtn onClick={run} loading={loading} disabled={!siteUrl.trim() || !bizName.trim()} gradient="from-emerald-500 to-teal-600">Generate</WpBtn>
+      </div>
+      <WpErrorMsg msg={error} />
+      {loading && <p className="text-gray-400 text-sm animate-pulse">Fetching live performance data and generating report… 15–20 s</p>}
+      {d && (
+        <div className="space-y-4">
+          <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/20">
+            <div className="text-xs text-gray-400 uppercase tracking-wider">{d.period} Report</div>
+            <div className="text-white font-bold text-lg">{d.clientName}</div>
+            <div className="text-gray-400 text-xs">{d.websiteUrl}</div>
+          </div>
+          {d.executiveSummary && <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-gray-300 text-sm">{d.executiveSummary}</div>}
+          <WpMetricGrid items={[[' Uptime', d.uptime?.percentage || '—'], ['Perf Score', d.performance?.currentScore || '—'], ['Updates', ((d.updates?.pluginUpdates || 0) + (d.updates?.coreUpdates || 0)) + ' applied'], ['Backups', d.backups?.count || '—']]} />
+          {(d.recommendations || []).slice(0, 3).map((r, i) => (
+            <div key={i} className="flex gap-3 glass border border-white/10 rounded-xl p-3">
+              <span>{r.priority === 'high' ? '🔴' : r.priority === 'medium' ? '🟡' : '🟢'}</span>
+              <div><div className="text-white text-sm font-medium">{r.action}</div><div className="text-gray-400 text-xs mt-0.5">{r.reason}</div></div>
+            </div>
+          ))}
+        </div>
+      )}
+    </WpDemoShell>
+  );
+}
+
+// 5. CSS Snippet Generator
+function WpCssSnippetDemo() {
+  const [theme, setTheme] = useState('astra');
+  const [desc, setDesc] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const THEMES = [['astra','Astra'],['divi','Divi'],['elementor','Elementor'],['generatepress','GeneratePress'],['kadence','Kadence'],['blocksy','Blocksy'],['neve','Neve'],['storefront','Storefront'],['twentytwentyfour','Twenty Twenty-Four'],['other','Other']];
+
+  const run = async () => {
+    if (desc.trim().length < 10) return;
+    setLoading(true); setError(''); setResult(null);
+    try {
+      const r = await fetch('/api/wp/css-snippet', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description: desc, theme }) });
+      const d = await r.json();
+      if (r.status === 429) { setError('Demo monthly limit reached. Upgrade for unlimited snippets.'); return; }
+      if (!r.ok) { setError(d.error || 'Failed.'); return; }
+      setResult(d);
+    } catch { setError('Network error.'); }
+    finally { setLoading(false); }
+  };
+
+  const copy = () => {
+    if (result?.data?.css && navigator.clipboard) {
+      navigator.clipboard.writeText(result.data.css).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    }
+  };
+
+  return (
+    <WpDemoShell gradient="from-violet-600 to-purple-600">
+      <select value={theme} onChange={e => setTheme(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-400/50">
+        {THEMES.map(([v, l]) => <option key={v} value={v} className="bg-gray-900">{l}</option>)}
+      </select>
+      <textarea value={desc} onChange={e => setDesc(e.target.value)} placeholder="e.g. Make the hero section full height with a dark overlay, change the primary button colour to #7c3aed, and make the header sticky." rows={3} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-brand-400/50 resize-none" />
+      <WpBtn onClick={run} loading={loading} disabled={desc.trim().length < 10} gradient="from-violet-500 to-purple-600">Generate Snippet</WpBtn>
+      <WpErrorMsg msg={error} />
+      {loading && <p className="text-gray-400 text-sm animate-pulse">Writing CSS for {theme}… 5–10 s</p>}
+      {result?.data?.css && (
+        <div className="space-y-3">
+          {result.data.preview && <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-gray-300 text-sm">{result.data.preview}</div>}
+          <div className="relative">
+            <pre className="bg-gray-950 rounded-xl p-4 text-xs text-purple-300 font-mono overflow-x-auto max-h-64 border border-white/10" style={{ lineHeight: 1.6 }}>{result.data.css}</pre>
+            <button onClick={copy} className="absolute top-3 right-3 px-3 py-1 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-xs text-gray-300 transition">{copied ? '✓ Copied' : '📋 Copy'}</button>
+          </div>
+          {result.data.placement && <p className="text-xs text-gray-400">📌 Paste in: <span className="text-brand-400">{result.data.placement}</span></p>}
+          {(result.data.conflicts || []).map((c, i) => <p key={i} className="text-xs text-yellow-400">⚠ {c}</p>)}
+        </div>
+      )}
+    </WpDemoShell>
+  );
+}
+
+// 6. Link Checker
+function WpLinkCheckerDemo() {
+  const [url, setUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const run = async () => {
+    if (!url.trim()) return;
+    setLoading(true); setError(''); setResult(null);
+    try {
+      const r = await fetch('/api/wp/link-checker', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url, maxUrls: 30 }) });
+      const d = await r.json();
+      if (r.status === 429) { setError('Demo daily limit reached. Upgrade for unlimited crawls.'); return; }
+      if (!r.ok) { setError(d.error || 'Crawl failed.'); return; }
+      setResult(d);
+    } catch { setError('Network error.'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <WpDemoShell gradient="from-cyan-600 to-teal-600">
+      <div className="flex gap-3">
+        <WpInput value={url} onChange={setUrl} placeholder="https://yoursite.com" type="url" />
+        <WpBtn onClick={run} loading={loading} disabled={!url.trim()} gradient="from-cyan-500 to-teal-600">Crawl</WpBtn>
+      </div>
+      <WpErrorMsg msg={error} />
+      {loading && <p className="text-gray-400 text-sm animate-pulse">Discovering URLs and checking links… up to 30 s</p>}
+      {result && (
+        <div className="space-y-4">
+          <WpMetricGrid items={[['OK', result.summary?.ok], ['Broken', result.summary?.broken], ['Redirects', result.summary?.redirects], ['Total', result.scanned]]} />
+          {result.broken?.length === 0 && <div className="p-3 bg-green-400/10 border border-green-400/20 rounded-xl text-green-400 text-sm">✓ No broken links found in the scanned URLs.</div>}
+          {(result.broken || []).slice(0, 8).map((r, i) => (
+            <div key={i} className="flex items-start gap-3 glass border border-white/10 rounded-xl p-3">
+              <span className="text-red-400 text-xs font-bold border border-red-400/30 bg-red-400/10 px-2 py-0.5 rounded-full flex-shrink-0">{r.status || 'ERR'}</span>
+              <div className="min-w-0"><div className="text-white text-xs font-mono truncate">{r.url}</div><div className="text-gray-400 text-xs mt-0.5">{r.statusText}</div></div>
+            </div>
+          ))}
+          {result.note && <p className="text-xs text-gray-500">{result.note}</p>}
+        </div>
+      )}
+    </WpDemoShell>
+  );
+}
+
 const DEMO_COMPONENTS = {
   receptionist: ReceptionistChat,
   'website-audit': AuditDemo,
@@ -1675,6 +2188,12 @@ const DEMO_COMPONENTS = {
   'lead-researcher': LeadDemo,
   'social-hub': SocialHubDemo,
   'ai-training': TrainingDashboard,
+  'wp-vulnerability-scanner': WpVulnScanDemo,
+  'wp-plugin-recommender': WpPluginRecommenderDemo,
+  'wp-speed-optimizer': WpSpeedOptimizerDemo,
+  'wp-maintenance-report': WpMaintenanceReportDemo,
+  'wp-child-theme-builder': WpCssSnippetDemo,
+  'wp-link-checker': WpLinkCheckerDemo,
 };
 
 // ─── Main page ─────────────────────────────────────────────────────────────
@@ -1709,10 +2228,10 @@ export default function AgentDetail() {
       .then(setAgent);
   }, [id]);
 
-  // External agents (e.g. WordPress suite) — bounce straight to their hosted URL.
-  // Use useEffect so we don't run during SSR; falls back to manual link below.
+  // External agents — redirect to their hosted URL, UNLESS we have rich
+  // AGENT_CONTENT for them (WordPress suite agents have full detail pages here).
   useEffect(() => {
-    if (agent?.external && agent?.url && typeof window !== 'undefined') {
+    if (agent?.external && agent?.url && !AGENT_CONTENT[id] && typeof window !== 'undefined') {
       window.location.replace(agent.url);
     }
   }, [agent]);
@@ -1731,8 +2250,8 @@ export default function AgentDetail() {
     );
   }
 
-  // External agent — show a brief redirect notice with a manual fallback link.
-  if (agent.external && agent.url) {
+  // External agent with no AGENT_CONTENT — show brief redirect notice.
+  if (agent.external && agent.url && !AGENT_CONTENT[id]) {
     return (
       <Layout title={`${agent.name} – CabinMind`} fullBleed>
         <div className="min-h-screen flex items-center justify-center px-4">
@@ -2027,27 +2546,50 @@ export default function AgentDetail() {
           <div className={`absolute inset-0 bg-gradient-to-br ${content.bg || 'from-brand-900/40 to-purple-900/10'} pointer-events-none`} />
           <div className="relative z-10">
             <div className="text-5xl mb-4">{content.icon || '⚡'}</div>
-            <h2 className="text-3xl font-black text-white mb-3">Ready to deploy {agent.name}?</h2>
-            <p className="text-gray-400 mb-8">Set up in 5 minutes. Cancel anytime. No engineering required.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => startCheckout(id)}
-                disabled={checkoutLoading}
-                className={`px-8 py-4 rounded-xl bg-gradient-to-r ${gradient} text-white font-bold text-lg hover:opacity-90 hover:scale-105 transition-all shadow-xl disabled:opacity-60 disabled:scale-100 flex items-center justify-center gap-2`}
-              >
-                {checkoutLoading ? (
-                  <>
-                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Redirecting…
-                  </>
-                ) : (
-                  `Get Started — $${agent.price}${agent.priceSuffix || '/mo'}`
-                )}
-              </button>
-              <Link href="/agents" className="px-8 py-4 rounded-xl glass border border-white/10 text-white font-semibold hover:border-white/20 transition-all">
-                Browse More Agents
-              </Link>
-            </div>
+            {content.wpPlugin ? (
+              <>
+                <h2 className="text-3xl font-black text-white mb-3">Add {agent.name} to WordPress</h2>
+                <p className="text-gray-400 mb-2">Install the free plugin, paste one shortcode, and the tool is live on any page.</p>
+                <div className="inline-block bg-gray-950 border border-white/10 rounded-xl px-6 py-3 font-mono text-brand-400 text-sm mb-8">{content.shortcode}</div>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <a
+                    href={`/WORDPRESS-PLUGIN/${content.zipName}`}
+                    download
+                    className={`px-8 py-4 rounded-xl bg-gradient-to-r ${gradient} text-white font-bold text-lg hover:opacity-90 hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-2`}
+                  >
+                    ⬇ Download Plugin (.zip)
+                  </a>
+                  <Link href="/wordpress" className="px-8 py-4 rounded-xl glass border border-white/10 text-white font-semibold hover:border-white/20 transition-all">
+                    All 6 WP Plugins →
+                  </Link>
+                </div>
+                <p className="text-gray-500 text-xs mt-6">{content.freeLimit} · <a href="https://devcabin.tech/terms" className="hover:text-gray-400 transition" target="_blank" rel="noopener noreferrer">Terms</a> · <a href="https://devcabin.tech/privacy" className="hover:text-gray-400 transition" target="_blank" rel="noopener noreferrer">Privacy</a></p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-3xl font-black text-white mb-3">Ready to deploy {agent.name}?</h2>
+                <p className="text-gray-400 mb-8">Set up in 5 minutes. Cancel anytime. No engineering required.</p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={() => startCheckout(id)}
+                    disabled={checkoutLoading}
+                    className={`px-8 py-4 rounded-xl bg-gradient-to-r ${gradient} text-white font-bold text-lg hover:opacity-90 hover:scale-105 transition-all shadow-xl disabled:opacity-60 disabled:scale-100 flex items-center justify-center gap-2`}
+                  >
+                    {checkoutLoading ? (
+                      <>
+                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Redirecting…
+                      </>
+                    ) : (
+                      `Get Started — $${agent.price}${agent.priceSuffix || '/mo'}`
+                    )}
+                  </button>
+                  <Link href="/agents" className="px-8 py-4 rounded-xl glass border border-white/10 text-white font-semibold hover:border-white/20 transition-all">
+                    Browse More Agents
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
         </motion.div>
       </section>

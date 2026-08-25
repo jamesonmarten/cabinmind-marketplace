@@ -15,11 +15,12 @@ export default function Header() {
   }, []);
 
   const navLinks = [
-    { href: '/agents',  label: 'Marketplace', marketplace: true },
-    { href: '/demo',    label: 'Try It Free', accent: true },
-    { href: '/pricing', label: 'Pricing'        },
-    { href: '/agency',  label: 'For Agencies'   },
-    { href: '/compare', label: 'Compare' },
+    { href: '/agents',    label: 'Marketplace', marketplace: true },
+    { href: '/wordpress', label: 'WP Plugins', wp: true },
+    { href: '/demo',      label: 'Try It Free', accent: true },
+    { href: '/pricing',   label: 'Pricing'        },
+    { href: '/agency',    label: 'For Agencies'   },
+    { href: '/compare',   label: 'Compare' },
   ];
 
   return (
@@ -66,13 +67,15 @@ export default function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map(({ href, label, accent, marketplace }) => (
+          {navLinks.map(({ href, label, accent, marketplace, wp }) => (
             <Link
               key={href}
               href={href}
               className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
                 marketplace
                   ? 'text-white font-semibold'
+                  : wp
+                  ? 'text-indigo-300 hover:text-white font-semibold'
                   : router.pathname.startsWith(href)
                   ? 'text-white'
                   : accent
@@ -89,10 +92,16 @@ export default function Header() {
                   </span>
                 </span>
               )}
-              {accent && !marketplace && (
+              {wp && (
+                <span className="inline-flex items-center gap-1">
+                  <span>🔌</span>
+                  {label}
+                </span>
+              )}
+              {accent && !marketplace && !wp && (
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />
               )}
-              {!marketplace && label}
+              {!marketplace && !wp && label}
             </Link>
           ))}
           <Link

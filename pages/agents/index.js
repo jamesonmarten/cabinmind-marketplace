@@ -133,24 +133,33 @@ export default function AgentsPage() {
                   <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div>
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 text-xs font-semibold mb-3">
-                        🔌 WordPress Agent Suite
+                        🔌 WordPress Plugin Suite
                       </div>
                       <h2 className="text-3xl font-black text-white mb-2">
                         Built for WordPress <span className="gradient-text">Pros &amp; Agencies</span>
                       </h2>
                       <p className="text-gray-400 max-w-xl">
-                        6 specialised agents that solve real WP problems — vulnerability scans, plugin recommendations,
-                        Core Web Vitals, maintenance reports, child themes, broken-link maps.
+                        6 standalone freemium plugins — vulnerability scanner, plugin recommender,
+                        speed optimizer, maintenance reports, CSS snippets, and broken-link checker.
+                        Free tier included in each. No account required.
                       </p>
                     </div>
-                    <a
-                      href="https://wp.devcabin.tech"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-sm hover:opacity-90 transition shadow-lg whitespace-nowrap flex-shrink-0"
-                    >
-                      Open Full Suite ↗
-                    </a>
+                    <div className="flex flex-col gap-2 flex-shrink-0">
+                      <a
+                        href="/wordpress"
+                        className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-sm hover:opacity-90 transition shadow-lg whitespace-nowrap text-center"
+                      >
+                        Docs &amp; Live Demos →
+                      </a>
+                      <a
+                        href="https://wp.devcabin.tech"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-6 py-2.5 rounded-xl glass border border-white/10 text-gray-300 font-semibold text-sm hover:border-white/20 transition text-center"
+                      >
+                        Full Suite ↗
+                      </a>
+                    </div>
                   </div>
                 </motion.div>
 
