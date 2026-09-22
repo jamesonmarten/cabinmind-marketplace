@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
 import { useCheckout } from '../hooks/useCheckout';
+import LaunchOfferBanner from '../components/LaunchOfferBanner';
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -701,6 +702,8 @@ export default function PricingPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-24">
+
+        <LaunchOfferBanner />
 
         <div className="flex justify-center mb-12">
           <div className="glass border border-white/10 rounded-2xl p-1.5 flex gap-1">

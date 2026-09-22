@@ -26,6 +26,7 @@ export default async function handler(req, res) {
         name:  session.customer_details?.name  || null,
         email: session.customer_details?.email || null,
       },
+      customer: typeof session.customer === 'string' ? session.customer : session.customer?.id || null,
       metadata: session.metadata || {},
     });
   } catch (err) {

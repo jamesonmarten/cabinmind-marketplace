@@ -15,11 +15,21 @@ import Stripe from 'stripe';
 import { Resend } from 'resend';
 import { v4 as uuidv4 } from 'uuid';
 import { saveToken } from '../../lib/tokenStore';
+import { grantSignupBonus } from '../../lib/usageStore';
 
 export const config = { api: { bodyParser: false } };
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// agentId → usageStore plan key, for the +50 leads signup bonus
+const LEAD_PLAN_FOR_AGENT = {
+  'lead-researcher': 'starter',
+  'lead-starter':     'starter',
+  'lead-pro':         'pro',
+  'lead-scale':       'scale',
+  'lead-agency':      'agency',
+};
 
 const AGENT_META = {
   // Flat-rate agents
@@ -36,6 +46,27 @@ const AGENT_META = {
   'lead-scale':        { name: 'AI Lead Researcher — Scale',   icon: '🔎', price: '$500/mo',  setupUrl: 'https://products.devcabin.tech/dashboard', byok: true, byokNote: 'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys.' },
   'lead-agency':       { name: 'AI Lead Researcher — Agency',  icon: '🔎', price: '$1000/mo', setupUrl: 'https://products.devcabin.tech/dashboard', byok: true, byokNote: 'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys. You have 5 seats — invite team members from Settings.' },
 };
+
+/** Reward an existing customer whose referral link brought in a new subscriber */
+async function sendReferralRewardEmail({ toEmail, toName, newCustomerAgent }) {
+  const fromAddress = process.env.RESEND_FROM_EMAIL || 'CabinMind <onboarding@resend.dev>';
+  const firstName = toName?.split(' ')[0] || 'there';
+  const result = await resend.emails.send({
+    from: fromAddress,
+    to: toEmail,
+    subject: `🎁 You just earned a free month of CabinMind!`,
+    html: `
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0f;padding:40px 20px;">
+  <div style="max-width:560px;margin:0 auto;background:#111118;border-radius:16px;padding:36px 40px;border:1px solid rgba(255,255,255,0.08);">
+    <div style="font-size:40px;margin-bottom:16px;">🎁</div>
+    <h2 style="color:#e2e8f0;margin:0 0 12px;">Thanks for spreading the word, ${firstName}!</h2>
+    <p style="color:#94a3b8;line-height:1.7;">Someone subscribed to <strong style="color:#a78bfa;">${newCustomerAgent}</strong> using your referral link. As a thank you, we've credited your account with a free month — it'll apply automatically to your next invoice.</p>
+    <p style="color:#475569;font-size:13px;">Keep sharing your referral link from your dashboard to earn more free months.</p>
+  </div>
+</body>`,
+  });
+  if (result.error) throw new Error(`Resend error: ${JSON.stringify(result.error)}`);
+}
 
 /** Read the raw body from the request stream */
 async function getRawBody(req) {
@@ -230,7 +261,7 @@ export default async function handler(req, res) {
 
       // Persist the token so /api/dashboard/session can validate it
       if (customerEmail) {
-        saveToken(dashboardToken, {
+        await saveToken(dashboardToken, {
           agentId,
           customerEmail,
           customerName,
@@ -247,6 +278,35 @@ export default async function handler(req, res) {
           });
         } catch (e) {
           console.warn('[webhook] Could not update Stripe customer metadata:', e.message);
+        }
+      }
+
+      // Signup perk: +50 bonus leads on top of the plan limit, first month only
+      const bonusPlan = LEAD_PLAN_FOR_AGENT[agentId];
+      if (bonusPlan) {
+        await grantSignupBonus(session.id, bonusPlan)
+          .catch(err => console.error('[webhook] Failed to grant signup bonus:', err.message));
+      }
+
+      // Referral perk: credit the referrer a free month via account balance
+      const referredBy = session.metadata?.referredBy;
+      if (referredBy) {
+        try {
+          await stripe.customers.createBalanceTransaction(referredBy, {
+            amount: -amountTotal, // negative = credit, applied to referrer's next invoice
+            currency: session.currency || 'usd',
+            description: `Referral reward — ${customerEmail || 'a friend'} subscribed to ${agentId}`,
+          });
+          const referrer = await stripe.customers.retrieve(referredBy);
+          if (referrer?.email) {
+            await sendReferralRewardEmail({
+              toEmail: referrer.email,
+              toName: referrer.name || '',
+              newCustomerAgent: AGENT_META[agentId]?.name || agentId,
+            }).catch(err => console.error('[webhook] Failed to send referral reward email:', err.message));
+          }
+        } catch (e) {
+          console.error('[webhook] Failed to credit referrer:', e.message);
         }
       }
 

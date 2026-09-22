@@ -57,6 +57,7 @@ export default function CheckoutSuccess() {
 
   const [session, setSession]   = useState(null);
   const [loading, setLoading]   = useState(true);
+  const [copied, setCopied]     = useState(false);
 
   // Fetch real session details from Stripe to show customer name & email
   // and fire conversion events once (guarded by sessionStorage dedup key)
@@ -206,6 +207,39 @@ export default function CheckoutSuccess() {
               </motion.div>
             ))}
           </div>
+
+          {/* Referral perk — give a free month, get a free month */}
+          {session?.customer && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.8 }}
+              className="glass rounded-2xl p-5 border border-green-400/20 mb-8 text-left max-w-lg mx-auto"
+            >
+              <div className="text-white font-semibold text-sm mb-1">🎁 Give a free month, get a free month</div>
+              <p className="text-gray-400 text-xs leading-relaxed mb-3">
+                Share your link — anyone who subscribes gets their first month free, and you get a free month credited automatically.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  readOnly
+                  value={`https://products.devcabin.tech/pricing?ref=${session.customer}`}
+                  className="flex-1 min-w-0 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-xs text-gray-300 font-mono"
+                  onFocus={(e) => e.target.select()}
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`https://products.devcabin.tech/pricing?ref=${session.customer}`);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-green-500/15 border border-green-500/25 text-green-400 text-xs font-semibold hover:bg-green-500/25 transition-colors whitespace-nowrap"
+                >
+                  {copied ? 'Copied!' : 'Copy link'}
+                </button>
+              </div>
+            </motion.div>
+          )}
 
           {/* Order ref */}
           {session_id && (

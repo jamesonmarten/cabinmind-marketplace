@@ -16,6 +16,7 @@ export default function Header() {
 
   const navLinks = [
     { href: '/agents',    label: 'Marketplace', marketplace: true },
+    { href: '/local',     label: 'For Local Businesses' },
     { href: '/wordpress', label: 'WP Plugins', wp: true },
     { href: '/demo',      label: 'Try It Free', accent: true },
     { href: '/pricing',   label: 'Pricing'        },
