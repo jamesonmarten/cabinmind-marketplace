@@ -15,7 +15,7 @@ const STATS = [
 ];
 
 const PIPELINE_STEPS = [
-  { icon: '��', label: 'Describe your ICP',       time: '30 sec'  },
+  { icon: '🎯', label: 'Describe your ICP',       time: '30 sec'  },
   { icon: '🤖', label: 'AI finds companies',      time: '1–2s'    },
   { icon: '🔍', label: 'Hunter fetches contacts', time: '2–4s'    },
   { icon: '🛡️', label: 'ZeroBounce validates',    time: '1–2s'    },
