@@ -5,14 +5,17 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "jest lib/calculator"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@stripe/stripe-js": "^8.9.0",
+    "@supabase/supabase-js": "^2.116.0",
     "autoprefixer": "^10.4.14",
     "framer-motion": "^12.35.2",
     "groq-sdk": "^1.1.1",
+    "jspdf": "^4.2.1",
     "next": "latest",
     "openai": "^6.27.0",
     "postcss": "^8.4.23",
@@ -23,5 +26,11 @@
     "stripe": "^20.4.1",
     "tailwindcss": "^3.3.3",
     "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "jest": "^30.5.1"
+  },
+  "optionalDependencies": {
+    "@next/swc-darwin-arm64": "^16.3.5"
   }
 }
