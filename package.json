@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "jest lib/calculator"
+    "test": "jest",
+    "test:calculator": "jest lib/calculator",
+    "typecheck": "tsc --noEmit -p tsconfig.jest.json"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -28,7 +30,13 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "jest": "^30.5.1"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "jest": "^30.5.1",
+    "ts-jest": "^29.4.14",
+    "typescript": "^5.9.3"
   },
   "optionalDependencies": {
     "@next/swc-darwin-arm64": "^16.3.5"

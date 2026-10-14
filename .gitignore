@@ -14,3 +14,6 @@ apollo-lead-engine/
 
 # Runtime state files (regenerated at runtime)
 data/ratelimit.json
+
+# TypeScript build artifacts
+*.tsbuildinfo
