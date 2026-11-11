@@ -29,7 +29,37 @@ import Groq from 'groq-sdk';
 import OpenAI from 'openai';
 import dns from 'dns/promises';
 import { checkUsage, recordUsage, PLAN_LIMITS, getSeenLeads, recordSeenLeads } from '../../lib/usageStore';
-import { withProtection } from '../../lib/rateLimit';
+import { withProtection, getIP } from '../../lib/rateLimit';
+import { getToken } from '../../lib/tokenStore';
+import { GROQ_MODEL, GROQ_MODEL_FAST, OPENAI_MODEL } from '../../lib/aiModels';
+
+// agentId → usageStore plan key. Mirrors LEAD_PLAN_FOR_AGENT in pages/api/webhook.js.
+const PLAN_FOR_AGENT = {
+  'lead-researcher': 'starter',
+  'lead-starter':    'starter',
+  'lead-pro':        'pro',
+  'lead-scale':      'scale',
+  'lead-agency':     'agency',
+};
+
+/**
+ * Resolve the caller's plan + subscription key from their dashboard token.
+ * The token is the only credential we trust — `plan` and `subscriptionKey` in
+ * the request body are attacker-controlled and must never raise a limit on
+ * their own. Returns null for anonymous/demo/trial callers.
+ */
+async function resolveSubscriber(req) {
+  const token = req.body?.dashboardToken;
+  if (!token || typeof token !== 'string') return null;
+
+  const record = await getToken(token);
+  if (!record) return null;
+
+  const plan = PLAN_FOR_AGENT[record.agentId];
+  if (!plan) return null;
+
+  return { plan, subscriptionKey: record.sessionId || `token-${token}` };
+}
 
 const groq       = process.env.GROQ_API_KEY        ? new Groq({ apiKey: process.env.GROQ_API_KEY })        : null;
 const openai     = process.env.OPENAI_API_KEY       ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })    : null;
@@ -510,8 +540,8 @@ CRITICAL domain rules:
 - Correct: "wellplated.com", "pinchofyum.com", "sallysbakingaddiction.com", "minimalistbaker.com"
 - Wrong: "youtube.com/c/FoodChannel", "instagram.com/foodblogger"
 
-Return ONLY a JSON array of exactly 8 objects, no markdown:
-[{"company":"Well Plated by Erin","domain":"wellplated.com","industry":"Food Blog","size":"1-10","location":"Milwaukee, WI","why_fits":"Erin Clarke runs one of the top healthy recipe blogs with 1M+ monthly readers, actively partners with food brands","signal":"Spring recipe content push — ideal timing for ingredient/kitchen brand sponsorships","pain_points":"managing brand deal pipeline, scaling newsletter revenue","budget_range":"$2K-$10K/project","tech":"WordPress, Mediavine"}]`
+Return ONLY a JSON object with a "companies" array of exactly 8 objects, no markdown:
+{"companies":[{"company":"Well Plated by Erin","domain":"wellplated.com","industry":"Food Blog","size":"1-10","location":"Milwaukee, WI","why_fits":"Erin Clarke runs one of the top healthy recipe blogs with 1M+ monthly readers, actively partners with food brands","signal":"Spring recipe content push — ideal timing for ingredient/kitchen brand sponsorships","pain_points":"managing brand deal pipeline, scaling newsletter revenue","budget_range":"$2K-$10K/project","tech":"WordPress, Mediavine"}]}`
     : `You are a B2B sales intelligence expert. List exactly 8 REAL, existing companies whose employees match this ICP.
 
 ICP: "${icp}"
@@ -531,17 +561,20 @@ CRITICAL domain rules:
 - Correct: "close.com", "pipedrive.com", "outreach.io"
 - Wrong: "kairosventures.co", "acme.co"
 
-Return ONLY a JSON array of exactly 8 objects, no markdown:
-[{"company":"Acme Corp","domain":"acmecorp.com","industry":"B2B SaaS","size":"51-200","location":"Austin, TX","why_fits":"Why employees here fit the ICP","signal":"Concrete reason to reach out this week","pain_points":"pain 1, pain 2","budget_range":"$20K-$60K/yr","tech":"HubSpot, Stripe"}]`;
+Return ONLY a JSON object with a "companies" array of exactly 8 objects, no markdown:
+{"companies":[{"company":"Acme Corp","domain":"acmecorp.com","industry":"B2B SaaS","size":"51-200","location":"Austin, TX","why_fits":"Why employees here fit the ICP","signal":"Concrete reason to reach out this week","pain_points":"pain 1, pain 2","budget_range":"$20K-$60K/yr","tech":"HubSpot, Stripe"}]}`;
 
   let raw, aiProvider;
 
   if (groq) {
     try {
       const res = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_MODEL,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 1200, temperature: 0.7,
+        // gpt-oss is a reasoning model: reasoning tokens come out of max_tokens,
+        // so a tight budget returns an empty completion and json_validate_failed.
+        max_tokens: 6000, temperature: 0.7,
+        reasoning_effort: 'low',
         response_format: { type: 'json_object' },
       });
       const parsed = safeJSON(res.choices[0]?.message?.content || '');
@@ -554,7 +587,7 @@ Return ONLY a JSON array of exactly 8 objects, no markdown:
 
   if (!raw?.length && openai) {
     const res = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: OPENAI_MODEL,
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 1200, temperature: 0.7,
     });
@@ -607,15 +640,16 @@ Return ONLY valid JSON: {"name":"Full Name","title":"Job Title","score_reason":"
     let content;
     if (aiProvider === 'groq' && groq) {
       const res = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_MODEL_FAST,
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 200, temperature: 0.8,
+        max_tokens: 2000, temperature: 0.8,
+        reasoning_effort: 'low',
         response_format: { type: 'json_object' },
       });
       content = res.choices[0]?.message?.content;
     } else if (openai) {
       const res = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: OPENAI_MODEL,
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 200, temperature: 0.8,
       });
@@ -937,8 +971,8 @@ export default withProtection('leads', async function handler(req, res) {
       // Client-supplied BYOK keys (Pro / Scale / Agency plans)
       hunterApiKey: clientHunterKey,
       zeroBounceApiKey: clientZbKey,
-      // Plan tier sent by the client (dashboard knows its own plan)
-      plan = 'starter',
+      // Plan tier sent by the client (only trusted when no verified token)
+      plan: claimedPlan = 'starter',
       // For gifted client-trial sessions: a short slug that acts as the subscription key
       trialSlug,
     } = req.body || {};
@@ -955,15 +989,26 @@ export default withProtection('leads', async function handler(req, res) {
       });
     }
 
+    // ── Identity ───────────────────────────────────────────────────────────
+    // A verified dashboard token is the only thing that can *raise* a limit.
+    // Callers that don't send one keep the previous body-trusted behaviour so
+    // already-deployed clients don't break — they just stay on the anonymous
+    // per-IP rate limit instead of the elevated subscriber ceiling.
+    const subscriber = await resolveSubscriber(req);
+    const plan = subscriber ? subscriber.plan
+               : isDemo     ? 'demo'
+               : trialSlug  ? 'client-trial'
+               : claimedPlan;
+
     // ── Monthly quota enforcement ──────────────────────────────────────────
-    // subscriptionKey = session_id from client (passed by dashboard); falls back
-    // to a plan-level shared key for clients that don't send one.
     // Scale/Agency use BYOK so platform costs are $0 — no cap needed.
     // client-trial: keyed by trialSlug so each gifted client has their own counter.
-    const subscriptionKey = trialSlug
-      ? `trial-${trialSlug}`
-      : (req.body.subscriptionKey || `plan-${plan}`);
-    const planForLimits   = isDemo ? 'demo' : (plan || 'starter');
+    const subscriptionKey = subscriber
+      ? subscriber.subscriptionKey
+      : trialSlug ? `trial-${trialSlug}`
+      : isDemo    ? `demo-${getIP(req)}`
+      : (req.body.subscriptionKey || `plan-${claimedPlan}`);
+    const planForLimits   = plan;
 
     if (planForLimits !== 'scale' && planForLimits !== 'agency') {
       const batchCheck = await checkUsage(subscriptionKey, planForLimits, 'leadBatches', 1);
@@ -1138,4 +1183,9 @@ export default withProtection('leads', async function handler(req, res) {
     console.error('[/api/leads]', err.message);
     return res.status(500).json({ error: 'Lead generation failed. Please try again.' });
   }
+}, {
+  identify: async (req) => {
+    const subscriber = await resolveSubscriber(req);
+    return subscriber ? { id: subscriber.subscriptionKey } : null;
+  },
 });

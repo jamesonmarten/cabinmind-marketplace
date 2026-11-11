@@ -18,7 +18,7 @@
  *   Step 4 — Day 14 — Break-up / last touch
  *
  * LLM strategy:
- *   1. Try Groq (llama-3.3-70b-versatile) — fast & free
+ *   1. Try Groq (see lib/aiModels.js) — fast & free
  *   2. Fallback to OpenAI gpt-4o-mini if Groq fails or returns malformed JSON
  *
  * Each email is hard-limited to:
@@ -29,6 +29,7 @@
 import Groq from 'groq-sdk';
 import OpenAI from 'openai';
 import { withProtection } from '../../lib/rateLimit';
+import { GROQ_MODEL, OPENAI_MODEL } from '../../lib/aiModels';
 
 const groqClient  = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -97,7 +98,7 @@ Return ONLY a valid JSON array. No markdown, no explanation. Format:
 
 async function callGroq(prompt) {
   const chat = await groqClient.chat.completions.create({
-    model:       'llama-3.3-70b-versatile',
+    model:       GROQ_MODEL,
     messages:    [{ role: 'user', content: prompt }],
     temperature: 0.7,
     max_tokens:  2000,
@@ -107,7 +108,7 @@ async function callGroq(prompt) {
 
 async function callOpenAI(prompt) {
   const chat = await openaiClient.chat.completions.create({
-    model:       'gpt-4o-mini',
+    model:       OPENAI_MODEL,
     messages:    [{ role: 'user', content: prompt }],
     temperature: 0.7,
     max_tokens:  2000,
