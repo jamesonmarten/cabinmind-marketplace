@@ -509,7 +509,7 @@ async function getCompanyDomains(icp, filters, batchNum) {
   const prompt = creatorMode
     ? `You are a digital media research expert with encyclopedic knowledge of real, named content creators and bloggers worldwide.
 
-List exactly 8 REAL, NAMED, VERIFIABLE individual creators or creator-owned sites that match this ICP.
+List exactly 20 REAL, NAMED, VERIFIABLE individual creators or creator-owned sites that match this ICP.
 
 ICP: "${icp}"
 ${extras}
@@ -540,9 +540,9 @@ CRITICAL domain rules:
 - Correct: "wellplated.com", "pinchofyum.com", "sallysbakingaddiction.com", "minimalistbaker.com"
 - Wrong: "youtube.com/c/FoodChannel", "instagram.com/foodblogger"
 
-Return ONLY a JSON object with a "companies" array of exactly 8 objects, no markdown:
+Return ONLY a JSON object with a "companies" array of exactly 20 objects, no markdown:
 {"companies":[{"company":"Well Plated by Erin","domain":"wellplated.com","industry":"Food Blog","size":"1-10","location":"Milwaukee, WI","why_fits":"Erin Clarke runs one of the top healthy recipe blogs with 1M+ monthly readers, actively partners with food brands","signal":"Spring recipe content push — ideal timing for ingredient/kitchen brand sponsorships","pain_points":"managing brand deal pipeline, scaling newsletter revenue","budget_range":"$2K-$10K/project","tech":"WordPress, Mediavine"}]}`
-    : `You are a B2B sales intelligence expert. List exactly 8 REAL, existing companies whose employees match this ICP.
+    : `You are a B2B sales intelligence expert. List exactly 20 REAL, existing companies whose employees match this ICP.
 
 ICP: "${icp}"
 ${extras}
@@ -550,6 +550,9 @@ ${batchNum > 1 ? `Batch ${batchNum} — return DIFFERENT companies from all prev
 
 Rules:
 - Only real companies with real websites and employees
+- Every domain must be one you are confident actually resolves and receives email.
+  Candidates whose domain has no MX record are discarded, so a plausible-sounding
+  invented name is worse than a smaller company you are certain exists.
 - Avoid Fortune 500 (Google, Microsoft, Meta, Salesforce, Oracle, Apple, Amazon)
 - Prefer mid-market 50-500 employees where decision-makers are reachable
 - Vary geography and sub-vertical within the ICP
@@ -561,7 +564,7 @@ CRITICAL domain rules:
 - Correct: "close.com", "pipedrive.com", "outreach.io"
 - Wrong: "kairosventures.co", "acme.co"
 
-Return ONLY a JSON object with a "companies" array of exactly 8 objects, no markdown:
+Return ONLY a JSON object with a "companies" array of exactly 20 objects, no markdown:
 {"companies":[{"company":"Acme Corp","domain":"acmecorp.com","industry":"B2B SaaS","size":"51-200","location":"Austin, TX","why_fits":"Why employees here fit the ICP","signal":"Concrete reason to reach out this week","pain_points":"pain 1, pain 2","budget_range":"$20K-$60K/yr","tech":"HubSpot, Stripe"}]}`;
 
   let raw, aiProvider;
@@ -599,7 +602,7 @@ Return ONLY a JSON object with a "companies" array of exactly 8 objects, no mark
   }
 
   if (!raw?.length) throw new Error('AI failed to generate company list');
-  return { companies: raw.slice(0, 8), aiProvider };
+  return { companies: raw.slice(0, 20), aiProvider };
 }
 
 // Step 2: Hunter domain search -> real contacts
@@ -684,21 +687,67 @@ async function generateLeads(
     allowMultiplePerCompany = false,
     requireVerifiedEmail = false,
     requireDirectLinkedIn = false,
+    // When false, companies with no sourced contact are skipped rather than
+    // having a plausible-sounding person invented for them.
+    allowSynthesisedContacts = false,
   } = {}
 ) {
-  const { companies, aiProvider } = await getCompanyDomains(icp, filters, batchNum);
   const leads = [];
   const seenIds = subscriptionKey ? await getSeenLeads(subscriptionKey) : new Set();
   const seenCompanies = new Set(); // Company diversity — 1 lead per company by default
   let hunterQuotaExceeded = false;
   const creatorMode = isCreatorICP(icp);
   const strictRejected = { unverifiedEmail: 0, noDirectLinkedIn: 0 };
+  const screened = { candidates: 0, noMX: 0, noEmail: 0, noContact: 0, rounds: 0 };
+  let aiProvider;
 
-  for (const companyMeta of companies) {
+  // Most LLM-suggested companies don't survive DNS screening, so one round of
+  // candidates rarely fills a batch. Ask for a fresh set until the batch is full
+  // or we run out of rounds — each round is cheap now that dead domains are
+  // discarded before any Hunter/ZeroBounce spend.
+  const MAX_ROUNDS = 4;
+  // vercel.json caps this function at 60s. A round takes up to ~20s, so stop
+  // starting new ones well before the ceiling rather than losing the whole batch.
+  const DEADLINE = Date.now() + 25_000;
+
+  for (let round = 0; round < MAX_ROUNDS && leads.length < 5; round++) {
+    if (round > 0 && Date.now() > DEADLINE) {
+      console.log(`[leads] Deadline reached after ${round} round(s) — returning ${leads.length} lead(s)`);
+      break;
+    }
+    screened.rounds = round + 1;
+    // Offset the batch number so each round asks for different companies.
+    const roundSeed = batchNum + round * 100;
+    const generated = await getCompanyDomains(icp, filters, roundSeed);
+    const companies = generated.companies;
+    aiProvider = generated.aiProvider;
+    screened.candidates += companies.length;
+
+    // ── Step 1b: prove each candidate business exists, in parallel ──────────
+    // The company list comes from an LLM, so a candidate may simply not exist. A
+    // domain with no MX can't receive mail and is almost always invented. DNS is
+    // cheap and parallelisable, so screen the whole batch up front and spend the
+    // sequential Hunter/ZeroBounce budget only on businesses proven to be real.
+    const resolved = await Promise.all(companies.map(async (companyMeta) => {
+      const domain = await sanitiseDomain(companyMeta.domain);
+      if (!domain) {
+        console.log(`[leads] Skip — bad domain: ${companyMeta.domain}`);
+        return null;
+      }
+      if (!(await domainHasMX(domain))) {
+        console.log(`[leads] Skip — no MX, unverifiable business: ${companyMeta.company} (${domain})`);
+        return { rejected: true };
+      }
+      return { companyMeta, domain };
+    }));
+
+    screened.noMX += resolved.filter(r => r?.rejected).length;
+    const realCompanies = resolved.filter(r => r && !r.rejected);
+    console.log(`[leads] Round ${round + 1}: ${companies.length} candidates → ${realCompanies.length} live mail domains`);
+
+  for (const { companyMeta, domain } of realCompanies) {
     if (leads.length >= 5) break;  // got enough — stop early
-
-    const domain = await sanitiseDomain(companyMeta.domain);
-    if (!domain) { console.log(`[leads] Skip — bad domain: ${companyMeta.domain}`); continue; }
+    if (Date.now() > DEADLINE) break;
 
     // ── Step 2: Hunter domain-search ────────────────────────────────────────
     let hunterData = null;
@@ -727,6 +776,7 @@ async function generateLeads(
 
       for (const c of candidates) {
         if (leads.length >= 5) break;
+        if (Date.now() > DEADLINE + 20_000) break;
 
         const hunterStatus = c.verification?.status || null;
 
@@ -813,7 +863,17 @@ async function generateLeads(
       }
 
     } else {
-      // ── AI PATTERN FALLBACK — Hunter found no contacts ──────────────────
+      // ── NO SOURCED CONTACT ──────────────────────────────────────────────
+      // Hunter has nothing for this domain. The company is real, but any person
+      // we name here would come from the model, not a source — and a fabricated
+      // contact is the single most damaging thing we can hand a customer.
+      if (!allowSynthesisedContacts) {
+        screened.noContact += 1;
+        console.log(`[leads] Skip — no sourced contact for ${companyMeta.company} (${domain})`);
+        continue;
+      }
+
+      // ── AI PATTERN FALLBACK — demo only ─────────────────────────────────
       const s = await synthesisePerson(companyMeta, icp, aiProvider);
       const nameParts = (s.name || 'Contact').trim().split(/\s+/);
       const firstName = nameParts[0];
@@ -846,6 +906,15 @@ async function generateLeads(
           break;
         }
         console.log(`[leads] Pattern miss: ${candidate} (${validation.reason})`);
+      }
+
+      // No pattern verified: we have a real domain but no provable inbox, and
+      // the person came from the model rather than a source. Emitting it would
+      // hand the customer a fabricated contact — drop the company instead.
+      if (!finalEmail) {
+        screened.noEmail += 1;
+        console.log(`[leads] Skip — no deliverable email proven for ${companyMeta.company} (${domain})`);
+        continue;
       }
 
       const linkedIn = await buildLinkedIn(s.name || 'Contact', companyMeta.company, null);
@@ -916,7 +985,9 @@ async function generateLeads(
     }
   }
 
-  console.log(`[leads] Pipeline complete: ${leads.length}/5 leads from ${companies.length} candidates`);
+  } // end round loop
+
+  console.log(`[leads] Pipeline complete: ${leads.length}/5 leads from ${screened.candidates} candidates across ${screened.rounds} round(s)`);
 
   // Sort: ZB-verified A first → verified B → unverified A/B → C, then by score desc within tier
   leads.sort((a, b) => {
@@ -945,6 +1016,7 @@ async function generateLeads(
       realCount, verifiedCount, directLinkedIn, zbVerified, patternVerified,
       avgScore, hotLeads, warmLeads,
       strictRejected,
+      screened,
     },
   };
 }
@@ -1073,7 +1145,10 @@ export default withProtection('leads', async function handler(req, res) {
       exclude:     excludeCompanies || '',
     };
 
-    const strictProofMode = false; // requireDirectLinkedIn is too aggressive — drops nearly all candidates
+    // Direct-LinkedIn proof is too aggressive (drops nearly all candidates), but a
+    // deliverable email is non-negotiable: an unverified address is a guess, and
+    // guesses bounce and burn the customer's sending domain.
+    const strictProofMode = false;
     const { leads, meta } = await generateLeads(
       icp.trim(),
       filters,
@@ -1085,6 +1160,7 @@ export default withProtection('leads', async function handler(req, res) {
         allowMultiplePerCompany: !!allowMultiplePerCompany,
         requireVerifiedEmail: false,
         requireDirectLinkedIn: false,
+        allowSynthesisedContacts: false,
       }
     );
 
@@ -1176,6 +1252,7 @@ export default withProtection('leads', async function handler(req, res) {
         strictMode: strictProofMode,
         requirements: strictProofMode ? ['verified-email', 'direct-linkedin-profile'] : [],
         strictRejected: meta.strictRejected || { unverifiedEmail: 0, noDirectLinkedIn: 0 },
+        screened: meta.screened || { candidates: 0, noMX: 0, noEmail: 0, noContact: 0 },
       },
       debug,
     });
