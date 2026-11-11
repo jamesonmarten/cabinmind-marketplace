@@ -269,6 +269,28 @@ function scoreLabel(score) {
   return              { grade: 'D', label: 'Cold', color: 'gray'   };
 }
 
+// Persona buckets — deterministic, title + score based (no extra API call).
+// Ported from apollo-lead-engine/src/lib/scoring.js so the flagship product
+// surfaces the same Champion/Influencer/Evaluator taxonomy as the pipeline.
+const PERSONAS = {
+  champion:   { id: 'champion',   label: '🏆 Champion',   titleKeywords: ['ceo','founder','cto','coo','cfo','chief','president','owner','managing director','md','partner'], minScore: 80 },
+  influencer: { id: 'influencer', label: '⚡ Influencer', titleKeywords: ['vp','vice president','director','head of','svp','evp'], minScore: 65 },
+  evaluator:  { id: 'evaluator',  label: '🔍 Evaluator',  titleKeywords: ['manager','senior','lead','principal','supervisor','architect','staff'], minScore: 55 },
+};
+
+function classifyPersona(title, score) {
+  const t = (title || '').toLowerCase();
+  for (const persona of Object.values(PERSONAS)) {
+    const matches = persona.titleKeywords.some(k =>
+      k.includes(' ') ? t.includes(k) : new RegExp(`\\b${k}\\b`, 'i').test(t)
+    );
+    if (matches && score >= persona.minScore) return persona;
+  }
+  if (score >= 80) return PERSONAS.champion;
+  if (score >= 65) return PERSONAS.influencer;
+  return PERSONAS.evaluator;
+}
+
 // Safe JSON extractor
 function safeJSON(raw) {
   if (!raw) throw new Error('Empty response');
@@ -337,6 +359,7 @@ function buildLead({
   const last  = parts.slice(1).join(' ') || '';
   const _id   = `${name}|${companyMeta.company}`.toLowerCase().replace(/[^a-z0-9|]/g, '');
   const { grade, label: gradeLabel } = scoreLabel(score);
+  const persona = classifyPersona(title, score);
 
   return {
     _id,
@@ -350,6 +373,8 @@ function buildLead({
     score,
     grade,
     grade_label:         gradeLabel,
+    persona:             persona.id,
+    persona_label:       persona.label,
     score_reason:        scoreReason,
     score_signals:       scoreSignals || [],
     signal:              companyMeta.signal || '',
@@ -629,7 +654,7 @@ async function generateLeads(
 ) {
   const { companies, aiProvider } = await getCompanyDomains(icp, filters, batchNum);
   const leads = [];
-  const seenIds = subscriptionKey ? getSeenLeads(subscriptionKey) : new Set();
+  const seenIds = subscriptionKey ? await getSeenLeads(subscriptionKey) : new Set();
   const seenCompanies = new Set(); // Company diversity — 1 lead per company by default
   let hunterQuotaExceeded = false;
   const creatorMode = isCreatorICP(icp);
@@ -941,7 +966,7 @@ export default withProtection('leads', async function handler(req, res) {
     const planForLimits   = isDemo ? 'demo' : (plan || 'starter');
 
     if (planForLimits !== 'scale' && planForLimits !== 'agency') {
-      const batchCheck = checkUsage(subscriptionKey, planForLimits, 'leadBatches', 1);
+      const batchCheck = await checkUsage(subscriptionKey, planForLimits, 'leadBatches', 1);
       if (!batchCheck.allowed) {
         const limits = PLAN_LIMITS[planForLimits];
         return res.status(429).json({
@@ -1020,12 +1045,12 @@ export default withProtection('leads', async function handler(req, res) {
 
     // Record successful batch usage (after work completes — failed calls don't count)
     if (planForLimits !== 'scale' && planForLimits !== 'agency') {
-      recordUsage(subscriptionKey, planForLimits, 'leadBatches', 1);
+      await recordUsage(subscriptionKey, planForLimits, 'leadBatches', 1);
     }
 
     // Persist seen lead IDs for cross-batch dedup
     if (leads.length) {
-      recordSeenLeads(subscriptionKey, leads.map(l => l._id));
+      await recordSeenLeads(subscriptionKey, leads.map(l => l._id));
     }
 
     const finalLeads = isDemo ? maskForDemo(leads) : leads;
