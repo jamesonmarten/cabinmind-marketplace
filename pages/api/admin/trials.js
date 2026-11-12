@@ -13,7 +13,7 @@ const USAGE_PATH = process.env.NODE_ENV === 'production'
   : path.join(process.cwd(), 'data', 'usage.json');
 
 // Keep in sync with pages/trial/[slug].js
-const VALID_SLUGS = ['acme2026', 'defiantcnc2026'];
+const VALID_SLUGS = ['demo-50-leads', 'acme2026', 'defiantcnc2026', 'defiantcnc-pilot-7k42'];
 const LEADS_PER_BATCH = 5;
 const BATCH_LIMIT = 10; // 50 leads
 

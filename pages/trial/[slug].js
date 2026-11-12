@@ -25,10 +25,50 @@ const VALID_SLUGS = [
   'demo-50-leads',
   'acme2026',
   'defiantcnc2026',
+  'defiantcnc-pilot-7k42',
 ];
 
-const TOTAL_LIMIT     = 50;  // leads per slug (10 batches × 5)
-const CHUNK_SIZE      = 5;
+const TOTAL_LIMIT     = 50;  // leads per slug, one-time (does not reset monthly)
+const CHUNK_SIZES     = [5, 10];
+const DEFAULT_CHUNK   = 5;
+
+// Prices mirror pages/api/checkout.js — that file is what actually charges the
+// card, so if these ever disagree, checkout.js wins.
+const PLANS = [
+  {
+    id: 'lead-starter',
+    name: 'Starter',
+    price: 100,
+    leads: '100 leads / month',
+    perLead: '$1.00 per lead',
+    features: ['We supply the Hunter + ZeroBounce keys', 'Verified emails only', 'CSV + CRM export'],
+  },
+  {
+    id: 'lead-pro',
+    name: 'Pro',
+    price: 250,
+    leads: '500 leads / month',
+    perLead: '$0.50 per lead',
+    highlight: true,
+    features: ['You bring your Hunter key', 'We cover ZeroBounce', 'Priority support'],
+  },
+  {
+    id: 'lead-scale',
+    name: 'Scale',
+    price: 500,
+    leads: 'Unlimited leads',
+    perLead: 'No per-lead cap',
+    features: ['You bring both API keys', 'No monthly lead ceiling', 'Bulk export'],
+  },
+  {
+    id: 'lead-agency',
+    name: 'Agency',
+    price: 1000,
+    leads: 'Unlimited leads',
+    perLead: 'No per-lead cap',
+    features: ['Everything in Scale', '5 team seats', 'White-label dashboard'],
+  },
+];
 
 const ICP_PRESETS = [
   { label: '🚀 SaaS Founders',     value: 'B2B SaaS startup founders, 10–50 employees, Series A or pre-revenue, using HubSpot or Salesforce, struggling with lead conversion' },
@@ -244,6 +284,7 @@ export default function TrialPage({ slug, valid }) {
   const [sources, setSources]       = useState(null);
   const [debugLog, setDebugLog]     = useState([]);
   const [quality, setQuality]       = useState(null);
+  const [chunkSize, setChunkSize]   = useState(DEFAULT_CHUNK);
   const abortRef = useRef(null);
 
   const totalGenerated = leads.length;
@@ -266,6 +307,7 @@ export default function TrialPage({ slug, valid }) {
           batchNum: currentBatch,
           plan: 'client-trial',
           trialSlug: slug,
+          leadsPerBatch: chunkSize,
           isDemo: false,
         }),
       });
@@ -275,7 +317,7 @@ export default function TrialPage({ slug, valid }) {
       if (!res.ok) {
         if (data.quota) {
           setLimitHit(true);
-          setError(`You've used all ${TOTAL_LIMIT} trial leads. Contact us to subscribe for unlimited access.`);
+          setError(`You've used all ${TOTAL_LIMIT} trial leads. Subscribe below to keep going.`);
         } else {
           setError(data.error || 'Something went wrong. Please try again.');
         }
@@ -303,7 +345,7 @@ export default function TrialPage({ slug, valid }) {
     } finally {
       setGenerating(false);
     }
-  }, [slug]);
+  }, [slug, chunkSize]);
 
   const handleGenerate = () => {
     if (!icp.trim()) { setError('Please describe your ideal customer first.'); return; }
@@ -417,6 +459,26 @@ export default function TrialPage({ slug, valid }) {
               ))}
             </div>
 
+            {/* Batch size */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500">Leads per run:</span>
+              {CHUNK_SIZES.map(n => (
+                <button
+                  key={n}
+                  onClick={() => setChunkSize(n)}
+                  disabled={generating}
+                  className={`text-xs px-3 py-1.5 rounded-lg border transition disabled:opacity-50 ${
+                    chunkSize === n
+                      ? 'bg-brand-600/30 text-brand-300 border-brand-500/60'
+                      : 'bg-gray-800/60 text-gray-400 border-gray-700/50 hover:border-gray-500'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+              <span className="text-xs text-gray-600">· counts against your {TOTAL_LIMIT}</span>
+            </div>
+
             {/* CTA */}
             <div className="flex items-center gap-3">
               <button
@@ -427,12 +489,12 @@ export default function TrialPage({ slug, valid }) {
                 {generating ? (
                   <>
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Generating 5 leads…
+                    Researching {chunkSize} businesses…
                   </>
                 ) : limitHit || totalGenerated >= TOTAL_LIMIT ? (
-                  '🎉 All 50 trial leads used!'
+                  `🎉 All ${TOTAL_LIMIT} trial leads used!`
                 ) : (
-                  `⚡ Generate ${batchNum === 1 ? 'First' : 'Next'} 5 Leads${remaining < 10 ? ` (${remaining} left)` : ''}`
+                  `⚡ Generate ${batchNum === 1 ? 'First' : 'Next'} ${chunkSize} Leads${remaining < 10 ? ` (${remaining} left)` : ''}`
                 )}
               </button>
 
@@ -558,18 +620,72 @@ export default function TrialPage({ slug, valid }) {
               className="bg-gradient-to-br from-brand-900/40 to-brand-900/30 border border-brand-500/30 rounded-2xl p-6 text-center"
             >
               <div className="text-4xl mb-3">🎉</div>
-              <h3 className="text-lg font-bold text-white mb-1">You've used all 50 trial leads!</h3>
-              <p className="text-gray-400 text-sm mb-4">
-                Subscribe to keep going — our Starter plan gives you 100 leads/month, and Pro goes up to 500.
+              <h3 className="text-lg font-bold text-white mb-1">You've used all {TOTAL_LIMIT} trial leads</h3>
+              <p className="text-gray-400 text-sm">
+                Your {TOTAL_LIMIT} leads are yours to keep — download the CSV above. Pick a plan below to keep going.
               </p>
-              <a
-                href="https://products.devcabin.tech/pricing"
-                className="inline-block bg-brand-600 hover:bg-brand-500 text-white font-bold px-6 py-3 rounded-xl transition text-sm"
-              >
-                See Plans & Pricing →
-              </a>
             </motion.div>
           )}
+
+          {/* ── Pricing — always visible, no surprises ──────────────────── */}
+          <div id="pricing" className="bg-gray-900/60 border border-gray-700/60 rounded-2xl p-6 space-y-5">
+            <div className="text-center">
+              <h3 className="text-lg font-bold text-white">What it costs after the free {TOTAL_LIMIT}</h3>
+              <p className="text-gray-400 text-sm mt-1">
+                Every plan is month-to-month. Cancel anytime, no contract, no setup fee.
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {PLANS.map(p => (
+                <div
+                  key={p.id}
+                  className={`rounded-xl border p-4 flex flex-col ${
+                    p.highlight
+                      ? 'bg-brand-900/30 border-brand-500/50'
+                      : 'bg-gray-800/50 border-gray-700/50'
+                  }`}
+                >
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-bold text-white text-sm">{p.name}</span>
+                    {p.highlight && (
+                      <span className="text-[10px] uppercase tracking-wide bg-brand-500/20 text-brand-300 px-2 py-0.5 rounded">
+                        Most popular
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-2 mb-1">
+                    <span className="text-2xl font-black text-white">${p.price}</span>
+                    <span className="text-gray-500 text-sm">/month</span>
+                  </div>
+                  <div className="text-brand-300 text-sm font-semibold">{p.leads}</div>
+                  <div className="text-gray-500 text-xs mt-0.5">{p.perLead}</div>
+                  <ul className="mt-3 space-y-1 flex-1">
+                    {p.features.map(f => (
+                      <li key={f} className="text-xs text-gray-400 flex gap-1.5">
+                        <span className="text-brand-400">✓</span>{f}
+                      </li>
+                    ))}
+                  </ul>
+                  <a
+                    href={`https://products.devcabin.tech/pricing#${p.id}`}
+                    className={`mt-4 block text-center font-bold px-4 py-2.5 rounded-lg transition text-sm ${
+                      p.highlight
+                        ? 'bg-brand-600 hover:bg-brand-500 text-white'
+                        : 'bg-gray-700 hover:bg-gray-600 text-gray-100'
+                    }`}
+                  >
+                    Subscribe to {p.name} →
+                  </a>
+                </div>
+              ))}
+            </div>
+
+            <p className="text-center text-xs text-gray-500">
+              Scale and Agency use your own Hunter.io and ZeroBounce keys, which is why they're unlimited —
+              you pay those providers directly instead of us marking them up.
+            </p>
+          </div>
 
           {/* Footer */}
           <div className="text-center text-gray-600 text-xs pt-4 pb-8">
@@ -595,8 +711,9 @@ export default function TrialPage({ slug, valid }) {
 }
 
 // ─── SSR: validate slug server-side so bots can't probe ──────────────────────
-export async function getServerSideProps({ params }) {
+export async function getServerSideProps({ params, res }) {
   const slug  = (params?.slug || '').toLowerCase().trim();
   const valid = VALID_SLUGS.includes(slug);
+  if (!valid) res.statusCode = 404;
   return { props: { slug, valid } };
 }

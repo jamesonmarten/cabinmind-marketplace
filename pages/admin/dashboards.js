@@ -149,7 +149,7 @@ export default function DashboardsIndex() {
               <p className="text-gray-500 text-xs mt-0.5">Share these directly with clients — 50 free leads each</p>
             </div>
             <div className="divide-y divide-white/5">
-              {['acme2026', 'defiantcnc2026'].map(slug => {
+              {['acme2026', 'defiantcnc2026', 'defiantcnc-pilot-7k42'].map(slug => {
                 const url = `${base}/trial/${slug}`;
                 return (
                   <div key={slug} className="px-5 py-3 flex items-center justify-between hover:bg-white/3 transition">

@@ -32,6 +32,7 @@ import { checkUsage, recordUsage, PLAN_LIMITS, getSeenLeads, recordSeenLeads } f
 import { withProtection, getIP } from '../../lib/rateLimit';
 import { getToken } from '../../lib/tokenStore';
 import { GROQ_MODEL, GROQ_MODEL_FAST, OPENAI_MODEL } from '../../lib/aiModels';
+import { discoverBusinesses, isPlacesConfigured } from '../../lib/placesDiscovery';
 
 // agentId → usageStore plan key. Mirrors LEAD_PLAN_FOR_AGENT in pages/api/webhook.js.
 const PLAN_FOR_AGENT = {
@@ -491,11 +492,26 @@ function extractLocationFromICP(icp) {
   return null;
 }
 
-// Step 1: AI generates real company domains
+// Step 1: discover real companies.
+// Google Places is the source of truth when configured — it returns businesses
+// Google has verified, each with its own website. The LLM list below is only a
+// fallback, and it invents roughly 70% of what it returns, so everything it
+// produces still has to survive MX screening downstream.
 async function getCompanyDomains(icp, filters, batchNum) {
   // Merge explicit filters with location inferred from the ICP text itself
   const icpLocation = extractLocationFromICP(icp);
   const locationHint = filters.location || icpLocation || null;
+
+  if (isPlacesConfigured() && !isCreatorICP(icp)) {
+    const query = [icp, filters.industry, locationHint].filter(Boolean).join(' ');
+    // Later batches page deeper so repeat runs surface different businesses.
+    const pages = Math.min(3, 1 + Math.floor((batchNum - 1) / 2));
+    const found = await discoverBusinesses(query, { pages });
+    if (found?.length) {
+      return { companies: found, aiProvider: 'google-places' };
+    }
+    console.warn('[leads] Places returned nothing — falling back to LLM discovery');
+  }
 
   const extras = [
     filters.industry    ? `Industry: ${filters.industry}` : '',
@@ -690,6 +706,7 @@ async function generateLeads(
     // When false, companies with no sourced contact are skipped rather than
     // having a plausible-sounding person invented for them.
     allowSynthesisedContacts = false,
+    perBatch = 5,
   } = {}
 ) {
   const leads = [];
@@ -710,7 +727,7 @@ async function generateLeads(
   // starting new ones well before the ceiling rather than losing the whole batch.
   const DEADLINE = Date.now() + 25_000;
 
-  for (let round = 0; round < MAX_ROUNDS && leads.length < 5; round++) {
+  for (let round = 0; round < MAX_ROUNDS && leads.length < perBatch; round++) {
     if (round > 0 && Date.now() > DEADLINE) {
       console.log(`[leads] Deadline reached after ${round} round(s) — returning ${leads.length} lead(s)`);
       break;
@@ -746,7 +763,7 @@ async function generateLeads(
     console.log(`[leads] Round ${round + 1}: ${companies.length} candidates → ${realCompanies.length} live mail domains`);
 
   for (const { companyMeta, domain } of realCompanies) {
-    if (leads.length >= 5) break;  // got enough — stop early
+    if (leads.length >= perBatch) break;  // got enough — stop early
     if (Date.now() > DEADLINE) break;
 
     // ── Step 2: Hunter domain-search ────────────────────────────────────────
@@ -775,7 +792,7 @@ async function generateLeads(
       const candidates = (senior.length ? senior : emails).slice(0, 10);
 
       for (const c of candidates) {
-        if (leads.length >= 5) break;
+        if (leads.length >= perBatch) break;
         if (Date.now() > DEADLINE + 20_000) break;
 
         const hunterStatus = c.verification?.status || null;
@@ -987,7 +1004,7 @@ async function generateLeads(
 
   } // end round loop
 
-  console.log(`[leads] Pipeline complete: ${leads.length}/5 leads from ${screened.candidates} candidates across ${screened.rounds} round(s)`);
+  console.log(`[leads] Pipeline complete: ${leads.length}/${perBatch} leads from ${screened.candidates} candidates across ${screened.rounds} round(s)`);
 
   // Sort: ZB-verified A first → verified B → unverified A/B → C, then by score desc within tier
   leads.sort((a, b) => {
@@ -1008,7 +1025,7 @@ async function generateLeads(
   const patternVerified = leads.filter(l => l.email_source === 'pattern-verified').length;
 
   return {
-    leads: leads.slice(0, 5),
+    leads: leads.slice(0, perBatch),
     seenIds,
     meta: {
       aiProvider, hunterQuotaExceeded,
@@ -1047,6 +1064,8 @@ export default withProtection('leads', async function handler(req, res) {
       plan: claimedPlan = 'starter',
       // For gifted client-trial sessions: a short slug that acts as the subscription key
       trialSlug,
+      // How many leads this run should return (5–10).
+      leadsPerBatch,
     } = req.body || {};
 
     if (!icp?.trim()) return res.status(400).json({ error: 'icp is required' });
@@ -1082,16 +1101,23 @@ export default withProtection('leads', async function handler(req, res) {
       : (req.body.subscriptionKey || `plan-${claimedPlan}`);
     const planForLimits   = plan;
 
+    // Batch size: 5–10 leads per run. Quota is denominated in 5-lead units, so
+    // a 10-lead run costs two units — otherwise "50 leads" would silently
+    // become 100 just by asking for bigger batches.
+    const perBatch   = Math.min(10, Math.max(5, parseInt(leadsPerBatch) || 5));
+    const batchUnits = Math.ceil(perBatch / 5);
+
     if (planForLimits !== 'scale' && planForLimits !== 'agency') {
-      const batchCheck = await checkUsage(subscriptionKey, planForLimits, 'leadBatches', 1);
+      const batchCheck = await checkUsage(subscriptionKey, planForLimits, 'leadBatches', batchUnits);
       if (!batchCheck.allowed) {
         const limits = PLAN_LIMITS[planForLimits];
         return res.status(429).json({
-          error: `Monthly lead limit reached. Your ${planForLimits} plan includes ${limits.leadBatches * 5} leads/month (${limits.leadBatches} batches). Upgrade for more.`,
+          error: `Lead limit reached. Your ${planForLimits} plan includes ${limits.leadBatches * 5} leads (${batchCheck.remaining * 5} remaining). Upgrade for more.`,
           quota: true,
           used:      batchCheck.used,
           limit:     batchCheck.limit,
           remaining: batchCheck.remaining,
+          leadsRemaining: batchCheck.remaining * 5,
           upgradeUrl: '/pricing',
         });
       }
@@ -1161,12 +1187,15 @@ export default withProtection('leads', async function handler(req, res) {
         requireVerifiedEmail: false,
         requireDirectLinkedIn: false,
         allowSynthesisedContacts: false,
+        perBatch,
       }
     );
 
-    // Record successful batch usage (after work completes — failed calls don't count)
-    if (planForLimits !== 'scale' && planForLimits !== 'agency') {
-      await recordUsage(subscriptionKey, planForLimits, 'leadBatches', 1);
+    // Record successful batch usage (after work completes — failed calls don't count).
+    // Charge for what was actually delivered, not what was asked for, so a thin
+    // ICP that returns 2 leads doesn't cost a full 10-lead allowance.
+    if (planForLimits !== 'scale' && planForLimits !== 'agency' && leads.length) {
+      await recordUsage(subscriptionKey, planForLimits, 'leadBatches', Math.ceil(leads.length / 5));
     }
 
     // Persist seen lead IDs for cross-batch dedup
