@@ -124,16 +124,23 @@ Remove the slug from `TRIAL_SLUGS`, or from `BUILT_IN_SLUGS` in `lib/trials.js`.
 ## 5. Capacity — read this before a demo push
 
 Hunter bills **1 credit per search** and **0.5 per verification** from one shared
-monthly pool. Measured consumption is **≈5.7 credits per delivered lead**.
+monthly pool. Measured consumption with Places discovery active is
+**≈1.9 credits per delivered lead** (20 leads cost 19 searches + 38 verifications).
 
 | Hunter plan | Credits/mo | Leads/mo capacity |
 |---|---|---|
-| Hunter Starter ($49/mo) | 2,000 | **≈350** |
-| Hunter Growth ($99/mo) | 10,000 | ≈1,750 |
+| Hunter Starter ($49/mo) | 2,000 | **≈1,050** |
+| Hunter Growth ($99/mo) | 10,000 | ≈5,200 |
 
-**A single 50-lead trial consumes ≈285 credits — about 14% of a Starter plan.**
+**A single 50-lead trial consumes ≈95 credits — about 5% of a Starter plan**, so
+roughly 20 full trials per month before the pool is gone.
 
-Seven trials exhausts the entire month, before any paying customer is served.
+This is far cheaper than it was before Google Places was enabled. With LLM
+discovery the pipeline burned a Hunter search on every fabricated domain and
+spun through four rounds finding nothing — about 5.7 credits per lead, and far
+worse on a miss. If you ever see credit burn jump back to that level, discovery
+has fallen back to the LLM: check `provider` in the response.
+
 Trials and Starter customers draw from the same pool; Pro/Scale/Agency do not,
 because they bring their own Hunter key.
 
@@ -150,13 +157,17 @@ curl -s "https://api.zerobounce.net/v2/getcredits?api_key=$ZEROBOUNCE_API_KEY"
 
 | Input | Per lead |
 |---|---|
-| Hunter (5.7 credits @ $49/2,000) | $0.14 |
-| ZeroBounce (~8 validations) | $0.04 |
-| Google Places (~0.2 calls @ $32/1,000) | $0.01 |
+| Hunter (1.9 credits @ $49/2,000) | $0.047 |
+| ZeroBounce (1.3 validations @ ~$0.005) | $0.007 |
+| Google Places (~0.1 calls @ $32/1,000) | $0.004 |
 | Groq | $0.00 (free tier) |
-| **Total** | **≈ $0.19** |
+| **Total** | **≈ $0.06** |
 
-Derived from a few dozen real leads — treat as ±30% until volume firms it up.
+Measured over 20 real leads across four verticals on 2026-11-13. Earlier figures
+in this guide said $0.19/lead; that was measured while discovery was fabricating
+companies and wasting provider calls on them.
+
+At Starter ($100 for 100 leads) that is roughly a **94% gross margin**.
 
 ---
 
@@ -169,7 +180,8 @@ Derived from a few dozen real leads — treat as ±30% until volume firms it up.
 | `provider: groq` instead of `google-places` | Places API disabled or key lacks access | Enable **Places API (New)** on the key's GCP project; confirm billing attached |
 | Leads returned with no-DNS domains | Screening bypassed | `allowSynthesisedContacts` must be `false` |
 | Trial counter resets | Supabase not configured; `/tmp` wiped | Set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` |
-| `hunterQuotaExceeded: true` in response | Monthly Hunter pool exhausted | Upgrade Hunter plan or wait for reset |
+| `hunterQuotaExceeded: true` in response | Monthly Hunter pool exhausted, **or the plan silently lapsed to Free at renewal** | Check `plan_name` in the Hunter account call — not just the remaining count |
+| Every vertical returns ~95% `noContact` and 0 leads | Almost always Hunter quota, not data coverage | Check the Hunter meter **before** concluding a niche has no coverage |
 | Chatbot quotes a wrong price | A price was hardcoded instead of imported | All prices must come from `lib/plans.js` |
 
 ### Reading the diagnostics
