@@ -58,7 +58,7 @@ STRIPE_WEBHOOK_SECRET    →  whsec_...  (re-register webhook on live endpoint)
 ### 2. Upgrade Hunter.io (REQUIRED for Lead Researcher live runs)
 
 **Why:** Free tier = 25 searches/month — almost certainly exhausted.  
-**Platform key used by:** Starter plan ($49) users — all Pro/Scale/Agency users bring their own key.
+**Platform key used by:** Starter plan ($100) users — all Pro/Scale/Agency users bring their own key.
 
 **Recommended:** Hunter Starter at $49/mo → 500 searches/month  
 **Link:** https://hunter.io/pricing
@@ -100,7 +100,7 @@ Confirm `products.devcabin.tech` points to Vercel:
 ### 6. Test Full Checkout Flow (live keys)
 
 After switching to live keys:
-1. Buy `lead-starter` ($49) with a real card
+1. Buy `lead-starter` ($100) with a real card
 2. Confirm: Stripe payment appears in Live dashboard
 3. Confirm: Webhook fires → email received at buyer address with dashboard link
 4. Confirm: Dashboard token URL loads correctly
@@ -112,13 +112,13 @@ After switching to live keys:
 
 | Plan | Price | Leads | Keys |
 |------|-------|-------|------|
-| Lead Researcher Starter | $49/mo | 100 | Platform (included) |
+| Lead Researcher Starter | $100/mo | 100 | Platform (included) |
 | Lead Researcher Pro | $149/mo | 500 | Client Hunter + Platform ZB |
 | Lead Researcher Scale | $299/mo | Unlimited | Full BYOK |
 | Lead Researcher Agency | $599/mo | Unlimited | Full BYOK, 5 seats |
 | AI Receptionist | $79/mo | — | Platform |
 | AI Website Auditor | $29/mo | — | Platform |
-| AI Blog Writer | $49/mo | — | Platform |
+| AI Blog Writer | $50/hr | — | Platform |
 | AI Sales Assistant | $99/mo | — | Platform |
 
 ---
@@ -148,6 +148,6 @@ After switching to live keys:
 | Apollo | $99–$199/mo | Bundled | Stale (crowdsourced) |
 | Clay | $149–$800/mo | Bundled | Mixed |
 | Seamless.ai | $147–$397/mo | Bundled | Mixed |
-| **CabinMind Starter** | **$49/mo** | **100** | **Live (Hunter + ZB)** |
+| **CabinMind Starter** | **$100/mo** | **100** | **Live (Hunter + ZB)** |
 | **CabinMind Pro** | **$149/mo** | **500** | **Live (Hunter + ZB)** |
 | **CabinMind Scale** | **$299/mo** | **Unlimited** | **Live (your quota)** |

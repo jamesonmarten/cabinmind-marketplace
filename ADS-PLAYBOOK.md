@@ -1,7 +1,7 @@
 # CabinMind — Ad Campaign Playbook
 **Site:** https://products.devcabin.tech  
 **Brand:** CabinMind by Dev Cabin Technologies  
-**Primary product:** AI Lead Researcher (from $49/mo)  
+**Primary product:** AI Lead Researcher (from $100/mo)  
 **Last updated:** March 2026
 
 ---
@@ -75,8 +75,8 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
 
 ## 2. Google Ads Campaigns
 
-### Campaign 1 — Lead Researcher | Search | Starter ($49)
-**Goal:** Purchases · $49–$149 CPA target  
+### Campaign 1 — Lead Researcher | Search | Starter ($100)
+**Goal:** Purchases · $100–$300 CPA target  
 **Match types:** Exact + Phrase (no broad on launch)  
 **Bid strategy:** Maximize Conversions (switch to Target CPA after 20 conversions)  
 **Daily budget:** $20–$30/day to start  
@@ -95,7 +95,7 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
 ```
 
 **Responsive Search Ad 1 — Features angle:**
-- Headline 1: `AI Lead Researcher — $49/mo`
+- Headline 1: `AI Lead Researcher — $100/mo`
 - Headline 2: `Find Verified B2B Leads Instantly`
 - Headline 3: `Hunter.io + ZeroBounce Verified`
 - Headline 4: `ICP Scoring + LinkedIn Profiles`
@@ -105,7 +105,7 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
 - Headline 8: `HubSpot + Airtable Export`
 - Headline 9: `Export to Instantly.ai`
 - Headline 10: `100 Leads in Under 60 Seconds`
-- Description 1: `Describe your ideal customer — get fully-profiled prospects with verified emails, LinkedIn profiles, ICP scores, and cold email sequences. From $49/mo.`
+- Description 1: `Describe your ideal customer — get fully-profiled prospects with verified emails, LinkedIn profiles, ICP scores, and cold email sequences. From $100/mo.`
 - Description 2: `Stop wasting hours on manual research. CabinMind finds, scores, and validates your best leads automatically. Try the live demo free — no credit card.`
 
 **Responsive Search Ad 2 — Outcome angle:**
@@ -115,7 +115,7 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
 - Headline 4: `ICP Score Every Lead A–D`
 - Headline 5: `4-Step Cold Email Sequences`
 - Headline 6: `Export Ready for Instantly.ai`
-- Headline 7: `Starter Plan — $49/mo`
+- Headline 7: `Starter Plan — $100/mo`
 - Headline 8: `Live Demo — No Signup`
 - Headline 9: `Works in 60 Seconds`
 - Headline 10: `Built for B2B Sales Teams`
@@ -153,8 +153,8 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
 - Headline 4: `Export to Instantly.ai in 1 Click`
 - Headline 5: `ICP Scoring on Every Lead`
 - Headline 6: `4-Step AI Email Sequences`
-- Headline 7: `From $49/mo · Try Free`
-- Description 1: `CabinMind builds your cold email list automatically — finds contacts, validates every email with ZeroBounce, scores leads A–D, then writes a 4-step sequence. From $49/mo.`
+- Headline 7: `From $100/mo · Try Free`
+- Description 1: `CabinMind builds your cold email list automatically — finds contacts, validates every email with ZeroBounce, scores leads A–D, then writes a 4-step sequence. From $100/mo.`
 - Description 2: `Paste your ICP, get 100 verified prospects with emails, LinkedIn links, tech stack, and pain points — ready to import into Instantly.ai. Try the live demo free.`
 
 #### Ad Group C — Competitor targeting (Apollo, ZoomInfo, Lusha)
@@ -168,13 +168,13 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
 ```
 
 **Responsive Search Ad:**
-- Headline 1: `Apollo Alternative — $49/mo`
+- Headline 1: `Apollo Alternative — $100/mo`
 - Headline 2: `AI Lead Research Without ZoomInfo`
 - Headline 3: `Cheaper Than Sales Navigator`
 - Headline 4: `Verified Emails + AI Sequences`
 - Headline 5: `No $1,000/yr Contracts`
 - Headline 6: `Try Free — 5 Leads, No Card`
-- Description 1: `CabinMind does what Apollo charges $99/mo for — at $49. AI prospect research, ZeroBounce email validation, ICP scoring, and cold email sequence writing. No annual lock-in.`
+- Description 1: `Verified B2B leads from real Google Maps businesses — $100/mo for 100. ZeroBounce validation on every email, ICP scoring, and cold email sequences. No annual lock-in.`
 - Description 2: `Skip the ZoomInfo contract. Get AI-powered lead research with verified emails, LinkedIn profiles, and 4-step cold email sequences written automatically. Cancel anytime.`
 
 ---
@@ -187,7 +187,7 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
 **Headlines (max 5):**
 1. `Find Verified B2B Leads with AI`
 2. `Cold Email Lists Built Automatically`
-3. `AI Lead Researcher — From $49/mo`
+3. `AI Lead Researcher — From $100/mo`
 4. `ZeroBounce + Hunter.io Included`
 5. `Try Free — No Credit Card`
 
@@ -197,7 +197,7 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
 3. `CabinMind AI finds your best prospects, scores them A–D, and writes your outreach`
 
 **Descriptions:**
-1. `AI Lead Researcher discovers, validates, and sequences your ideal prospects automatically. ICP scoring, ZeroBounce email validation, Instantly.ai export. From $49/mo. Try free.`
+1. `AI Lead Researcher discovers, validates, and sequences your ideal prospects automatically. ICP scoring, ZeroBounce email validation, Instantly.ai export. From $100/mo. Try free.`
 2. `Describe your ideal customer and get 100 verified prospects — with emails, LinkedIn profiles, tech stack signals, and 4-step cold email sequences. No manual research needed.`
 
 **Final URL:** `https://products.devcabin.tech/pricing`  
@@ -217,7 +217,7 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
 
 **Banner ad copy (responsive display):**
 - Short headline: `Still looking for better leads?`
-- Long headline: `AI Lead Researcher finds verified prospects in 60 seconds — from $49/mo`
+- Long headline: `AI Lead Researcher finds verified prospects in 60 seconds — from $100/mo`
 - Description: `ZeroBounce validated emails. ICP scoring. Cold email sequences. Try the live demo free.`
 - CTA: `Try Free Demo`
 
@@ -252,10 +252,10 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
   ✅ AI writes a 4-step cold email sequence for each lead
   ✅ Export to Instantly.ai in one click
   
-  From $49/mo. Try the live demo free — no credit card.
+  From $100/mo. Try the live demo free — no credit card.
   ```
 - **Headline:** `AI Lead Research in 60 Seconds`
-- **Description:** `Verified emails. ICP scoring. Cold email sequences. From $49/mo.`
+- **Description:** `Verified emails. ICP scoring. Cold email sequences. From $100/mo.`
 - **CTA button:** `Try It Free`
 - **URL:** `https://products.devcabin.tech/demo?utm_source=facebook&utm_medium=paid-social&utm_campaign=lead-researcher-cold&utm_content=lal-sales-ad1`
 
@@ -266,7 +266,7 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
   ZoomInfo is $1,000+/yr.
   LinkedIn Sales Navigator is $800+/yr.
   
-  CabinMind AI Lead Researcher is $49/mo.
+  CabinMind AI Lead Researcher is $100/mo.
   
   And it does more:
   → Writes cold email sequences automatically
@@ -277,7 +277,7 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
   No annual contracts. Cancel anytime.
   ```
 - **Headline:** `B2B Lead Research Without the $1,000 Price Tag`
-- **Description:** `AI-powered. ZeroBounce verified. From $49/mo.`
+- **Description:** `AI-powered. ZeroBounce verified. From $100/mo.`
 - **CTA button:** `See Pricing`
 - **URL:** `https://products.devcabin.tech/pricing?utm_source=facebook&utm_medium=paid-social&utm_campaign=lead-researcher-cold&utm_content=lal-sales-ad2`
 
@@ -304,7 +304,7 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
   
   Try the live demo for free — 5 leads, no credit card.
   ```
-- **Headline:** `Your AI Prospecting Team — $49/mo`
+- **Headline:** `Your AI Prospecting Team — $100/mo`
 - **Description:** `Verified leads. AI sequences. Instantly export. Try free.`
 - **CTA button:** `Try It Free`
 - **URL:** `https://products.devcabin.tech/demo?utm_source=facebook&utm_medium=paid-social&utm_campaign=lead-researcher-cold&utm_content=interest-ad3`
@@ -318,7 +318,7 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
 **Ad 4 — Urgency/reminder:**
 - **Primary text:**
   ```
-  You checked out CabinMind. Here's what you'd get for $49/mo:
+  You checked out CabinMind. Here's what you'd get for $100/mo:
   
   → 100 verified B2B leads every month
   → AI-written cold email sequences for each one
@@ -368,7 +368,7 @@ Run the same Meta campaigns but add Instagram-specific creatives:
 **Story Ad (9:16 format):**
 - Top text: `❌ Wasting time on manual research?`
 - Middle: animated counter `0 → 100 verified leads`
-- Bottom: `CabinMind AI Researcher · from $49/mo`
+- Bottom: `CabinMind AI Researcher · from $100/mo`
 - Swipe-up CTA: `Try Free Demo`
 
 **Reels Ad (15–30 sec script):**
@@ -378,7 +378,7 @@ Run the same Meta campaigns but add Instagram-specific creatives:
 [8-15s] Clicking a lead — showing email, LinkedIn, pain points
 [15-22s] Campaign Builder tab — email sequences generating
 [22-28s] Export button → "Downloaded instantly-import.csv"
-[28-30s] "From $49/mo · Try free at products.devcabin.tech"
+[28-30s] "From $100/mo · Try free at products.devcabin.tech"
 ```
 
 ---
@@ -418,7 +418,7 @@ resume
 | Meta Lead Gen Form    | $10/day     | ~$300        |
 | **Total**             | **$80/day** | **~$2,400**  |
 
-**Expected returns at $49 avg order:**
+**Expected returns at $100 avg order:**
 - Break-even: ~49 sales/month from ads (~1.6 conversions/day)
 - At 2–3% landing page CVR and $0.50–$2 CPC: achievable within 30 days
 

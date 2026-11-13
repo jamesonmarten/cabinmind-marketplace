@@ -12,7 +12,7 @@
 - Described their own target customer (use it back in the email)
 - Low friction — they came to you, you didn't chase them
 
-**Goal:** Get them from free demo → Starter $97/mo
+**Goal:** Get them from free demo → Starter $100/mo
 
 ---
 
@@ -92,7 +92,7 @@ Most sales teams I talk to are paying for Apollo, Hunter, and ZeroBounce separat
 
 That's $130–$200/mo in tools plus 5–10 hours of work per campaign.
 
-CabinMind Starter is $97/mo and does all of it: finds companies, gets decision-maker emails, validates them with ZeroBounce, scores every lead A–D, and writes a 4-step cold email sequence for each person.
+CabinMind Starter is $100/mo and does all of it: finds real businesses from Google Maps, gets decision-maker emails, validates them with ZeroBounce, scores every lead A–D, and writes a 4-step cold email sequence for each person.
 
 You run one search. You get a campaign.
 
@@ -170,7 +170,7 @@ Custom variables to map:
 **At 100 demo email captures/month:**
 - ~10–15 positive replies
 - ~4–6 trial starts
-- ~1–2 new paying customers/month = $97–$494 MRR/month from email alone
+- ~1–2 new paying customers/month = $100–$500 MRR/month from email alone
 
 ---
 
