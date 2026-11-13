@@ -611,16 +611,23 @@ Return ONLY a JSON object with a "companies" array of exactly 20 objects, no mar
   }
 
   if (!raw?.length && openai) {
-    const res = await openai.chat.completions.create({
-      model: OPENAI_MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 1200, temperature: 0.7,
-    });
-    const parsed = safeJSON(res.choices[0]?.message?.content || '');
-    raw = Array.isArray(parsed) ? parsed
-      : parsed.companies || parsed.leads || parsed.results
-        || Object.values(parsed).find(v => Array.isArray(v)) || [];
-    aiProvider = 'openai';
+    try {
+      const res = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        messages: [{ role: 'user', content: prompt }],
+        // A 20-company list needs real headroom; 1200 truncated mid-JSON and
+        // the parse error escaped as a failed batch.
+        max_tokens: 4000, temperature: 0.7,
+        response_format: { type: 'json_object' },
+      });
+      const parsed = safeJSON(res.choices[0]?.message?.content || '');
+      raw = Array.isArray(parsed) ? parsed
+        : parsed.companies || parsed.leads || parsed.results
+          || Object.values(parsed).find(v => Array.isArray(v)) || [];
+      aiProvider = 'openai';
+    } catch (e) {
+      console.warn('[leads] OpenAI fallback failed:', String(e.message).slice(0, 120));
+    }
   }
 
   if (!raw?.length) throw new Error('AI failed to generate company list');
@@ -729,6 +736,7 @@ async function generateLeads(
   // or we run out of rounds — each round is cheap now that dead domains are
   // discarded before any Hunter/ZeroBounce spend.
   const MAX_ROUNDS = 4;
+  let discoveryFailures = 0;
   // vercel.json caps this function at 60s. A round takes up to ~20s, so stop
   // starting new ones well before the ceiling rather than losing the whole batch.
   const DEADLINE = Date.now() + 25_000;
@@ -749,9 +757,9 @@ async function generateLeads(
     try {
       generated = await getCompanyDomains(icp, filters, roundSeed);
     } catch (err) {
-      console.warn(`[leads] Round ${round + 1} discovery failed: ${err.message} — stopping with ${leads.length} lead(s)`);
-      screened.discoveryExhausted = true;
-      break;
+      console.warn(`[leads] Round ${round + 1} discovery failed: ${err.message.slice(0, 100)}`);
+      discoveryFailures += 1;
+      continue;
     }
 
     const companies = generated.companies;
@@ -1021,6 +1029,10 @@ async function generateLeads(
   }
 
   } // end round loop
+
+  // Only call it exhausted when nothing came back at all — a partial batch is a
+  // thin niche, not a failure.
+  if (!leads.length && discoveryFailures) screened.discoveryExhausted = true;
 
   console.log(`[leads] Pipeline complete: ${leads.length}/${perBatch} leads from ${screened.candidates} candidates across ${screened.rounds} round(s)`);
 
