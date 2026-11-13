@@ -193,9 +193,19 @@ export default function RunsDashboard() {
           </div>
 
           {data && !data.durable && (
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-amber-200 text-sm">
-              Supabase isn’t configured, so this log lives in temporary storage and is wiped whenever the
-              server goes cold. Treat it as a live tail, not a permanent record.
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-4 text-red-200 text-sm space-y-2">
+              <div className="font-bold">Run logging is not recording.</div>
+              <p className="text-red-200/80">
+                Supabase isn’t configured. Each API route runs as a separate serverless function with its
+                own temporary filesystem, so runs written by the lead endpoint can never be read back by
+                this one. <strong>This list will stay empty regardless of how much the product is used.</strong>
+              </p>
+              <p className="text-red-200/80">
+                Fix: run <code className="bg-black/30 px-1 rounded">supabase/schema.sql</code>, then set
+                <code className="bg-black/30 px-1 rounded mx-1">SUPABASE_URL</code> and
+                <code className="bg-black/30 px-1 rounded">SUPABASE_SERVICE_ROLE_KEY</code> in Vercel.
+                The same limitation affects the trials dashboard’s usage counts.
+              </p>
             </div>
           )}
 
@@ -232,7 +242,9 @@ export default function RunsDashboard() {
           <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
             {runs.length === 0 ? (
               <div className="px-4 py-12 text-center text-gray-600 text-sm">
-                No runs recorded yet.
+                {data && !data.durable
+                  ? 'Nothing can be recorded until Supabase is configured — see above.'
+                  : 'No runs recorded yet.'}
               </div>
             ) : (
               runs.map((r, i) => (

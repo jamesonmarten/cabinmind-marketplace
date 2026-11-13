@@ -29,8 +29,15 @@ the company is skipped — we do not invent a person. This is enforced by
 | URL | What it's for |
 |---|---|
 | `/admin` | Top-level operations dashboard |
+| `/admin/runs` | **Run log** — every lead search, what was asked for, what came back, and why a run was short. Requires Supabase. |
 | `/admin/trials` | Trial accounts: leads used, leads remaining, estimated cost |
 | `/admin/dashboards` | Per-product dashboard previews |
+
+> **Both `/admin/runs` and the usage figures on `/admin/trials` require Supabase.**
+> On Vercel each API route is a separate serverless function with its own `/tmp`,
+> so counters written by `/api/leads` can never be read back by an `/api/admin/*`
+> route. Until `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set, those
+> dashboards will show zeros no matter how much the product is used.
 
 Admin APIs require the `ADMIN_SECRET`, passed either as the `x-admin-secret`
 header or a `?secret=` query param:
