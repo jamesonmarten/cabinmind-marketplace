@@ -314,9 +314,9 @@ export default function TrialPage({ slug, valid }) {
         // nothing in this niche could be verified. Say so plainly.
         const s = data.quality?.screened;
         setError(
-          s
-            ? `No verifiable contacts in that niche this run. We checked ${s.candidates} businesses, ruled out ${s.noMX} with no working mail domain and ${s.noContact} with no listed contact — rather than invent one. Try a broader location or a related category. This run didn't count against your ${TOTAL_LIMIT}.`
-            : 'No leads matched that search. Try a broader location or a related category.'
+          !s || s.discoveryExhausted || !s.candidates
+            ? `We've run through the businesses we can verify for that description. Try a broader area or a related category — this run didn't count against your ${TOTAL_LIMIT}.`
+            : `No verifiable contacts in that niche this run. We checked ${s.candidates} businesses, ruled out ${s.noMX} with no working mail domain and ${s.noContact} with no listed contact — rather than invent one. Try a broader location or a related category. This run didn't count against your ${TOTAL_LIMIT}.`
         );
       }
     } catch (e) {

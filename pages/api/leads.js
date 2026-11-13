@@ -585,14 +585,18 @@ Return ONLY a JSON object with a "companies" array of exactly 20 objects, no mar
 
   let raw, aiProvider;
 
-  if (groq) {
+  // Reasoning models intermittently return json_validate_failed on a long list.
+  // One retry clears most of them, and with OpenAI billing exhausted there is no
+  // second provider to fall back to.
+  for (let attempt = 0; attempt < 2 && groq && !raw?.length; attempt++) {
     try {
       const res = await groq.chat.completions.create({
         model: GROQ_MODEL,
         messages: [{ role: 'user', content: prompt }],
         // gpt-oss is a reasoning model: reasoning tokens come out of max_tokens,
         // so a tight budget returns an empty completion and json_validate_failed.
-        max_tokens: 6000, temperature: 0.7,
+        max_tokens: 8000,
+        temperature: attempt === 0 ? 0.7 : 0.4,
         reasoning_effort: 'low',
         response_format: { type: 'json_object' },
       });
@@ -601,7 +605,9 @@ Return ONLY a JSON object with a "companies" array of exactly 20 objects, no mar
         : parsed.companies || parsed.leads || parsed.results
           || Object.values(parsed).find(v => Array.isArray(v)) || [];
       aiProvider = 'groq';
-    } catch (e) { console.warn('[leads] Groq failed:', e.message); }
+    } catch (e) {
+      console.warn(`[leads] Groq attempt ${attempt + 1} failed:`, e.message.slice(0, 120));
+    }
   }
 
   if (!raw?.length && openai) {
@@ -715,7 +721,7 @@ async function generateLeads(
   let hunterQuotaExceeded = false;
   const creatorMode = isCreatorICP(icp);
   const strictRejected = { unverifiedEmail: 0, noDirectLinkedIn: 0 };
-  const screened = { candidates: 0, noMX: 0, noEmail: 0, noContact: 0, rounds: 0 };
+  const screened = { candidates: 0, noMX: 0, noEmail: 0, noContact: 0, rounds: 0, discoveryExhausted: false };
   let aiProvider;
 
   // Most LLM-suggested companies don't survive DNS screening, so one round of
@@ -735,7 +741,19 @@ async function generateLeads(
     screened.rounds = round + 1;
     // Offset the batch number so each round asks for different companies.
     const roundSeed = batchNum + round * 100;
-    const generated = await getCompanyDomains(icp, filters, roundSeed);
+
+    // Discovery throws when the model returns nothing — common on narrow niches
+    // once earlier batches have exhausted it. Keep the leads already collected
+    // instead of failing the whole request.
+    let generated;
+    try {
+      generated = await getCompanyDomains(icp, filters, roundSeed);
+    } catch (err) {
+      console.warn(`[leads] Round ${round + 1} discovery failed: ${err.message} — stopping with ${leads.length} lead(s)`);
+      screened.discoveryExhausted = true;
+      break;
+    }
+
     const companies = generated.companies;
     aiProvider = generated.aiProvider;
     screened.candidates += companies.length;
@@ -1281,7 +1299,7 @@ export default withProtection('leads', async function handler(req, res) {
         strictMode: strictProofMode,
         requirements: strictProofMode ? ['verified-email', 'direct-linkedin-profile'] : [],
         strictRejected: meta.strictRejected || { unverifiedEmail: 0, noDirectLinkedIn: 0 },
-        screened: meta.screened || { candidates: 0, noMX: 0, noEmail: 0, noContact: 0 },
+        screened: meta.screened || { candidates: 0, noMX: 0, noEmail: 0, noContact: 0, discoveryExhausted: false },
       },
       debug,
     });
