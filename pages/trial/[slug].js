@@ -45,19 +45,21 @@ const PLANS = LEAD_TIERS.map(t => ({
 // Local-business presets come first: they route through Google Places and are
 // the most reliable demo. Creator presets are last — they skip Places (bloggers
 // aren't Maps listings) and depend on the slower LLM path.
+// No region is baked in — these are national categories. Adding "in <city>" to
+// the text narrows the search; leaving it out searches broadly.
 // Keep every value clear of isCreatorICP() keywords in /api/leads.js
 // ('creator', 'solo', 'blog', 'recipe', 'newsletter'…) or it will skip Places.
 const ICP_PRESETS = [
-  { label: '⚙️ CNC Machine Shops',   value: 'CNC machine shops and precision manufacturers in Wisconsin, 10–100 employees, serving aerospace, medical or automotive clients' },
-  { label: '🖨️ 3D Printing Shops',   value: 'Additive manufacturing and 3D printing service bureaus in Wisconsin, offering rapid prototyping and short-run production' },
-  { label: '🎬 Animation Studios',   value: 'Animation studios and motion graphics production companies in Wisconsin, producing commercial, broadcast or game work' },
-  { label: '🧹 Janitorial Services', value: 'Commercial janitorial and building cleaning companies in Wisconsin, servicing offices, schools or medical facilities' },
-  { label: '🔧 HVAC Contractors',    value: 'Commercial HVAC contractors in Wisconsin, servicing office buildings, schools and industrial facilities' },
-  { label: '🏗️ General Contractors', value: 'Commercial general contractors and construction firms in Wisconsin, 20–200 employees' },
-  { label: '🦷 Dental Practices',    value: 'Independent dental practices in Wisconsin with 1–5 locations, privately owned rather than DSO-backed' },
-  { label: '⚖️ Law Firms',           value: 'Small and mid-size law firms in Wisconsin, 3–40 attorneys, practising business, family or personal injury law' },
-  { label: '🚚 Trucking & Freight',  value: 'Regional trucking and freight logistics companies in Wisconsin running 10–150 trucks' },
-  { label: '🌿 Landscaping',         value: 'Commercial landscaping and grounds maintenance companies in Wisconsin, servicing business parks and municipalities' },
+  { label: '⚙️ CNC Machine Shops',   value: 'CNC machine shops and precision manufacturers, 10–100 employees, serving aerospace, medical or automotive clients' },
+  { label: '🖨️ 3D Printing Shops',   value: 'Additive manufacturing and 3D printing service bureaus offering rapid prototyping and short-run production' },
+  { label: '🎬 Animation Studios',   value: 'Animation studios and motion graphics production companies producing commercial, broadcast or game work' },
+  { label: '🧹 Janitorial Services', value: 'Commercial janitorial and building cleaning companies servicing offices, schools or medical facilities' },
+  { label: '🔧 HVAC Contractors',    value: 'Commercial HVAC contractors servicing office buildings, schools and industrial facilities' },
+  { label: '🏗️ General Contractors', value: 'Commercial general contractors and construction firms, 20–200 employees' },
+  { label: '🦷 Dental Practices',    value: 'Independent dental practices with 1–5 locations, privately owned rather than DSO-backed' },
+  { label: '⚖️ Law Firms',           value: 'Small and mid-size law firms, 3–40 attorneys, practising business, family or personal injury law' },
+  { label: '🚚 Trucking & Freight',  value: 'Regional trucking and freight logistics companies running 10–150 trucks' },
+  { label: '🌿 Landscaping',         value: 'Commercial landscaping and grounds maintenance companies servicing business parks and municipalities' },
   { label: '🚀 SaaS Founders',     value: 'B2B SaaS startup founders, 10–50 employees, Series A or pre-revenue, using HubSpot or Salesforce, struggling with lead conversion' },
   { label: '📣 Marketing Leaders', value: 'VP of Marketing or CMO at mid-market B2B companies, 50–200 employees, tech industry, running paid acquisition' },
   { label: '🛒 E-commerce Owners', value: 'E-commerce store owners doing $1M–$10M revenue on Shopify, looking to scale customer retention and reduce churn' },
@@ -328,7 +330,9 @@ export default function TrialPage({ slug, valid }) {
         // A thin result isn't an error — it means the screening worked and
         // nothing in this niche could be verified. Say so plainly.
         const s = data.quality?.screened;
-        setError(
+        if (data.sources?.hunterQuotaExceeded) {
+          setError("Our contact database has hit its monthly limit, so we can't verify contacts right now. This run didn't count against your " + TOTAL_LIMIT + '. Please let us know and we\u2019ll get it topped up.');
+        } else setError(
           !s || s.discoveryExhausted || !s.candidates
             ? `We've run through the businesses we can verify for that description. Try a broader area or a related category — this run didn't count against your ${TOTAL_LIMIT}.`
             : `No verifiable contacts in that niche this run. We checked ${s.candidates} businesses, ruled out ${s.noMX} with no working mail domain and ${s.noContact} with no listed contact — rather than invent one. Try a broader location or a related category. This run didn't count against your ${TOTAL_LIMIT}.`

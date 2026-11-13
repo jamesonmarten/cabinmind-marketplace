@@ -742,6 +742,12 @@ async function generateLeads(
   const DEADLINE = Date.now() + 25_000;
 
   for (let round = 0; round < MAX_ROUNDS && leads.length < perBatch; round++) {
+    // Without Hunter there is no sourced contact to find, so further rounds would
+    // just spend Places calls to produce nothing.
+    if (hunterQuotaExceeded) {
+      console.warn('[leads] Hunter quota exhausted — stopping after round', round);
+      break;
+    }
     if (round > 0 && Date.now() > DEADLINE) {
       console.log(`[leads] Deadline reached after ${round} round(s) — returning ${leads.length} lead(s)`);
       break;
