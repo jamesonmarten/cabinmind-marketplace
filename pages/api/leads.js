@@ -33,6 +33,7 @@ import { withProtection, getIP } from '../../lib/rateLimit';
 import { getToken } from '../../lib/tokenStore';
 import { GROQ_MODEL, GROQ_MODEL_FAST, OPENAI_MODEL } from '../../lib/aiModels';
 import { discoverBusinesses, isPlacesConfigured } from '../../lib/placesDiscovery';
+import { recordRun } from '../../lib/runLog';
 
 // agentId → usageStore plan key. Mirrors LEAD_PLAN_FOR_AGENT in pages/api/webhook.js.
 const PLAN_FOR_AGENT = {
@@ -1087,6 +1088,8 @@ const PLAN_BATCH_CAPS = { starter: 10, pro: 100, scale: Infinity, agency: Infini
 export default withProtection('leads', async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  const runStartedAt = Date.now();
+
   try {
     const {
       icp, industry, location, companySize, excludeCompanies,
@@ -1287,6 +1290,22 @@ export default withProtection('leads', async function handler(req, res) {
       tips,
       thresholdGuide: 'A>=88, B>=72, C>=58',
     };
+
+    // Owner-visible run log. Business identifiers only — no contact names or
+    // emails (see rule 6 in .github/copilot-instructions.md).
+    await recordRun({
+      subscriptionKey,
+      plan,
+      icp: icp.trim(),
+      requested: perBatch,
+      delivered: finalLeads.length,
+      provider: meta.aiProvider,
+      grades: gradeCounts,
+      screened: meta.screened,
+      durationMs: Date.now() - runStartedAt,
+      hunterQuotaExceeded: meta.hunterQuotaExceeded,
+      companies: finalLeads.map(l => ({ company: l.company, domain: l.domain, grade: l.grade })),
+    });
 
     return res.status(200).json({
       leads:    finalLeads,

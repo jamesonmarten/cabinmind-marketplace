@@ -17,3 +17,6 @@ data/ratelimit.json
 
 # TypeScript build artifacts
 *.tsbuildinfo
+
+# Local run-log artifact (dev only)
+data/runs.json
