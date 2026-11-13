@@ -7,13 +7,12 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { getTrialSlugs } from '../../../lib/trials';
 
 const USAGE_PATH = process.env.NODE_ENV === 'production'
   ? '/tmp/cabinmind-usage.json'
   : path.join(process.cwd(), 'data', 'usage.json');
 
-// Keep in sync with pages/trial/[slug].js
-const VALID_SLUGS = ['demo-50-leads', 'acme2026', 'defiantcnc2026', 'defiantcnc-pilot-7k42'];
 const LEADS_PER_BATCH = 5;
 const BATCH_LIMIT = 10; // 50 leads
 
@@ -22,11 +21,6 @@ function readUsageStore() {
     if (!fs.existsSync(USAGE_PATH)) return {};
     return JSON.parse(fs.readFileSync(USAGE_PATH, 'utf8'));
   } catch (e) { return {}; }
-}
-
-function monthKey() {
-  const d = new Date();
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 export default function handler(req, res) {
@@ -39,33 +33,31 @@ export default function handler(req, res) {
     }
 
     const store = readUsageStore();
-    const mk = monthKey();
 
-  const trials = VALID_SLUGS.map(slug => {
+  // Gifted trials are a one-time allowance, so usageStore buckets them under
+  // 'lifetime' rather than a month key (see periodKey() in lib/usageStore.js).
+  const trials = getTrialSlugs().map(slug => {
     const key = `trial-${slug}`;
-    const currentMonth = store[key]?.[mk] || {};
-    // Collect all months for this slug
-    const allMonths = store[key] || {};
-    const totalBatches = Object.values(allMonths)
-      .reduce((sum, m) => sum + (m.leadBatches || 0), 0);
+    const record = store[key]?.lifetime || {};
+    const batchesUsed = record.leadBatches || 0;
 
     return {
       slug,
       url: `/trial/${slug}`,
-      currentMonth: {
-        month: mk,
-        batchesUsed: currentMonth.leadBatches || 0,
+      used: {
+        batchesUsed,
         batchLimit: BATCH_LIMIT,
-        leadsUsed: (currentMonth.leadBatches || 0) * LEADS_PER_BATCH,
+        leadsUsed: batchesUsed * LEADS_PER_BATCH,
         leadsLimit: BATCH_LIMIT * LEADS_PER_BATCH,
-        zbUsed: currentMonth.zbValidations || 0,
+        leadsRemaining: Math.max(0, (BATCH_LIMIT - batchesUsed) * LEADS_PER_BATCH),
+        zbUsed: record.zbValidations || 0,
       },
       allTime: {
-        totalBatches,
-        totalLeads: totalBatches * LEADS_PER_BATCH,
+        totalBatches: batchesUsed,
+        totalLeads: batchesUsed * LEADS_PER_BATCH,
       },
-      active: totalBatches > 0,
-      limitReached: (currentMonth.leadBatches || 0) >= BATCH_LIMIT,
+      active: batchesUsed > 0,
+      limitReached: batchesUsed >= BATCH_LIMIT,
     };
   });
 
@@ -76,7 +68,7 @@ export default function handler(req, res) {
   return res.status(200).json({
     trials,
     summary: {
-      totalTrials: VALID_SLUGS.length,
+      totalTrials: trials.length,
       activeTrials: trials.filter(t => t.active).length,
       completedTrials: trials.filter(t => t.limitReached).length,
       totalLeadsGenerated: totalLeadsAllTrials,

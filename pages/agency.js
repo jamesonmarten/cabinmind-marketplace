@@ -289,7 +289,7 @@ export default function AgencyPage() {
             <Feature icon="🔎" title="2,000 leads/mo pooled" desc="Real verified leads with email + LinkedIn, scored A–D. Allocate across all clients however you like." />
             <Feature icon="🔗" title="Branded client URLs" desc="Each client gets yourbrand.com/c/yourslug/clientname — clean, professional, fully branded." />
             <Feature icon="📊" title="Agency admin panel" desc="Add, remove, and monitor all your sub-clients from one dashboard. Per-client usage tracking." />
-            <Feature icon="🔑" title="Optional BYOK discount" desc="Bring your own Hunter + ZeroBounce keys → drop to $797/mo, get unlimited leads." />
+            <Feature icon="🔑" title="Optional BYOK discount" desc="Bring your own Hunter + ZeroBounce keys → drop to $500/mo, get unlimited leads." />
             <Feature icon="📥" title="CSV + CRM exports" desc="One-click CSV download, plus push to HubSpot, Salesforce, or any webhook." />
             <Feature icon="🤖" title="AI persona scoring" desc="Every lead auto-tagged as Champion / Buyer / Researcher with explanations your clients can read." />
             <Feature icon="🛟" title="Priority support" desc="Slack channel access + same-day email replies. We've got your back when clients ask hard questions." />
@@ -387,7 +387,7 @@ export default function AgencyPage() {
               { q: 'Will my clients ever see "CabinMind"?', a: 'No. Your branding (logo, color, agency name) appears on every page, every email, and every URL. The CabinMind brand is fully hidden.' },
               { q: 'What if I have more than 10 clients?', a: 'Extra seats are $49/mo each. So 20 clients = $997 + (10 × $49) = $1,487/mo. Still well over 90% margin if you charge $300+ per client.' },
               { q: 'How many leads can each client generate?', a: '2,000 leads/mo are pooled across all your clients — allocate them however you like. Need more? Overage at $29 per 500 leads, or bring your own Hunter+ZeroBounce keys for unlimited.' },
-              { q: 'Do I need API keys?', a: 'No — we provide Hunter + ZeroBounce. If you want unlimited leads, bring your own keys and drop to $797/mo.' },
+              { q: 'Do I need API keys?', a: 'No — we provide Hunter + ZeroBounce. If you want unlimited leads, bring your own keys and drop to $500/mo.' },
               { q: 'How do I bill my clients?', a: 'However you want. Most agencies use Stripe or just add it to their existing retainer invoice. We never bill your clients directly.' },
               { q: 'Can I cancel anytime?', a: 'Yes. Self-service cancel from your dashboard. We even have a 14-day money-back guarantee on your first month.' },
               { q: 'Is there a setup fee?', a: 'No. Just the $997/mo subscription. You can launch the same day you sign up.' },

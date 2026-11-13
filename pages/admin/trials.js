@@ -173,9 +173,9 @@ export default function TrialsDashboard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">
-                        Leads This Month ({trial.currentMonth.month})
+                        Trial leads used ({trial.used.leadsRemaining} left)
                       </div>
-                      <UsageBar used={trial.currentMonth.leadsUsed} limit={trial.currentMonth.leadsLimit} />
+                      <UsageBar used={trial.used.leadsUsed} limit={trial.used.leadsLimit} />
                     </div>
                     <div className="flex gap-6">
                       <div>
@@ -184,7 +184,7 @@ export default function TrialsDashboard() {
                       </div>
                       <div>
                         <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">ZB Validations</div>
-                        <div className="text-lg font-bold text-gray-300">{trial.currentMonth.zbUsed}</div>
+                        <div className="text-lg font-bold text-gray-300">{trial.used.zbUsed}</div>
                       </div>
                       <div>
                         <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Est. Cost</div>

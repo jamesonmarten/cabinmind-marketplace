@@ -17,58 +17,30 @@
 import { useState, useRef, useCallback } from 'react';
 import Head from 'next/head';
 import { motion, AnimatePresence } from 'framer-motion';
+import { isValidTrialSlug, TRIAL_LEAD_LIMIT } from '../../lib/trials';
+import { LEAD_TIERS } from '../../lib/plans';
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-// Add/remove slugs here to control who has access.
-// Each slug gets its own independent 50-lead counter.
-const VALID_SLUGS = [
-  'demo-50-leads',
-  'acme2026',
-  'defiantcnc2026',
-  'defiantcnc-pilot-7k42',
-];
+// ─── Config ────────────────────────────────────────────────────────────
+// Add new trial accounts with the TRIAL_SLUGS env var — see lib/trials.js.
 
-const TOTAL_LIMIT     = 50;  // leads per slug, one-time (does not reset monthly)
+const TOTAL_LIMIT     = TRIAL_LEAD_LIMIT;  // one-time, does not reset monthly
 const CHUNK_SIZES     = [5, 10];
 const DEFAULT_CHUNK   = 5;
 
-// Prices mirror pages/api/checkout.js — that file is what actually charges the
-// card, so if these ever disagree, checkout.js wins.
-const PLANS = [
-  {
-    id: 'lead-starter',
-    name: 'Starter',
-    price: 100,
-    leads: '100 leads / month',
-    perLead: '$1.00 per lead',
-    features: ['We supply the Hunter + ZeroBounce keys', 'Verified emails only', 'CSV + CRM export'],
-  },
-  {
-    id: 'lead-pro',
-    name: 'Pro',
-    price: 250,
-    leads: '500 leads / month',
-    perLead: '$0.50 per lead',
-    highlight: true,
-    features: ['You bring your Hunter key', 'We cover ZeroBounce', 'Priority support'],
-  },
-  {
-    id: 'lead-scale',
-    name: 'Scale',
-    price: 500,
-    leads: 'Unlimited leads',
-    perLead: 'No per-lead cap',
-    features: ['You bring both API keys', 'No monthly lead ceiling', 'Bulk export'],
-  },
-  {
-    id: 'lead-agency',
-    name: 'Agency',
-    price: 1000,
-    leads: 'Unlimited leads',
-    perLead: 'No per-lead cap',
-    features: ['Everything in Scale', '5 team seats', 'White-label dashboard'],
-  },
-];
+// Prices and lead counts come from lib/plans.js; only the selling points are
+// local, so a price change never has to be made in two places.
+const PLAN_FEATURES = {
+  'lead-starter': ['We supply the Hunter + ZeroBounce keys', 'Verified emails only', 'CSV + CRM export'],
+  'lead-pro':     ['You bring your Hunter key', 'We cover ZeroBounce', 'Priority support'],
+  'lead-scale':   ['You bring both API keys', 'No monthly lead ceiling', 'Bulk export'],
+  'lead-agency':  ['Everything in Scale', '5 team seats', 'White-label dashboard'],
+};
+
+const PLANS = LEAD_TIERS.map(t => ({
+  ...t,
+  highlight: t.id === 'lead-pro',
+  features: PLAN_FEATURES[t.id] || [],
+}));
 
 const ICP_PRESETS = [
   { label: '🚀 SaaS Founders',     value: 'B2B SaaS startup founders, 10–50 employees, Series A or pre-revenue, using HubSpot or Salesforce, struggling with lead conversion' },
@@ -338,7 +310,14 @@ export default function TrialPage({ slug, valid }) {
           setDebugLog(prev => [data.debug, ...prev].slice(0, 8));
         }
       } else {
-        setError('No leads returned for this batch. Try adjusting your ICP.');
+        // A thin result isn't an error — it means the screening worked and
+        // nothing in this niche could be verified. Say so plainly.
+        const s = data.quality?.screened;
+        setError(
+          s
+            ? `No verifiable contacts in that niche this run. We checked ${s.candidates} businesses, ruled out ${s.noMX} with no working mail domain and ${s.noContact} with no listed contact — rather than invent one. Try a broader location or a related category. This run didn't count against your ${TOTAL_LIMIT}.`
+            : 'No leads matched that search. Try a broader location or a related category.'
+        );
       }
     } catch (e) {
       if (e.name !== 'AbortError') setError('Request failed. Please try again.');
@@ -655,10 +634,10 @@ export default function TrialPage({ slug, valid }) {
                     )}
                   </div>
                   <div className="mt-2 mb-1">
-                    <span className="text-2xl font-black text-white">${p.price}</span>
+                    <span className="text-2xl font-black text-white">${p.priceUsd}</span>
                     <span className="text-gray-500 text-sm">/month</span>
                   </div>
-                  <div className="text-brand-300 text-sm font-semibold">{p.leads}</div>
+                  <div className="text-brand-300 text-sm font-semibold">{p.leadsLabel}</div>
                   <div className="text-gray-500 text-xs mt-0.5">{p.perLead}</div>
                   <ul className="mt-3 space-y-1 flex-1">
                     {p.features.map(f => (
@@ -713,7 +692,7 @@ export default function TrialPage({ slug, valid }) {
 // ─── SSR: validate slug server-side so bots can't probe ──────────────────────
 export async function getServerSideProps({ params, res }) {
   const slug  = (params?.slug || '').toLowerCase().trim();
-  const valid = VALID_SLUGS.includes(slug);
+  const valid = isValidTrialSlug(slug);
   if (!valid) res.statusCode = 404;
   return { props: { slug, valid } };
 }
