@@ -22,9 +22,9 @@ const SESSION_TYPES = [
     duration: 'one-time payment',
     price: '$500',
     highlight: true,
-    desc: 'Pay once, get unlimited 1-on-1 sessions forever — plus exclusive AI perks you can\'t get any other way.',
+    desc: 'Pay once, keep booking sessions for as long as you hold the pass — up to two a month, no hourly fee — plus exclusive AI perks you can\'t get any other way.',
     topics: [
-      'Unlimited 1-on-1 Google Meet sessions — no hourly fee ever',
+      'Up to two 1-on-1 Google Meet sessions a month — no hourly fee ever',
       'Priority scheduling — first-available slots',
       'Private Slack/Discord channel with your trainer',
       'Custom AI prompt library built for your business',
@@ -39,7 +39,7 @@ const SESSION_TYPES = [
 const FAQS = [
   { q: 'Do I need any technical knowledge?', a: 'None at all. Sessions are designed for business owners and their teams — no coding required.' },
   { q: 'What platform do we use?', a: 'All sessions are held via Google Meet. You\'ll receive a calendar invite with the link after booking.' },
-  { q: 'What does the $500 Lifetime Pass include?', a: 'Unlimited 1-on-1 sessions forever, priority scheduling, a private Slack/Discord channel, a custom prompt library, early access to new products, a free monthly strategy call, and lifetime update briefings. It pays for itself in 10 hours.' },
+  { q: 'What does the $500 Lifetime Pass include?', a: 'Up to two 1-on-1 sessions a month for as long as you hold the pass, priority scheduling, a private Slack/Discord channel, a custom prompt library, early access to new products, a free monthly strategy call, and lifetime update briefings. It pays for itself in 10 hours.' },
   { q: 'Can I try a single session first?', a: 'Absolutely — book a $50/hr on-demand session to see if it\'s a good fit. You can upgrade to the Lifetime Pass at any time.' },
   { q: 'Will I get a recording?', a: 'Yes, every Google Meet session is recorded and sent to you within 24 hours so you can rewatch and share with your team.' },
   { q: 'What if I need help between sessions?', a: 'You get 48-hour follow-up Q&A via email after every session. Lifetime Pass holders also have access to a private Slack/Discord channel for ongoing support.' },

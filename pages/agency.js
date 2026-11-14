@@ -14,7 +14,7 @@ import { useCheckout } from '../hooks/useCheckout';
 
 function calcROI(numClients, monthlyChargePerClient) {
   const monthlyRevenue = numClients * monthlyChargePerClient;
-  const agencyCost = 997; // CabinMind Agency tier
+  const agencyCost = 1000; // CabinMind Agency tier — must match lib/plans.js
   const profit = monthlyRevenue - agencyCost;
   const annualProfit = profit * 12;
   return { monthlyRevenue, profit, annualProfit, marginPct: Math.round((profit / monthlyRevenue) * 100) };
@@ -40,7 +40,7 @@ const TESTIMONIALS = [
     color: 'from-blue-500 to-cyan-400',
   },
   {
-    quote: "The economics are wild. We spend $997 once, charge our 12 clients $300/mo, and pocket nearly $3K/mo. No engineering, no scrapers to maintain, no Apollo overages.",
+    quote: "The economics are wild. We pay $1,000/mo, charge our 12 clients $300/mo, and pocket nearly $2.6K/mo. No engineering, no scrapers to maintain, no Apollo overages.",
     name: 'Devon Park',
     title: 'CEO, Park Media Group',
     initials: 'DP',
@@ -145,7 +145,7 @@ export default function AgencyPage() {
               disabled={loading}
               className="bg-brand-600 hover:bg-brand-500 text-white font-bold px-8 py-4 rounded-2xl text-lg transition shadow-xl shadow-brand-600/30 disabled:opacity-50"
             >
-              {loading ? 'Loading…' : 'Get Started — $997/mo →'}
+              {loading ? 'Loading…' : 'Get Started — $1,000/mo →'}
             </button>
             <a
               href="#calculator"
@@ -225,7 +225,7 @@ export default function AgencyPage() {
                 </div>
                 <div className="bg-gray-900/60 border border-white/5 rounded-2xl p-5 text-center">
                   <div className="text-gray-500 text-[10px] uppercase tracking-widest font-semibold mb-2">Your Cost</div>
-                  <div className="text-3xl font-black text-gray-400">$997</div>
+                  <div className="text-3xl font-black text-gray-400">$1,000</div>
                   <div className="text-gray-600 text-xs mt-1">CabinMind Agency tier</div>
                 </div>
                 <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/30 rounded-2xl p-5 text-center">
@@ -285,11 +285,11 @@ export default function AgencyPage() {
 
           <div className="grid sm:grid-cols-2 gap-x-12 gap-y-8 bg-white/5 border border-white/10 rounded-3xl p-8 sm:p-12">
             <Feature icon="🎨" title="Your brand, not ours" desc="Custom logo, brand color, agency name. Clients never see 'CabinMind' anywhere." />
-            <Feature icon="👥" title="10 client seats included" desc="Add up to 10 sub-clients out of the box. Extra seats $49/mo each." />
-            <Feature icon="🔎" title="2,000 leads/mo pooled" desc="Real verified leads with email + LinkedIn, scored A–D. Allocate across all clients however you like." />
+            <Feature icon="👥" title="5 client seats included" desc="Manage up to 5 sub-clients from one dashboard." />
+            <Feature icon="🔎" title="10,000 leads/mo fair use" desc="Real verified leads with email + LinkedIn, scored A–D. Allocate across your clients however you like." />
             <Feature icon="🔗" title="Branded client URLs" desc="Each client gets yourbrand.com/c/yourslug/clientname — clean, professional, fully branded." />
             <Feature icon="📊" title="Agency admin panel" desc="Add, remove, and monitor all your sub-clients from one dashboard. Per-client usage tracking." />
-            <Feature icon="🔑" title="Optional BYOK discount" desc="Bring your own Hunter + ZeroBounce keys → drop to $500/mo, get unlimited leads." />
+            <Feature icon="🔑" title="Bring your own API keys" desc="Agency runs on your Hunter + ZeroBounce keys, so you pay those providers directly with no markup from us." />
             <Feature icon="📥" title="CSV + CRM exports" desc="One-click CSV download, plus push to HubSpot, Salesforce, or any webhook." />
             <Feature icon="🤖" title="AI persona scoring" desc="Every lead auto-tagged as Champion / Buyer / Researcher with explanations your clients can read." />
             <Feature icon="🛟" title="Priority support" desc="Slack channel access + same-day email replies. We've got your back when clients ask hard questions." />
@@ -357,7 +357,7 @@ export default function AgencyPage() {
                 </tr>
               </thead>
               <tbody>
-                <ComparisonRow label="Monthly cost" you="$997 all-in" them="$2,400+ (Apollo $499 + ZB $25 + dev $1,800)" highlight />
+                <ComparisonRow label="Monthly cost" you="$1,000 + your own API keys" them="$2,400+ (Apollo $499 + ZB $25 + dev $1,800)" highlight />
                 <ComparisonRow label="Time to launch" you="< 60 minutes" them="3–6 weeks" />
                 <ComparisonRow label="Engineering required" you="Zero" them="At least 1 part-time engineer" />
                 <ComparisonRow label="White-label branding" you="Built-in" them="You build it" />
@@ -385,12 +385,12 @@ export default function AgencyPage() {
           <div className="space-y-3">
             {[
               { q: 'Will my clients ever see "CabinMind"?', a: 'No. Your branding (logo, color, agency name) appears on every page, every email, and every URL. The CabinMind brand is fully hidden.' },
-              { q: 'What if I have more than 10 clients?', a: 'Extra seats are $49/mo each. So 20 clients = $997 + (10 × $49) = $1,487/mo. Still well over 90% margin if you charge $300+ per client.' },
-              { q: 'How many leads can each client generate?', a: '2,000 leads/mo are pooled across all your clients — allocate them however you like. Need more? Overage at $29 per 500 leads, or bring your own Hunter+ZeroBounce keys for unlimited.' },
-              { q: 'Do I need API keys?', a: 'No — we provide Hunter + ZeroBounce. If you want unlimited leads, bring your own keys and drop to $500/mo.' },
+              { q: 'What if I have more than 5 clients?', a: 'Get in touch — we will size a plan around your client count rather than guessing at it here.' },
+              { q: 'How many leads can each client generate?', a: 'Agency includes 10,000 leads a month under fair use, allocated across your clients however you like. Because you supply your own Hunter and ZeroBounce keys, there is no per-lead markup from us — you pay those providers directly.' },
+              { q: 'Do I need API keys?', a: 'Yes. Agency and Scale run on your own Hunter.io and ZeroBounce keys, which is why there is no per-lead fee. Add them in your dashboard under API Keys. If you would rather we supply the keys, Starter and Pro do that.' },
               { q: 'How do I bill my clients?', a: 'However you want. Most agencies use Stripe or just add it to their existing retainer invoice. We never bill your clients directly.' },
               { q: 'Can I cancel anytime?', a: 'Yes. Self-service cancel from your dashboard. We even have a 14-day money-back guarantee on your first month.' },
-              { q: 'Is there a setup fee?', a: 'No. Just the $997/mo subscription. You can launch the same day you sign up.' },
+              { q: 'Is there a setup fee?', a: 'No. Just the $1,000/mo subscription plus your own Hunter and ZeroBounce keys. You can launch the same day you sign up.' },
             ].map((item, i) => (
               <details key={i} className="bg-white/5 border border-white/10 rounded-xl p-5 group">
                 <summary className="cursor-pointer text-white font-semibold flex items-center justify-between list-none">
@@ -414,7 +414,7 @@ export default function AgencyPage() {
             Subscribe today, brand it in 2 minutes, onboard your first client tonight.
           </p>
           <p className="text-sm text-gray-500 mb-10">
-            10 seats · 2,000 leads/mo · White-label · Cancel anytime · 14-day money back
+            5 seats · 10,000 leads/mo fair use · White-label · Cancel anytime · 14-day money back
           </p>
 
           <button
@@ -422,7 +422,7 @@ export default function AgencyPage() {
             disabled={loading}
             className="bg-brand-600 hover:bg-brand-500 text-white font-black px-10 py-5 rounded-2xl text-xl transition shadow-2xl shadow-brand-600/40 disabled:opacity-50"
           >
-            {loading ? 'Loading…' : 'Start Reselling — $997/mo →'}
+            {loading ? 'Loading…' : 'Start Reselling — $1,000/mo →'}
           </button>
 
           <p className="text-xs text-gray-600 mt-6">

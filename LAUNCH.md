@@ -114,8 +114,8 @@ After switching to live keys:
 |------|-------|-------|------|
 | Lead Researcher Starter | $100/mo | 100 | Platform (included) |
 | Lead Researcher Pro | $149/mo | 500 | Client Hunter + Platform ZB |
-| Lead Researcher Scale | $299/mo | Unlimited | Full BYOK |
-| Lead Researcher Agency | $599/mo | Unlimited | Full BYOK, 5 seats |
+| Lead Researcher Scale | $500/mo | 5,000/mo fair use | Full BYOK |
+| Lead Researcher Agency | $1,000/mo | 10,000/mo fair use | Full BYOK, 5 seats |
 | AI Receptionist | $79/mo | — | Platform |
 | AI Website Auditor | $29/mo | — | Platform |
 | AI Blog Writer | $50/hr | — | Platform |
@@ -150,4 +150,4 @@ After switching to live keys:
 | Seamless.ai | $147–$397/mo | Bundled | Mixed |
 | **CabinMind Starter** | **$100/mo** | **100** | **Live (Hunter + ZB)** |
 | **CabinMind Pro** | **$149/mo** | **500** | **Live (Hunter + ZB)** |
-| **CabinMind Scale** | **$299/mo** | **Unlimited** | **Live (your quota)** |
+| **CabinMind Scale** | **$500/mo** | **5,000/mo fair use** | **Live (your quota)** |

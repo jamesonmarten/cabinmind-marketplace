@@ -132,7 +132,7 @@ export default withProtection('validate-list', async function handler(req, res) 
   const planForLimit = plan || 'starter';
 
   if (usingPlatformKey && planForLimit !== 'scale' && planForLimit !== 'agency') {
-    const check = checkUsage(subKey, planForLimit, 'zbValidations', withEmail.length);
+    const check = await checkUsage(subKey, planForLimit, 'zbValidations', withEmail.length);
     if (!check.allowed) {
       const limits = PLAN_LIMITS[planForLimit];
       return res.status(429).json({
@@ -223,7 +223,7 @@ export default withProtection('validate-list', async function handler(req, res) 
 
   // Record platform-key ZB usage (only count emails that actually went to ZeroBounce)
   if (usingPlatformKey && planForLimit !== 'scale' && planForLimit !== 'agency') {
-    recordUsage(subKey, planForLimit, 'zbValidations', withEmail.length);
+    await recordUsage(subKey, planForLimit, 'zbValidations', withEmail.length);
   }
 
   const creditsAfter = await checkCredit(apiKey);

@@ -26,8 +26,8 @@ is why our lists are sometimes shorter and always safer.
 |---|---|---|---|---|
 | **Starter** | **$100/mo** | 100/month | $1.00 | We do |
 | **Pro** ⭐ | **$250/mo** | 500/month | $0.50 | You bring Hunter (~$49) |
-| **Scale** | **$500/mo** | Unlimited | — | You bring both (~$124) |
-| **Agency** | **$1,000/mo** | Unlimited + 5 seats, white-label | — | You bring both |
+| **Scale** | **$500/mo** | 5,000/month (fair use) | — | You bring both (~$124) |
+| **Agency** | **$1,000/mo** | 10,000/month + 5 seats, white-label | — | You bring both |
 
 Month-to-month. Cancel in one click. No contract, no setup fee.
 Free trial: **50 leads, no card.**
@@ -138,7 +138,7 @@ for $100 · no idea who their customer is
 
 ## Red lines — never say these
 
-🚫 "Unlimited leads" on Starter or Pro — they're capped at 100 and 500
+🚫 "Unlimited leads" on any plan — Starter is 100, Pro 500, Scale 5,000, Agency 10,000
 🚫 Any price not in the table above
 🚫 "AI generates leads" — we research and rank real businesses; the distinction is the product
 🚫 "We use Apollo" — we don't

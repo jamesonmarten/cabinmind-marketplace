@@ -112,14 +112,14 @@ const AGENT_CONTENT = {
     bg: 'from-emerald-900/30 to-teal-900/10',
     icon: '🎓',
     tagline: 'The fastest way to turn your team into AI power users.',
-    heroDesc: 'Private 1-on-1 sessions with a CabinMind specialist. $50/hr on-demand, or $500 once for a Lifetime Pass — unlimited sessions forever plus exclusive AI perks like a private Slack channel, custom prompt library, early product access, and a free monthly strategy call.',
+    heroDesc: 'Private 1-on-1 sessions with a CabinMind specialist. $50/hr on-demand, or $500 once for a Lifetime Pass — up to two one-hour sessions a month for as long as you hold it, with no hourly fee, plus exclusive AI perks like a private Slack channel, custom prompt library, early product access, and a free monthly strategy call.',
     benefits: [
       { icon: '🎯', title: 'Tailored to Your Business', desc: 'Every session is scoped to your exact use case — not a generic playbook. We prep before the call.' },
       { icon: '🛠️', title: 'Build Live on the Call', desc: 'We set up real automations, configure agents, and write prompts together so you leave with working tools.' },
       { icon: '📹', title: 'Full Session Recording', desc: 'Every call is recorded and delivered within 24 hours so your team can rewatch and build on it.' },
       { icon: '📧', title: '48-Hour Follow-up Support', desc: 'Questions after the session? Email us within 48 hours and we\'ll answer free of charge.' },
       { icon: '📋', title: 'Written Action Plan', desc: 'Team sessions include a written AI action plan — what to deploy, in what order, with what tools.' },
-      { icon: '📅', title: 'Flexible Pricing', desc: '$50/hr on-demand or $500 once for lifetime access — unlimited sessions, priority booking, and exclusive AI perks.' },
+      { icon: '📅', title: 'Flexible Pricing', desc: '$50/hr on-demand, or $500 once for lifetime access — up to two sessions a month, priority booking, and exclusive AI perks.' },
     ],
     demoTitle: 'Book or Enquire',
     demoDesc: 'Choose a session type, tell us what you want to achieve, and we\'ll get back within 24 hours with a calendar invite.',
@@ -316,7 +316,7 @@ All products are software subscriptions. We do NOT build custom websites, run ad
 
 | Product | What it does | Price |
 |---|---|---|
-| AI Lead Researcher | Verified B2B leads, sourced from Google Places + Hunter and validated with ZeroBounce | Starter ${priceLabel('lead-starter')} (100 leads) · Pro ${priceLabel('lead-pro')} (500) · Scale ${priceLabel('lead-scale')} (unlimited, bring your own keys) · Agency ${priceLabel('lead-agency')} (white-label, 5 seats) |
+| AI Lead Researcher | Verified B2B leads, sourced from Google Places + Hunter and validated with ZeroBounce | Starter ${priceLabel('lead-starter')} (100 leads) · Pro ${priceLabel('lead-pro')} (500) · Scale ${priceLabel('lead-scale')} (5,000, bring your own keys) · Agency ${priceLabel('lead-agency')} (10,000, white-label, 5 seats) |
 | AI Receptionist (me!) | 24/7 embeddable chat widget that answers + captures leads | ${priceLabel('receptionist')} flat |
 | AI Website Auditor | PageSpeed + SEO reports clients can hand to prospects | ${priceLabel('website-audit')} |
 | AI Blog Writer | Long-form SEO content generator | ${priceLabel('blog-writer')} |
@@ -1766,7 +1766,7 @@ function LeadDemo() {
                 <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
                   className="mt-3 bg-gradient-to-br from-purple-900/60 to-violet-900/40 border border-purple-500/30 rounded-xl p-5 text-center">
                   <div className="text-2xl mb-2">🔒</div>
-                  <div className="text-white font-bold text-sm mb-1">Full emails, LinkedIn profiles &amp; unlimited leads</div>
+                  <div className="text-white font-bold text-sm mb-1">Full emails, LinkedIn profiles &amp; 100 leads a month</div>
                   <div className="text-gray-400 text-xs mb-3 leading-relaxed">
                     Purchase to unlock verified emails, direct LinkedIn /in/ profiles,
                     ZeroBounce validation, score breakdown, pipeline CRM, and HubSpot/Airtable export.

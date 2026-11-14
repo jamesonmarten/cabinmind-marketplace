@@ -34,7 +34,7 @@ const BYOK_TIERS = new Set(['lead-starter','lead-pro','lead-scale','lead-agency'
 const BYOK_NOTES = {
   'lead-starter': 'Platform Hunter.io + ZeroBounce keys are pre-configured — you can start generating leads immediately from your dashboard.',
   'lead-pro':     'Add your Hunter.io API key in your dashboard under API Keys → your ZeroBounce is covered by the platform.',
-  'lead-scale':   'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys to unlock unlimited generation.',
+  'lead-scale':   'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys to unlock 5,000 leads a month with no per-lead markup.',
   'lead-agency':  'Add your Hunter.io and ZeroBounce API keys in your dashboard under API Keys. You have 5 seats — invite your team from Settings.',
   'lead-researcher': 'Platform keys are pre-configured — click your dashboard link to start generating leads.',
 };

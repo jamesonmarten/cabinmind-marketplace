@@ -520,7 +520,7 @@ export default function TrialPage({ slug, valid }) {
                       href="https://products.devcabin.tech/pricing"
                       className="font-semibold underline text-brand-300 hover:text-white"
                     >
-                      Subscribe for unlimited leads →
+                      Subscribe to keep going →
                     </a>
                   </div>
                 )}

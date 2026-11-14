@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     let customerId = null;
 
     // Try local store first
-    const local = getToken(token);
+    const local = await getToken(token);
     if (local?.sessionId) {
       const session = await stripe.checkout.sessions.retrieve(local.sessionId);
       customerId = session.customer;

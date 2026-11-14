@@ -546,7 +546,7 @@ export default function ComparePage() {
                 tiers: [
                   { plan: 'Starter $100/mo', desc: 'Platform covers everything. Just subscribe, get 100 validated leads. Zero API accounts.', perLead: '$1.00/lead' },
                   { plan: 'Pro $250/mo',     desc: 'Bring your own Hunter key. Platform covers ZeroBounce. 500 leads/mo.', perLead: '$0.50/lead' },
-                  { plan: 'Scale $500/mo',   desc: 'Bring both keys. Unlimited leads flat — no per-lead fees ever again.', perLead: 'Unlimited' },
+                  { plan: 'Scale $500/mo',   desc: 'Bring both keys. 5,000 leads/mo fair use — no per-lead fees ever again.', perLead: 'No markup' },
                   { plan: 'Agency $1000/mo', desc: 'One subscription. 5 client seats. White-label dashboard. Bill clients at any margin.', perLead: 'Your margin' },
                 ],
                 footer: 'Every other tool charges more as you use more. CabinMind flips it — the more serious and high-volume the client, the better value they get. That\'s a trust signal.',

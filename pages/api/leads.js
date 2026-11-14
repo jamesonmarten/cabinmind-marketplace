@@ -1082,7 +1082,7 @@ async function generateLeads(
 // Agency:   client brings both keys; unlimited + multi-seat
 // isDemo:   no real keys used; AI + pattern only
 
-const PLAN_BATCH_CAPS = { starter: 10, pro: 100, scale: Infinity, agency: Infinity };
+const PLAN_BATCH_CAPS = { starter: 10, pro: 100, scale: 1000, agency: 2000 };
 
 // Handler
 export default withProtection('leads', async function handler(req, res) {
@@ -1146,13 +1146,20 @@ export default withProtection('leads', async function handler(req, res) {
     const perBatch   = Math.min(10, Math.max(5, parseInt(leadsPerBatch) || 5));
     const batchUnits = Math.ceil(perBatch / 5);
 
-    if (planForLimits !== 'scale' && planForLimits !== 'agency') {
+    // Every plan now has a finite ceiling, so nothing is exempt from the check.
+    // Scale/Agency ceilings are fair-use rather than metered, but an uncapped
+    // plan means no declared max spend at all.
+    {
       const batchCheck = await checkUsage(subscriptionKey, planForLimits, 'leadBatches', batchUnits);
       if (!batchCheck.allowed) {
         const limits = PLAN_LIMITS[planForLimits];
+        const fairUse = planForLimits === 'scale' || planForLimits === 'agency';
         return res.status(429).json({
-          error: `Lead limit reached. Your ${planForLimits} plan includes ${limits.leadBatches * 5} leads (${batchCheck.remaining * 5} remaining). Upgrade for more.`,
+          error: fairUse
+            ? `Fair-use limit reached: ${limits.leadBatches * 5} leads this month. Contact us if you genuinely need more.`
+            : `Lead limit reached. Your ${planForLimits} plan includes ${limits.leadBatches * 5} leads (${batchCheck.remaining * 5} remaining). Upgrade for more.`,
           quota: true,
+          fairUse,
           used:      batchCheck.used,
           limit:     batchCheck.limit,
           remaining: batchCheck.remaining,
@@ -1233,7 +1240,7 @@ export default withProtection('leads', async function handler(req, res) {
     // Record successful batch usage (after work completes — failed calls don't count).
     // Charge for what was actually delivered, not what was asked for, so a thin
     // ICP that returns 2 leads doesn't cost a full 10-lead allowance.
-    if (planForLimits !== 'scale' && planForLimits !== 'agency' && leads.length) {
+    if (leads.length) {
       await recordUsage(subscriptionKey, planForLimits, 'leadBatches', Math.ceil(leads.length / 5));
     }
 

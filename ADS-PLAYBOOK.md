@@ -120,7 +120,7 @@ https://products.devcabin.tech/pricing?utm_source=google&utm_medium=cpc&utm_camp
 - Headline 9: `Works in 60 Seconds`
 - Headline 10: `Built for B2B Sales Teams`
 - Description 1: `AI Lead Researcher discovers prospects that match your ICP, validates their email with ZeroBounce, writes a 4-step cold email sequence — all in one click.`
-- Description 2: `100 verified prospects per month on Starter. Upgrade for Hunter.io integration, unlimited generation, and Instantly.ai CSV export. Try free today.`
+- Description 2: `100 verified prospects per month on Starter. Upgrade to Pro for 500/mo with your own Hunter.io key, plus Instantly.ai CSV export. Try free today.`
 
 **Sitelink extensions:**
 - `Live Demo` → `https://products.devcabin.tech/demo`

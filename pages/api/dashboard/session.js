@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   }
 
   // 1. Try the local file store first (fast path)
-  const local = getToken(token);
+  const local = await getToken(token);
   if (local) {
     return res.status(200).json({
       agentId:       local.agentId,
@@ -41,6 +41,11 @@ export default async function handler(req, res) {
       customerName:  local.customerName || '',
       sessionId:     local.sessionId,
       token,
+      // White-label branding (Agency tier only — set via /api/dashboard/branding)
+      brandLogoUrl:  local.brandLogoUrl || null,
+      brandColor:    local.brandColor || null,
+      brandCompany:  local.brandCompany || null,
+      whiteLabel:    !!local.whiteLabel,
     });
   }
 
@@ -84,7 +89,7 @@ export default async function handler(req, res) {
     }
 
     // Re-hydrate the local store so future lookups are instant
-    saveToken(token, foundSession);
+    await saveToken(token, foundSession);
 
     return res.status(200).json({ ...foundSession, token });
   } catch (err) {

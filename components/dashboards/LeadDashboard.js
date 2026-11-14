@@ -15,6 +15,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCheckout } from '../../hooks/useCheckout';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -78,14 +79,14 @@ const STATS_KEY     = 'cabinmind_leads_stats';
 function buildCSV(leads) {
   const headers = [
     'Name','Title','Company','Domain','Industry','Company Size','Location',
-    'ICP Score','Score Reason','Buying Signal','Pain Points','Budget Range','Why Now',
+    'ICP Score','Score Reason','Persona','Buying Signal','Pain Points','Budget Range','Why Now',
     'Tech Stack','Email','Email Source','Email Verified','Phone',
     'LinkedIn','LinkedIn Direct','Company Description','Company Funding','Company LinkedIn',
     'Company Founded','Outreach Status','Notes','Data Source',
   ];
   const rows = leads.map(l => [
     l.name, l.title, l.company, l.domain || '', l.industry || '', l.size || '', l.location || '',
-    l.score, l.score_reason || '', l.signal || '', l.pain_points || '', l.budget_range || '', l.why_now || '',
+    l.score, l.score_reason || '', l.persona_label || '', l.signal || '', l.pain_points || '', l.budget_range || '', l.why_now || '',
     l.tech || '', l.email || '', l.email_source || '', l.email_verified ? 'Yes' : '',
     l.phone || '', l.linkedin || '',
     l.linkedin_is_direct ? 'Yes' : 'No',
@@ -200,6 +201,7 @@ function DataSourceBadge({ source }) {
 }
 
 function DemoUpgradeWall({ onDismiss }) {
+  const { handleCheckout, loading: checkoutLoading } = useCheckout();
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }}
@@ -214,19 +216,22 @@ function DemoUpgradeWall({ onDismiss }) {
         <div className="text-5xl mb-3">🔒</div>
         <h3 className="text-white font-bold text-xl mb-2">Demo Limited to 5 Leads</h3>
         <p className="text-gray-300 text-sm leading-relaxed mb-1 max-w-sm mx-auto">
-          You&apos;ve seen the quality. Unlock unlimited generation — up to 100 leads per run,
-          full email verification, direct LinkedIn profiles, and CRM export.
+          You&apos;ve seen the quality. Subscribe for up to 10 leads per run, full email
+          verification, direct LinkedIn profiles, and CRM export.
         </p>
         <div className="flex flex-wrap justify-center gap-2 my-5 text-sm">
-          {['✅ ZeroBounce verified emails','🔗 Direct LinkedIn profiles','📊 Full score breakdown','💾 Pipeline CRM','🔗 HubSpot / Airtable export','♾️ Unlimited batches'].map(f => (
+          {['✅ ZeroBounce verified emails','🔗 Direct LinkedIn profiles','📊 Full score breakdown','💾 Pipeline CRM','🔗 HubSpot / Airtable export','📈 From 100 leads/mo'].map(f => (
             <span key={f} className="px-3 py-1.5 bg-white/10 border border-white/10 rounded-full text-gray-200">{f}</span>
           ))}
         </div>
-        <a
-          href="/pricing"
-          className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-base hover:opacity-90 transition-all shadow-lg shadow-purple-500/30"
-        >                  Unlock Full Access — from $100/mo →
-        </a>
+        <button
+          onClick={() => handleCheckout('lead-starter')}
+          disabled={checkoutLoading === 'lead-starter'}
+          className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-purple-600 to-violet-500 text-white font-bold text-base hover:opacity-90 disabled:opacity-60 transition-all shadow-lg shadow-purple-500/30"
+        >
+          {checkoutLoading === 'lead-starter' ? 'Redirecting to checkout…' : 'Unlock Full Access — from $100/mo →'}
+        </button>
+        <a href="/pricing" className="block mt-2 text-xs text-gray-500 hover:text-gray-300 transition-colors">Compare all plans</a>
         {onDismiss && (
           <button onClick={onDismiss} className="block mx-auto mt-3 text-xs text-gray-600 hover:text-gray-400 transition-colors">
             Keep viewing demo leads
@@ -326,6 +331,11 @@ function LeadCard({ lead, onSave, saved, onStatusChange, onNoteChange, onRemove 
                 <span className={`font-black mr-1 ${s.gradeColor}`}>{lead.grade || 'B'}</span>
                 {lead.score} · {s.label}
               </span>
+            {lead.persona_label && (
+              <span className="text-xs text-gray-300 bg-white/5 border border-white/10 rounded-full px-2 py-0.5" title="Buyer role in the deal">
+                {lead.persona_label}
+              </span>
+            )}
             {lead.signal && (
               <span className="text-xs text-amber-300/80 bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5 truncate max-w-[240px]">
                 🔥 {lead.signal}
@@ -643,6 +653,8 @@ function IntegrationsModal({ leads, savedLeads, onClose }) {
   const [airtableKey, setAirtableKey] = useState('');
   const [airtableBase, setAirtableBase] = useState('');
   const [airtableTable, setAirtableTable] = useState('Leads');
+  const [instantlyKey, setInstantlyKey] = useState('');
+  const [instantlyCampaign, setInstantlyCampaign] = useState('');
   const [pushing, setPushing] = useState(false);
   const [result, setResult] = useState('');
 
@@ -722,6 +734,24 @@ function IntegrationsModal({ leads, savedLeads, onClose }) {
     setPushing(false);
   };
 
+  const pushToInstantly = async () => {
+    if (!instantlyKey || !instantlyCampaign || leadsToExport.length === 0) return;
+    setPushing(true); setResult('');
+    try {
+      const r = await fetch('/api/leads/push-instantly', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: instantlyKey, campaignId: instantlyCampaign, leads: leadsToExport }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Push failed');
+      setResult(`✅ ${data.success} leads pushed to Instantly campaign${data.failed > 0 ? ` (${data.failed} failed — likely missing email)` : ''}`);
+    } catch (e) {
+      setResult(`❌ ${e.message}`);
+    }
+    setPushing(false);
+  };
+
   const inputCls = 'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50 font-mono text-xs';
 
   return (
@@ -742,6 +772,7 @@ function IntegrationsModal({ leads, savedLeads, onClose }) {
           {[
             { id: 'hubspot', label: '🟠 HubSpot' },
             { id: 'airtable', label: '🟣 Airtable' },
+            { id: 'instantly', label: '📨 Instantly' },
             { id: 'sheets', label: '🟢 Sheets' },
             { id: 'csv', label: '📄 CSV' },
           ].map(t => (
@@ -787,6 +818,25 @@ function IntegrationsModal({ leads, savedLeads, onClose }) {
             <button onClick={pushToAirtable} disabled={pushing || !airtableKey || !airtableBase}
               className="w-full py-2.5 rounded-xl bg-purple-600 text-white font-bold text-sm disabled:opacity-40 hover:bg-purple-500 transition-all flex items-center justify-center gap-2">
               {pushing ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Pushing…</> : `🟣 Push ${leadsToExport.length} Records to Airtable`}
+            </button>
+          </div>
+        )}
+
+        {/* Instantly.ai */}
+        {tab === 'instantly' && (
+          <div className="space-y-3">
+            <p className="text-gray-400 text-xs leading-relaxed">
+              One-click push straight into an Instantly.ai cold-email campaign — no manual CSV import.
+              Get your API key from <a href="https://app.instantly.ai/app/settings/integrations" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">Instantly → Settings → Integrations</a>{' '}
+              and your Campaign ID from the campaign's URL.
+            </p>
+            <input value={instantlyKey} onChange={e => setInstantlyKey(e.target.value)}
+              placeholder="Instantly.ai API key" className={inputCls} />
+            <input value={instantlyCampaign} onChange={e => setInstantlyCampaign(e.target.value)}
+              placeholder="Campaign ID" className={inputCls} />
+            <button onClick={pushToInstantly} disabled={pushing || !instantlyKey || !instantlyCampaign}
+              className="w-full py-2.5 rounded-xl bg-blue-600 text-white font-bold text-sm disabled:opacity-40 hover:bg-blue-500 transition-all flex items-center justify-center gap-2">
+              {pushing ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Pushing…</> : `📨 Push ${leadsToExport.length} Leads to Instantly`}
             </button>
           </div>
         )}
@@ -1280,7 +1330,7 @@ function CampaignTab({ leads, savedLeads, zeroBounceApiKey: zbKeyProp, isPaid, p
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
-export default function LeadDashboard({ session, isPaid = false, initialPlan = 'starter' }) {
+export default function LeadDashboard({ session, dashboardToken = null, isPaid = false, initialPlan = 'starter' }) {
   // ── BYOK API keys (Pro / Scale / Agency plans) ─────────────────────────────
   const BYOK_KEY = 'cabinmind_byok_keys';
   const [hunterApiKey, setHunterApiKey]         = useState('');
@@ -1364,6 +1414,67 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
   const [showUpgradeWall, setShowUpgradeWall] = useState(true);
   const [sessionStats, setSessionStats] = useState({ runs: 0, total: 0 });
 
+  // ── Quota transparency + saved ICP templates ──────────────────────────────
+  const subscriptionKey = session?.sessionId || `plan-${plan}`;
+  const [usage, setUsage] = useState(null);
+  const [icpTemplates, setIcpTemplates] = useState([]);
+  const [templateName, setTemplateName] = useState('');
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  const refreshUsage = useCallback(async () => {
+    if (!isPaid) return;
+    try {
+      const r = await fetch(`/api/dashboard/usage?subscriptionKey=${encodeURIComponent(subscriptionKey)}&plan=${plan}`);
+      if (r.ok) setUsage(await r.json());
+    } catch {}
+  }, [subscriptionKey, plan, isPaid]);
+
+  const refreshTemplates = useCallback(async () => {
+    if (!isPaid) return;
+    try {
+      const r = await fetch(`/api/leads/templates?subscriptionKey=${encodeURIComponent(subscriptionKey)}`);
+      if (r.ok) setIcpTemplates((await r.json()).templates || []);
+    } catch {}
+  }, [subscriptionKey, isPaid]);
+
+  useEffect(() => { refreshUsage(); refreshTemplates(); }, [refreshUsage, refreshTemplates]);
+
+  const saveIcpTemplate = async () => {
+    if (!templateName.trim() || !icp.trim()) return;
+    setSavingTemplate(true);
+    try {
+      const r = await fetch('/api/leads/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscriptionKey, name: templateName.trim(), icp, industry, location, companySize, excludeCompanies }),
+      });
+      if (r.ok) {
+        setTemplateName('');
+        refreshTemplates();
+      }
+    } catch {}
+    setSavingTemplate(false);
+  };
+
+  const loadIcpTemplate = (t) => {
+    setIcp(t.icp);
+    setIndustry(t.industry || '');
+    setLocation(t.location || '');
+    setCompanySize(t.companySize || '');
+    setExcludeCompanies(t.excludeCompanies || '');
+  };
+
+  const deleteIcpTemplate = async (id) => {
+    try {
+      await fetch('/api/leads/templates', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscriptionKey, id }),
+      });
+      refreshTemplates();
+    } catch {}
+  };
+
   // ── Restore from localStorage ─────────────────────────────────────────────
   useEffect(() => {
     try {
@@ -1431,6 +1542,7 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
             batchNum: i + 1,
             isDemo: !isPaid,
             plan,
+            dashboardToken:   dashboardToken || undefined,
             hunterApiKey:     hunterApiKey     || undefined,
             zeroBounceApiKey: zeroBounceApiKey || undefined,
             subscriptionKey:  session?.sessionId || `plan-${plan}`,
@@ -1484,6 +1596,7 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
 
     setBatchProgress(p => ({ ...p, active: false }));
     setLoading(false);
+    refreshUsage();
   };
 
   const stopGeneration = () => {
@@ -1633,6 +1746,24 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
                 </div>
               </div>
 
+              {/* Quota transparency banner */}
+              {isPaid && usage && !usage.leadBatches.unlimited && (
+                <div className="mb-4 flex items-center justify-between gap-3 text-xs bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
+                  <span className="text-gray-400">
+                    📊 <span className="text-white font-medium">{usage.leadBatches.leadsUsed}</span> of {usage.leadBatches.leadsLimit} leads used this month
+                  </span>
+                  <div className="w-32 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${usage.leadBatches.leadsUsed / usage.leadBatches.leadsLimit > 0.85 ? 'bg-red-400' : 'bg-purple-400'}`}
+                      style={{ width: `${Math.min(100, (usage.leadBatches.leadsUsed / usage.leadBatches.leadsLimit) * 100)}%` }}
+                    />
+                  </div>
+                  {usage.leadBatches.leadsUsed / usage.leadBatches.leadsLimit > 0.85 && (
+                    <a href="/pricing" className="text-purple-400 hover:text-purple-300 underline whitespace-nowrap">Upgrade →</a>
+                  )}
+                </div>
+              )}
+
               {/* Presets */}
               <div className="mb-4 mt-4">
                 <label className="text-gray-500 text-xs block mb-2">Quick start presets</label>
@@ -1645,6 +1776,31 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
                   ))}
                 </div>
               </div>
+
+              {/* Saved ICP templates */}
+              {isPaid && (
+                <div className="mb-4">
+                  <label className="text-gray-500 text-xs block mb-2">Your saved ICP templates</label>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {icpTemplates.map(t => (
+                      <span key={t.id} className="group flex items-center gap-1 text-xs pl-3 pr-1.5 py-1.5 rounded-full border bg-white/5 border-white/10 text-gray-400 hover:border-purple-500/30">
+                        <button onClick={() => loadIcpTemplate(t)} className="hover:text-purple-300 transition-colors">💾 {t.name}</button>
+                        <button onClick={() => deleteIcpTemplate(t.id)} title="Delete template"
+                          className="w-4 h-4 flex items-center justify-center rounded-full text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all">×</button>
+                      </span>
+                    ))}
+                    {icpTemplates.length === 0 && <span className="text-gray-600 text-xs">No saved templates yet — save your current search below.</span>}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <input value={templateName} onChange={e => setTemplateName(e.target.value)} placeholder="Name this ICP search (e.g. Q4 SaaS Founders)"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50" />
+                    <button onClick={saveIcpTemplate} disabled={savingTemplate || !templateName.trim() || !icp.trim()}
+                      className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-xs hover:bg-white/10 disabled:opacity-40 transition-all whitespace-nowrap">
+                      {savingTemplate ? 'Saving…' : '＋ Save current ICP'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* ICP textarea */}
               <div className="mb-4">
@@ -1984,8 +2140,8 @@ export default function LeadDashboard({ session, isPaid = false, initialPlan = '
                 {[
                   { id: 'starter',  label: 'Starter',  price: '$100/mo', sub: '100 leads · Platform keys',    color: 'border-green-500/40 bg-green-500/5'   },
                   { id: 'pro',      label: 'Pro',       price: '$250/mo', sub: '500 leads · Your Hunter key', color: 'border-blue-500/40 bg-blue-500/5'     },
-                  { id: 'scale',    label: 'Scale',     price: '$500/mo',sub: 'Unlimited · Both your keys',  color: 'border-purple-500/40 bg-purple-500/5' },
-                  { id: 'agency',   label: 'Agency',    price: '$1000/mo',sub: 'Unlimited · BYOK · 5 seats',  color: 'border-violet-500/40 bg-violet-500/5' },
+                  { id: 'scale',    label: 'Scale',     price: '$500/mo',sub: '5,000/mo · Both your keys',  color: 'border-purple-500/40 bg-purple-500/5' },
+                  { id: 'agency',   label: 'Agency',    price: '$1000/mo',sub: '10,000/mo · BYOK · 5 seats',  color: 'border-violet-500/40 bg-violet-500/5' },
                 ].map(p => (
                   <button key={p.id} onClick={() => setPlan(p.id)}
                     className={`border rounded-xl p-4 text-left transition-all ${plan === p.id ? p.color + ' ring-1 ring-white/20' : 'border-white/10 bg-white/3 hover:bg-white/8'}`}>

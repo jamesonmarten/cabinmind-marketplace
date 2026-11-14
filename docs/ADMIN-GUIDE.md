@@ -212,8 +212,10 @@ These are real and currently unmitigated.
 1. **No per-account spend ceiling.** `.github/copilot-instructions.md` rule 4
    requires one. Scale and Agency skip the quota check entirely, so Google
    Places spend on those plans is uncapped.
-2. **"Unlimited" is literally unlimited** on Scale/Agency. Define a fair-use
-   number before selling either tier at volume.
+2. **Fair-use ceilings are now enforced.** Scale is capped at 5,000 leads/month
+   and Agency at 10,000 in `PLAN_LIMITS`, and neither is exempt from the quota
+   check any more. Previously both were `Infinity` with the check skipped
+   entirely, which meant no declared max spend — a violation of rule 4.
 3. **Trials share the Starter Hunter pool.** A demo push can starve a paying
    customer. Consider a separate Hunter key for trials.
 4. **Quota is not durable without Supabase.** On `/tmp` storage the 50-lead cap

@@ -116,8 +116,8 @@ The 50 leads are yours to keep — export them before or after you decide.
 |---|---|---|---|
 | **Starter** | $100/mo | 100/month | $1.00 |
 | **Pro** | $250/mo | 500/month | $0.50 |
-| **Scale** | $500/mo | Unlimited | — |
-| **Agency** | $1,000/mo | Unlimited + 5 seats, white-label | — |
+| **Scale** | $500/mo | 5,000 / month (fair use) | — |
+| **Agency** | $1,000/mo | 10,000 / month + 5 seats, white-label | — |
 
 Every plan is month-to-month. Cancel in one click from your dashboard. No
 contract, no setup fee.

@@ -92,7 +92,7 @@ export default withProtection('demo-capture', async function handler(req, res) {
         ${[
           ['Starter', '$100/mo', '100 leads/mo, ZeroBounce included, AI sequences'],
           ['Pro', '$250/mo', '500 leads/mo, bring your own Hunter key'],
-          ['Scale', '$500/mo', 'Unlimited leads, full BYOK, campaign builder'],
+          ['Scale', '$500/mo', '5,000 leads/mo, full BYOK, campaign builder'],
         ].map(([plan, price, desc]) => `
         <tr>
           <td style="padding:5px 0;color:#a78bfa;font-size:13px;font-weight:700;width:70px;">${plan}</td>

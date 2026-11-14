@@ -4,7 +4,7 @@
  * Pricing strategy:
  *   Starter  $100/mo — Platform keys, 100 leads/mo
  *   Pro      $250/mo — Client brings Hunter key; platform ZB
- *   Scale    $500/mo — Full BYOK; unlimited
+ *   Scale    $500/mo — Full BYOK; 5,000 leads/mo fair use
  *   Agency   $1000/mo — Full BYOK, 5 seats, white-label
  *
  * Other agents:
@@ -92,12 +92,12 @@ const LEAD_TIERS = [
     badge: 'Best Value',
     color: 'border-purple-500/40',
     btnClass: 'glass border border-purple-500/40 text-purple-300 hover:bg-purple-500/10',
-    leadsPerMonth: 'Unlimited',
+    leadsPerMonth: '5,000',
     byok: 'both',
-    desc: 'Unlimited leads on your own API quota. You control the spend — we run the engine.',
+    desc: '5,000 leads a month on your own API quota. You control the spend — we run the engine.',
     whoIsThis: 'High-volume teams who want full control and zero per-lead markup.',
     features: [
-      'Unlimited lead batches',
+      '5,000 lead batches / mo (fair use)',
       'Your Hunter.io key (any plan)',
       'Your ZeroBounce key (any plan)',
       'Full 6-layer email validation',
@@ -116,7 +116,7 @@ const LEAD_TIERS = [
       { label: 'ZeroBounce (5,000 validations)', amount: '$25', included: false, note: 'you → ZeroBounce' },
     ],
     totalCost: '~$621 / mo total',
-    perLead: 'Unlimited — your quota',
+    perLead: 'No markup — your quota',
     setupNote: 'You need a Hunter.io account (any paid plan) and a ZeroBounce account ($25/mo for 5K validations). Both have free tiers — test first, then upgrade. Paste both API keys into your CabinMind dashboard.',
   },
   {
@@ -126,9 +126,9 @@ const LEAD_TIERS = [
     badge: 'White-Label',
     color: 'border-violet-500/40',
     btnClass: 'glass border border-violet-500/40 text-violet-300 hover:bg-violet-500/10',
-    leadsPerMonth: 'Unlimited',
+    leadsPerMonth: '10,000',
     byok: 'both',
-    desc: 'Run AI lead gen as a service. One subscription, unlimited clients, any margin you set.',
+    desc: 'Run AI lead gen as a service. One subscription, up to 5 client seats, any margin you set.',
     whoIsThis: 'Agencies and consultants who productise lead gen for multiple clients.',
     features: [
       'Everything in Scale',
@@ -223,7 +223,7 @@ const FAQ = [
   },
   {
     q: 'Which Hunter.io plan do I need?',
-    a: "For Pro (500 leads/mo): Hunter Starter at $49/mo gives you exactly 500 domain searches. For Scale/Agency (unlimited runs): Hunter Growth at $99/mo gives 2,000 searches. Hunter free tier (25 searches/mo) is enough to test before committing.",
+    a: "For Pro (500 leads/mo): Hunter Starter at $49/mo gives you exactly 500 domain searches. For Scale/Agency: Hunter Growth at $99/mo gives 2,000 searches. Hunter free tier (25 searches/mo) is enough to test before committing.",
   },
   {
     q: 'Which ZeroBounce plan do I need?',

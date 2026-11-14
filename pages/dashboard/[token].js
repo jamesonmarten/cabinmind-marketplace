@@ -63,6 +63,9 @@ export default function DashboardPage() {
   const [loading, setLoading]  = useState(true);
   const [error, setError]      = useState(null);
   const [cancelState, setCancelState] = useState(null); // null | 'confirming' | 'cancelling' | { cancelAt }
+  const [brandForm, setBrandForm] = useState({ brandCompany: '', brandLogoUrl: '', brandColor: '' });
+  const [brandSaving, setBrandSaving] = useState(false);
+  const [brandSaved, setBrandSaved] = useState(false);
 
   useEffect(() => {
     if (!router.isReady || !token) return;
@@ -71,10 +74,30 @@ export default function DashboardPage() {
       .then(data => {
         if (data.error) { setError(data.error); setLoading(false); return; }
         setSession(data);
+        setBrandForm({
+          brandCompany: data.brandCompany || '',
+          brandLogoUrl: data.brandLogoUrl || '',
+          brandColor:   data.brandColor || '',
+        });
         setLoading(false);
       })
       .catch(() => { setError('Could not load your dashboard.'); setLoading(false); });
   }, [router.isReady, token]);
+
+  const saveBranding = async () => {
+    setBrandSaving(true);
+    try {
+      await fetch('/api/dashboard/branding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, ...brandForm }),
+      });
+      setSession(s => ({ ...s, ...brandForm, whiteLabel: true }));
+      setBrandSaved(true);
+      setTimeout(() => setBrandSaved(false), 2500);
+    } catch {}
+    setBrandSaving(false);
+  };
 
   if (loading) return (
     <Layout title="Loading your dashboard…">
@@ -103,16 +126,22 @@ export default function DashboardPage() {
   const meta = AGENT_META[session.agentId] || { name: 'Agent Dashboard', icon: '⚡', color: 'from-brand-500 to-purple-500' };
   const DashboardComponent = DASHBOARDS[session.agentId];
 
+  // White-label overrides (Agency plan only)
+  const brandName = session.whiteLabel && session.brandCompany ? session.brandCompany : 'CabinMind';
+  const displayName = session.whiteLabel && session.brandCompany ? `${meta.name} — ${session.brandCompany}` : meta.name;
+
   return (
-    <Layout title={`${meta.name} Dashboard – CabinMind`}>
+    <Layout title={`${meta.name} Dashboard – ${brandName}`}>
       {/* Header bar */}
-      <div className={`bg-gradient-to-r ${meta.color} pt-16`}>
+      <div className={`bg-gradient-to-r ${meta.color} pt-16`} style={session.whiteLabel && session.brandColor ? { background: session.brandColor } : undefined}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-4">
-            <span className="text-5xl">{meta.icon}</span>
+            {session.whiteLabel && session.brandLogoUrl
+              ? <img src={session.brandLogoUrl} alt={brandName} className="h-12 w-12 object-contain rounded-lg bg-white/10" />
+              : <span className="text-5xl">{meta.icon}</span>}
             <div>
               <p className="text-white/70 text-sm font-medium">Your Dashboard</p>
-              <h1 className="text-3xl font-black text-white">{meta.name}</h1>
+              <h1 className="text-3xl font-black text-white">{displayName}</h1>
               <p className="text-white/60 text-sm mt-0.5">
                 {session.customerName && `${session.customerName} · `}{session.customerEmail}
               </p>
@@ -132,6 +161,7 @@ export default function DashboardPage() {
         {DashboardComponent ? (
           <DashboardComponent
             session={session}
+            dashboardToken={token}
             isPaid={true}
             initialPlan={
               session.agentId === 'lead-pro'    ? 'pro'
@@ -142,6 +172,26 @@ export default function DashboardPage() {
           />
         ) : (
           <div className="text-center py-24 text-gray-500">Dashboard coming soon.</div>
+        )}
+
+        {/* White-label branding (Agency plan only) */}
+        {session.agentId === 'lead-agency' && (
+          <div className="mt-16 border-t border-white/10 pt-8">
+            <h3 className="text-gray-500 text-xs uppercase tracking-widest font-semibold mb-4">White-Label Branding</h3>
+            <p className="text-gray-500 text-sm mb-4">Replace CabinMind branding on this dashboard with your own for client-facing resale.</p>
+            <div className="grid sm:grid-cols-3 gap-3 max-w-2xl">
+              <input value={brandForm.brandCompany} onChange={e => setBrandForm(f => ({ ...f, brandCompany: e.target.value }))}
+                placeholder="Your company name" className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50" />
+              <input value={brandForm.brandLogoUrl} onChange={e => setBrandForm(f => ({ ...f, brandLogoUrl: e.target.value }))}
+                placeholder="Logo URL" className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50" />
+              <input value={brandForm.brandColor} onChange={e => setBrandForm(f => ({ ...f, brandColor: e.target.value }))}
+                placeholder="Brand color (e.g. #7c3aed)" className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/50" />
+            </div>
+            <button onClick={saveBranding} disabled={brandSaving}
+              className="mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition">
+              {brandSaving ? 'Saving…' : brandSaved ? '✅ Saved' : 'Save Branding'}
+            </button>
+          </div>
         )}
 
         {/* Manage Subscription */}

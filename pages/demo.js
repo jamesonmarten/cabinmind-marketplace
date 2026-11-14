@@ -774,12 +774,12 @@ function LiveLeadsSection() {
             <div className="text-white font-black text-2xl mb-2">You've seen {DEMO_MAX_LEADS} real leads</div>
             <p className="text-gray-300 text-sm mb-1">
               Demo limit reached. Subscribe to unlock <strong className="text-white">full emails</strong>, direct LinkedIn
-              profiles, and <strong className="text-white">unlimited generation</strong>.
+              profiles, and <strong className="text-white">100 verified leads a month</strong>.
             </p>
             <div className="flex flex-wrap justify-center gap-3 mt-2 mb-6 text-xs text-gray-500">
               <span>✅ Full unblurred emails</span>
               <span>✅ Direct LinkedIn /in/ URLs</span>
-              <span>✅ Unlimited batches/month</span>
+              <span>✅ 100 leads/mo on Starter</span>
               <span>✅ Export to CSV</span>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
