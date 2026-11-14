@@ -20,3 +20,7 @@ data/ratelimit.json
 
 # Local run-log artifact (dev only)
 data/runs.json
+
+# Local dev artifacts
+data/usage.json
+supabase/.temp/
